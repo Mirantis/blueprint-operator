@@ -1,0 +1,27 @@
+# permissions for end users to view addons.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: addon-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: boundless-operator
+    app.kubernetes.io/part-of: boundless-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: addon-viewer-role
+rules:
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - addons
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - addons/status
+  verbs:
+  - get
