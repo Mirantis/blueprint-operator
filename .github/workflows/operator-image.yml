@@ -1,0 +1,30 @@
+name: Boundless Operator Docker Image CI
+
+on:
+  push:
+    branches: [ "main", "workflow" ]
+  pull_request:
+    types: [opened, reopened]
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.WORKFLOW_TOKEN }}
+
+      - name: Build docker image
+        working-directory: .
+        run: make docker-build
+
+      - name: Push docker image to ghcr.io
+        working-directory: .
+        run: make docker-push
