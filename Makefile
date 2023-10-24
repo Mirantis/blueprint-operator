@@ -29,7 +29,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # mirantis.com/boundless-operator-bundle:$VERSION and mirantis.com/boundless-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= mirantis.com/boundless-operator
+IMAGE_TAG_BASE ?= ghcr.io/mirantis/boundless-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
@@ -279,3 +279,7 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+
+.PHONY: build-operator-manifest
+build-operator-manifest: ## builds mke operator manifest file
+	@${KUSTOMIZE_BIN} build ${MKE_OPERATOR_BASE}/config/default > ./manifests/mke-operator.yaml
