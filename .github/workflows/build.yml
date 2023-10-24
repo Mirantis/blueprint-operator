@@ -1,4 +1,4 @@
-name: Boundless Operator Docker Image CI
+name: Build Boundless Operator Docker Image
 
 on:
   push:
