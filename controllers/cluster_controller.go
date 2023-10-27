@@ -55,10 +55,10 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	_ = log.FromContext(ctx)
 
 	logger := log.FromContext(ctx)
-	logger.Info("Reconcile request on MkeCluster instance", "Name", req.Name)
+	logger.Info("Reconcile request on Cluster instance", "Name", req.Name)
 	instance := &boundlessv1alpha1.Cluster{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-		logger.Error(err, "Failed to get MkeCluster instance")
+		logger.Error(err, "Failed to get Cluster instance")
 		return ctrl.Result{}, err
 	}
 

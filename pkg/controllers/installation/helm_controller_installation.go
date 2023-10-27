@@ -27,7 +27,7 @@ func InstallHelmController(ctx context.Context, runtimeClient client.Client, log
 	// create namespace
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "mke-system",
+			Name: "boundless-system",
 		},
 	}
 
@@ -130,7 +130,7 @@ func InstallHelmController(ctx context.Context, runtimeClient client.Client, log
 
 func CheckHelmControllerExists(ctx context.Context, runtimeClient client.Client) (bool, error) {
 	key := client.ObjectKey{
-		Namespace: "mke-system",
+		Namespace: "boundless-system",
 		Name:      "helm-controller",
 	}
 	if err := runtimeClient.Get(ctx, key, &v1.Deployment{}); err != nil {
@@ -145,7 +145,7 @@ func CheckHelmControllerExists(ctx context.Context, runtimeClient client.Client)
 
 func waitForDeploymentReady(ctx context.Context, runtimeClient client.Client, log logr.Logger) error {
 	key := client.ObjectKey{
-		Namespace: "mke-system",
+		Namespace: "boundless-system",
 		Name:      "helm-controller",
 	}
 	return wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {

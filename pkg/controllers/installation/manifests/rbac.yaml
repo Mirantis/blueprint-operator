@@ -83,7 +83,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: helm-controller
-    namespace: mke-system
+    namespace: boundless-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -96,4 +96,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: helm-controller
-    namespace: mke-system
+    namespace: boundless-system

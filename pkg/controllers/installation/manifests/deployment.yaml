@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: helm-controller
-  namespace: mke-system
+  namespace: boundless-system
   labels:
     app: helm-controller
 spec:

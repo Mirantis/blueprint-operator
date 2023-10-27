@@ -57,7 +57,7 @@ func (r *IngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	_ = log.FromContext(ctx)
 
 	logger := log.FromContext(ctx)
-	logger.Info("Reconcile request on MkeIngress instance", "Name", req.Name)
+	logger.Info("Reconcile request on Ingress instance", "Name", req.Name)
 
 	instance := &boundlessv1alpha1.Ingress{}
 	err = r.Get(ctx, req.NamespacedName, instance)

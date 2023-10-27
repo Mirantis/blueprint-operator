@@ -53,7 +53,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	_ = log.FromContext(ctx)
 
 	logger := log.FromContext(ctx)
-	logger.Info("Reconcile request on MkeAddon instance", "Name", req.Name)
+	logger.Info("Reconcile request on Addon instance", "Name", req.Name)
 
 	instance := &boundlessv1alpha1.Addon{}
 	err = r.Get(ctx, req.NamespacedName, instance)
