@@ -5,14 +5,14 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: helm-controller
-  namespace: mke-system
+  namespace: boundless-system
 `
 
 var HelmNamespace = `
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: mke-system
+  name: boundless-system
 `
 
 var HelmChart = `
@@ -232,7 +232,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: helm-controller
-  namespace: mke-system
+  namespace: boundless-system
   labels:
     app: helm-controller
 spec:
@@ -340,7 +340,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: helm-controller
-    namespace: mke-system
+    namespace: boundless-system
 `
 
 var HelmClusterRoleBinding2 = `
@@ -355,5 +355,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: helm-controller
-    namespace: mke-system
+    namespace: boundless-system
 `
