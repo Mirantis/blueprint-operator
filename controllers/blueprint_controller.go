@@ -16,33 +16,33 @@ import (
 	"github.com/mirantis/boundless-operator/pkg/controllers/installation"
 )
 
-// ClusterReconciler reconciles a Cluster object
-type ClusterReconciler struct {
+// BlueprintReconciler reconciles a Blueprint object
+type BlueprintReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=clusters,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=clusters/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=clusters/finalizers,verbs=update
+//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=blueprints,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=blueprints/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=blueprints/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the Cluster object against the actual cluster state, and then
+// the Blueprint object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
-func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
 	logger := log.FromContext(ctx)
-	logger.Info("Reconcile request on Cluster instance", "Name", req.Name)
-	instance := &boundlessv1alpha1.Cluster{}
+	logger.Info("Reconcile request on Blueprint instance", "Name", req.Name)
+	instance := &boundlessv1alpha1.Blueprint{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-		logger.Error(err, "Failed to get Cluster instance")
+		logger.Error(err, "Failed to get Blueprint instance")
 		return ctrl.Result{}, err
 	}
 
@@ -82,7 +82,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) createOrUpdateAddon(ctx context.Context, logger logr.Logger, obj client.Object) error {
+func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger logr.Logger, obj client.Object) error {
 	existing := &boundlessv1alpha1.Addon{}
 	err := r.Get(ctx, client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, existing)
 	if err != nil {
@@ -109,7 +109,7 @@ func (r *ClusterReconciler) createOrUpdateAddon(ctx context.Context, logger logr
 	return nil
 }
 
-func (r *ClusterReconciler) createOrUpdateIngress(ctx context.Context, logger logr.Logger, obj client.Object) error {
+func (r *BlueprintReconciler) createOrUpdateIngress(ctx context.Context, logger logr.Logger, obj client.Object) error {
 	existing := &boundlessv1alpha1.Ingress{}
 	err := r.Get(ctx, client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, existing)
 	if err != nil {
@@ -153,13 +153,14 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 
 func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	name := fmt.Sprintf("mke-%s", spec.Chart.Name)
-
 	return &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: v1.NamespaceDefault,
 		},
 		Spec: boundlessv1alpha1.AddonSpec{
+			Name:      spec.Name,
+			Namespace: spec.Namespace,
 			Chart: boundlessv1alpha1.Chart{
 				Name:    spec.Chart.Name,
 				Repo:    spec.Chart.Repo,
@@ -172,8 +173,8 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *BlueprintReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&boundlessv1alpha1.Cluster{}).
+		For(&boundlessv1alpha1.Blueprint{}).
 		Complete(r)
 }

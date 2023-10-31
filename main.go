@@ -85,7 +85,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Addon")
 		os.Exit(1)
 	}
-	if err = (&controllers.ClusterReconciler{
+	if err = (&controllers.BlueprintReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {

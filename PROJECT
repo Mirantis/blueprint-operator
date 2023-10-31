@@ -26,7 +26,7 @@ resources:
   controller: true
   domain: mirantis.com
   group: boundless
-  kind: Cluster
+  kind: Blueprint
   path: github.com/mirantis/boundless-operator/api/v1alpha1
   version: v1alpha1
 - api:

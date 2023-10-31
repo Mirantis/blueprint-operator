@@ -1,20 +1,20 @@
-# permissions for end users to edit clusters.
+# permissions for end users to edit blueprints.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: cluster-editor-role
+    app.kubernetes.io/instance: blueprint-editor-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: boundless-operator
     app.kubernetes.io/part-of: boundless-operator
     app.kubernetes.io/managed-by: kustomize
-  name: cluster-editor-role
+  name: blueprint-editor-role
 rules:
 - apiGroups:
   - boundless.mirantis.com
   resources:
-  - clusters
+  - blueprints
   verbs:
   - create
   - delete
@@ -26,6 +26,6 @@ rules:
 - apiGroups:
   - boundless.mirantis.com
   resources:
-  - clusters/status
+  - blueprints/status
   verbs:
   - get

@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.1
   creationTimestamp: null
-  name: clusters.boundless.mirantis.com
+  name: blueprints.boundless.mirantis.com
 spec:
   group: boundless.mirantis.com
   names:
-    kind: Cluster
-    listKind: ClusterList
-    plural: clusters
-    singular: cluster
+    kind: Blueprint
+    listKind: BlueprintList
+    plural: blueprints
+    singular: blueprint
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Cluster is the Schema for the clusters API
+        description: Blueprint is the Schema for the blueprints API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,7 +33,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: ClusterSpec defines the desired state of Cluster
+            description: BlueprintSpec defines the desired state of Blueprint
             properties:
               components:
                 description: Components contains all the components that should be
@@ -100,7 +100,7 @@ spec:
                 type: object
             type: object
           status:
-            description: ClusterStatus defines the observed state of Cluster
+            description: BlueprintStatus defines the observed state of Blueprint
             type: object
         type: object
     served: true
