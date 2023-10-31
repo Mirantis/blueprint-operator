@@ -3,4 +3,5 @@ resources:
 - boundless_v1alpha1_addon.yaml
 - boundless_v1alpha1_cluster.yaml
 - boundless_v1alpha1_ingress.yaml
+- boundless_v1alpha1_blueprint.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
