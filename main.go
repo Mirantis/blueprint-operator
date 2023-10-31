@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net"
 	"os"
 
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
@@ -37,13 +38,18 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
+type args struct {
+	metricsAddr          string
+	enableLeaderElection bool
+	probeAddr            string
+}
+
 func main() {
-	var metricsAddr string
-	var enableLeaderElection bool
-	var probeAddr string
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
+	args := args{}
+
+	flag.StringVar(&args.metricsAddr, "metrics-bind-address", "8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&args.probeAddr, "health-probe-bind-address", "8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&args.enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	opts := zap.Options{
@@ -52,14 +58,23 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	checkArgs(&args)
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		setupLog.Error(err, "unable to get kubeconfig")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
+		MetricsBindAddress:     ":" + args.metricsAddr,
 		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
+		HealthProbeBindAddress: ":" + args.probeAddr,
+		LeaderElection:         args.enableLeaderElection,
 		LeaderElectionID:       "a3fc41e4.mirantis.com",
 		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
 		// when the Manager ends. This requires the binary to immediately end when the
@@ -115,4 +130,34 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// checkArgs checks that the arguments are valid
+func checkArgs(args *args) {
+	// Check that the metrics port is available
+	ln, err := net.Listen("tcp", ":"+args.metricsAddr)
+	if err != nil {
+		setupLog.Error(err, "unable to listen on port", "port", args.metricsAddr)
+		flag.Usage()
+		os.Exit(1)
+	}
+	err = ln.Close()
+	if err != nil {
+		setupLog.Error(err, "unable to close port", "port", args.metricsAddr)
+		os.Exit(1)
+	}
+
+	// Check that the probe port is available
+	ln, err = net.Listen("tcp", ":"+args.probeAddr)
+	if err != nil {
+		setupLog.Error(err, "unable to listen on port", "port", args.probeAddr)
+		flag.Usage()
+		os.Exit(1)
+	}
+	err = ln.Close()
+	if err != nil {
+		setupLog.Error(err, "unable to close port", "port", args.probeAddr)
+		os.Exit(1)
+	}
+
 }
