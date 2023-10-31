@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -12,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg"
 	"github.com/mirantis/boundless-operator/pkg/controllers/installation"
 )
 
@@ -137,10 +137,11 @@ func (r *BlueprintReconciler) createOrUpdateIngress(ctx context.Context, logger 
 }
 
 func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ingress {
+	name := fmt.Sprintf("mke-%s", spec.Provider)
 	return &boundlessv1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      spec.Provider,
-			Namespace: pkg.NamespaceBoundlessSystem,
+			Name:      name,
+			Namespace: v1.NamespaceDefault,
 		},
 		Spec: boundlessv1alpha1.IngressSpec{
 			Enabled:  spec.Enabled,
@@ -151,10 +152,11 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 }
 
 func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
+	name := fmt.Sprintf("mke-%s", spec.Chart.Name)
 	return &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      spec.Name,
-			Namespace: pkg.NamespaceBoundlessSystem,
+			Name:      name,
+			Namespace: v1.NamespaceDefault,
 		},
 		Spec: boundlessv1alpha1.AddonSpec{
 			Name:      spec.Name,
