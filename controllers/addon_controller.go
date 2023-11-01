@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
@@ -52,11 +53,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	if instance.DeletionTimestamp != nil {
-		logger.Info("Should remove addon", "Name", req.Name)
-		return ctrl.Result{}, nil
-	}
-
 	chart := helm.Chart{
 		Name:    instance.Spec.Chart.Name,
 		Repo:    instance.Spec.Chart.Repo,
@@ -66,8 +62,42 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	hc := helm.NewHelmChartController(r.Client, logger)
+
+	addonFinalizerName := "boundless.mirantis.com/finalizer"
+
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then lets add the finalizer and update the object. This is equivalent
+		// registering our finalizer.
+		if !controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+			controllerutil.AddFinalizer(instance, addonFinalizerName)
+			if err := r.Update(ctx, instance); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+			// our finalizer is present, so lets delete the helm chart
+			if err := hc.DeleteHelmChart(chart, instance.Spec.Namespace); err != nil {
+				// if fail to delete the helm chart here, return with error
+				// so that it can be retried
+				return ctrl.Result{}, err
+			}
+
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(instance, addonFinalizerName)
+			if err := r.Update(ctx, instance); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, nil
+	}
+
 	logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-	if err2 := hc.CreateHelmChart(chart); err2 != nil {
+	if err2 := hc.CreateHelmChart(chart, instance.Spec.Namespace); err2 != nil {
 		logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 		return ctrl.Result{Requeue: true}, err2
 	}

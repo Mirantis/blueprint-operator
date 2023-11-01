@@ -115,7 +115,7 @@ func (r *IngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	hc := helm.NewHelmChartController(r.Client, logger)
 	logger.Info("Creating HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-	if err2 := hc.CreateHelmChart(chart); err2 != nil {
+	if err2 := hc.CreateHelmChart(chart, instance.Namespace); err2 != nil {
 		logger.Error(err, "failed to install ingress controller", "Controller Type", instance.Spec.Provider, "Version", "v1alpha1")
 		return ctrl.Result{Requeue: true}, err2
 	}
