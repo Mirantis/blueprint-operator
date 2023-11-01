@@ -18,12 +18,12 @@ type BlueprintSpec struct {
 
 // Component defines the core and addons components that should be installed
 type Component struct {
-	Core   Core        `json:"core,omitempty"`
+	Core   *Core       `json:"core,omitempty"`
 	Addons []AddonSpec `json:"addons,omitempty"`
 }
 
 type Core struct {
-	Ingress IngressSpec `json:"ingress,omitempty"`
+	Ingress *IngressSpec `json:"ingress,omitempty"`
 }
 
 // BlueprintStatus defines the observed state of Blueprint
