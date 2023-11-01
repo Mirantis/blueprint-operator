@@ -59,11 +59,13 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	logger.Info("Reconciling ingress")
-	err = r.createOrUpdateIngress(ctx, logger, ingressResource(&instance.Spec.Components.Core.Ingress))
-	if err != nil {
-		logger.Error(err, "Failed to reconcile ingress", "Name", instance.Spec.Components.Core.Ingress)
-		return ctrl.Result{Requeue: true}, err
+	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil {
+		logger.Info("Reconciling ingress")
+		err = r.createOrUpdateIngress(ctx, logger, ingressResource(instance.Spec.Components.Core.Ingress))
+		if err != nil {
+			logger.Error(err, "Failed to reconcile ingress", "Name", instance.Spec.Components.Core.Ingress)
+			return ctrl.Result{Requeue: true}, err
+		}
 	}
 
 	for _, addon := range instance.Spec.Components.Addons {
@@ -101,7 +103,7 @@ func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger lo
 		return nil
 	}
 
-	logger.Info("Creating add-on", "Name", existing.Name)
+	logger.Info("Creating add-on", "Name", obj.GetName())
 	err = r.Create(ctx, obj)
 	if err != nil {
 		return fmt.Errorf("failed to create add-on %s: %w", obj.GetName(), err)
@@ -128,7 +130,7 @@ func (r *BlueprintReconciler) createOrUpdateIngress(ctx context.Context, logger 
 		return nil
 	}
 
-	logger.Info("Creating ingress", "Name", existing.Name)
+	logger.Info("Creating ingress", "Name", obj.GetName())
 	err = r.Create(ctx, obj)
 	if err != nil {
 		return fmt.Errorf("failed to create ingress %s: %w", obj.GetName(), err)
