@@ -83,6 +83,8 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger logr.Logger, obj client.Object) error {
+	logger.Info("Sakshi:: Function createOrUpdateAddon() Enter", "OBJECT", obj)
+
 	existing := &boundlessv1alpha1.Addon{}
 	err := r.Get(ctx, client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, existing)
 	if err != nil {
@@ -90,6 +92,8 @@ func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger lo
 			return err
 		}
 	}
+
+	logger.Info("Sakshi::Creating Addon", "OBJECT", obj)
 
 	if existing.Name != "" {
 		logger.Info("Add-on already exists. Updating", "Name", existing.Name)
@@ -167,6 +171,9 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 				Version: spec.Chart.Version,
 				Set:     spec.Chart.Set,
 				Values:  spec.Chart.Values,
+			},
+			Manifest: boundlessv1alpha1.Manifest{
+				URL: spec.Manifest.URL,
 			},
 		},
 	}

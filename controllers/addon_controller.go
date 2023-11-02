@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"io"
+	"net/http"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -65,11 +67,37 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		Values:  instance.Spec.Chart.Values,
 	}
 
+	logger.Info("Sakshi:::Reconciler... instance details", "Name", instance.Spec.Chart.Name)
+
 	hc := helm.NewHelmChartController(r.Client, logger)
 	logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
 	if err2 := hc.CreateHelmChart(chart); err2 != nil {
 		logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 		return ctrl.Result{Requeue: true}, err2
+	}
+
+	// Code for manifest
+
+	var client http.Client
+	logger.Info("Sakshi:: URL received", "URL", instance.Spec.Manifest.URL)
+	resp, err := client.Get(instance.Spec.Manifest.URL)
+	if err != nil {
+		logger.Error(err, "failed to install addon : Manifest, Unable to read response")
+		return ctrl.Result{Requeue: true}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Error(err, "failed to install addon : Manifest, unable read bytes")
+			return ctrl.Result{Requeue: true}, err
+		}
+		bodyString := string(bodyBytes)
+		logger.Info("Sakshi:: BYTES RECEIVED::", "Body", bodyString)
+	} else {
+		logger.Error(err, "failed to install addon : Manifest, Http status NOT OK")
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	logger.Info("Finished reconcile request on MkeAddon instance", "Name", req.Name)

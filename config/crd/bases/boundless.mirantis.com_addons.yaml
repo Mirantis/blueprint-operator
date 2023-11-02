@@ -61,6 +61,13 @@ spec:
                 type: boolean
               kind:
                 type: string
+              manifest:
+                properties:
+                  url:
+                    type: string
+                required:
+                - url
+                type: object
               name:
                 type: string
               namespace:
@@ -69,6 +76,7 @@ spec:
             - chart
             - enabled
             - kind
+            - manifest
             - name
             type: object
           status:
