@@ -23,6 +23,9 @@ make docker-build docker-push IMG=<some-registry>/boundless-operator:tag
 
 3. Deploy the controller to the cluster with the image specified by `IMG`:
 
+
+
+
 ```sh
 make deploy IMG=<some-registry>/boundless-operator:tag
 ```
