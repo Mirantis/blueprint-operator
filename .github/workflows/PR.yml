@@ -1,0 +1,20 @@
+name: PR
+
+on:
+  pull_request:
+    types: ['opened', 'reopened', 'synchronize']
+    branches: [ "main" ]
+    paths:
+      - '**' # all files otherwise excludes wont work
+      - '!**/**/*.md' # ignore markdown files
+      - '!demo/**' # ignore demos folder
+      - '!sample/**' # ignore samples folder
+      - '!example/**' # ignore examples folder
+
+jobs:
+  vet:
+    uses: ./.github/workflows/vet.yml
+  unit-test:
+      uses: ./.github/workflows/unit.yml
+  build:
+    uses: ./.github/workflows/build.yml
