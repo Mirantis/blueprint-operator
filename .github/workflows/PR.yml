@@ -7,6 +7,9 @@ on:
     paths:
       - '**' # all files otherwise excludes wont work
       - '!**/**/*.md' # ignore markdown files
+      - '!demo/**' # ignore demos folder
+      - '!sample/**' # ignore samples folder
+      - '!example/**' # ignore examples folder
 
 jobs:
   vet:
