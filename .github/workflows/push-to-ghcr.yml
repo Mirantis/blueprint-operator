@@ -1,11 +1,10 @@
-name: Build and Push Docker Image
+name: Push docker image to ghcr.io
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_call:
 
 jobs:
-  build-and-push:
+  push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,9 +17,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build docker image
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: boundless-operator
+          path: /tmp
+
+      - name: Load docker image
         working-directory: .
-        run: make docker-build
+        run: docker load --input /tmp/boundless-operator.tar
 
       - name: Push docker image to ghcr.io
         working-directory: .

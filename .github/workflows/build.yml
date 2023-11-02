@@ -20,3 +20,16 @@ jobs:
       - name: Build docker image
         working-directory: .
         run: make docker-build
+
+      - name: Save docker image
+        if: ${{ github.event_name == 'release' || github.event_name == 'push'}} # release or push to main
+        working-directory: .
+        run: docker save ghcr.io/mirantis/boundless-operator:latest -o /tmp/boundless-operator.tar
+
+      - name: Upload docker image
+        if: ${{ github.event_name == 'release' || github.event_name == 'push'}} # release or push to main
+        uses: actions/upload-artifact@v3
+        with:
+          name: boundless-operator
+          retention-days: 1
+          path: /tmp/boundless-operator.tar
