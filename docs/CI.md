@@ -19,4 +19,4 @@ TODO: If you merge a change into main and an issue is found, you will be notifie
 
 ## Releases
 
-A release is triggered when a pre-release is created in the github repo. This will run EVERYTHING from scratch. Starting from zero may take more time but this ensures that nothing slips by us before sending out the release. This includes any static code analysis, unit tests, integration tests, and building the binaries. If everything passes, the same image will pushed with `latest`, `sha`, `semver`, and `dev` tags.
+A release is triggered when a pre-release is created in the github repo. This will run EVERYTHING from scratch. Starting from zero may take more time but this ensures that nothing slips by us before sending out the release. This includes any static code analysis, unit tests, integration tests, and building the binaries. If everything passes, the same image will pushed with `latest`, `sha`, `semver`, and `dev` tags. This process is documented in [Creating a release](docs/creating-a-release.md).
