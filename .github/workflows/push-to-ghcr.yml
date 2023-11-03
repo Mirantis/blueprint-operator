@@ -4,37 +4,75 @@ on:
   workflow_call:
 
 jobs:
-  # push-latest:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v3
+  push-latest:
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-  #     - name: Load environment
-  #       uses: c-py/action-dotenv-to-setenv@v4
-  #       with:
-  #         env-file: .github/development.env
+      - name: Load environment
+        uses: c-py/action-dotenv-to-setenv@v4
+        with:
+          env-file: .github/development.env
 
-  #     - name: Log in to the Container registry
-  #       uses: docker/login-action@v3.0.0
-  #       with:
-  #         registry: ${{ env.REGISTRY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3.0.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  #     - name: Download artifact
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: ${{ env.IMAGE }}
-  #         path: /tmp
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.IMAGE }}
+          path: /tmp
 
-  #     - name: Load docker image
-  #       working-directory: .
-  #       run: docker load --input /tmp/${{ env.IMAGE }}.tar
+      - name: Load docker image
+        working-directory: .
+        run: docker load --input /tmp/${{ env.IMAGE }}.tar
 
-  #     - name: Push latest image to ${{ env.REGISTRY }}
-  #       working-directory: .
-  #       run: make docker-push
+      - name: Push latest image to ${{ env.REGISTRY }}
+        working-directory: .
+        run: docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest
+
+  push-semver:
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Load environment
+        uses: c-py/action-dotenv-to-setenv@v4
+        with:
+          env-file: .github/development.env
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3.0.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.IMAGE }}
+          path: /tmp
+
+      - name: Load docker image
+        working-directory: .
+        run: docker load --input /tmp/${{ env.IMAGE }}.tar
+
+      - name: Push latest image to ${{ env.REGISTRY }}
+        working-directory: .
+        run: |
+          SEMVER=${GITHUB_REF#refs/*/}
+          echo ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
+          docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
 
   push-sha:
     if: ${{ github.event_name == 'push' }}
@@ -69,7 +107,7 @@ jobs:
         working-directory: .
         run: |
           COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
-          echo $COMMIT_SHA
+          echo ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
           docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
           docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
 
