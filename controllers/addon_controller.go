@@ -78,9 +78,8 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	// Code for manifest
-
 	var client http.Client
-	logger.Info("Sakshi:: URL received", "URL", instance.Spec.Manifest.URL)
+	logger.Info("URL received", "URL", instance.Spec.Manifest.URL)
 	resp, err := client.Get(instance.Spec.Manifest.URL)
 	if err != nil {
 		logger.Error(err, "failed to install addon : Manifest, Unable to read response")
@@ -94,11 +93,13 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			logger.Error(err, "failed to install addon : Manifest, unable read bytes")
 			return ctrl.Result{Requeue: true}, err
 		}
-		bodyString := string(bodyBytes)
-		logger.Info("Sakshi:: BYTES RECEIVED::", "Body", bodyString)
 
 		mc := manifest.NewManifestController(r.Client, logger)
-		_, _ = mc.Deserialize(bodyBytes)
+		_, err = mc.Deserialize(bodyBytes)
+		if err != nil {
+			logger.Error(err, "failed to deserialize manifest")
+			return ctrl.Result{Requeue: true}, err
+		}
 
 	} else {
 		logger.Error(err, "failed to install addon : Manifest, Http status NOT OK")
