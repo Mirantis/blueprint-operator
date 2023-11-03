@@ -13,6 +13,7 @@ import (
 
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
 	"github.com/mirantis/boundless-operator/pkg/helm"
+	"github.com/mirantis/boundless-operator/pkg/manifest"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -95,6 +96,10 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 		bodyString := string(bodyBytes)
 		logger.Info("Sakshi:: BYTES RECEIVED::", "Body", bodyString)
+
+		mc := manifest.NewManifestController(r.Client, logger)
+		_, _ = mc.Deserialize(bodyBytes)
+
 	} else {
 		logger.Error(err, "failed to install addon : Manifest, Http status NOT OK")
 		return ctrl.Result{Requeue: true}, err
