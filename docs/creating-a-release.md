@@ -4,7 +4,7 @@ The release process is automated using github actions that trigger when a releas
 
 1. Open releases on the github page
 2. Create a pre-release which includes
-  a. A tag for the latest commit on main. Use semantic versioning with a v. `vX.Y.Z`
+  a. A tag for the latest commit on main. Use semantic versioning: `X.Y.Z`
   b. The auto generated changelog
   c. Check the pre-release box
   d. Publish the release
