@@ -222,11 +222,9 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 }
 
 func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
-	name := fmt.Sprintf("mke-%s", spec.Chart.Name)
-
 	return &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      spec.Name,
 			Namespace: boundlessSystemNamespace,
 		},
 		Spec: boundlessv1alpha1.AddonSpec{
