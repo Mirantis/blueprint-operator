@@ -87,7 +87,7 @@ func (hc *Controller) DeleteHelmChart(chartSpec Chart, namespace string) error {
 
 	err = hc.client.Delete(ctx, &chart)
 	if err != nil {
-		hc.logger.Info("failed to delete helm chart", "ChartName", chart.GetName())
+		hc.logger.Error(err, "failed to delete helm chart", "ChartName", chart.GetName())
 		return err
 	}
 

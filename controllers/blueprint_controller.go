@@ -246,7 +246,7 @@ func (r *BlueprintReconciler) createNamespaceIfNotExist(ctx context.Context, log
 	err := r.Get(ctx, client.ObjectKey{Name: namespace}, &ns)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			logger.Info("namespace does not exist, need to create", "Namespace", namespace)
+			logger.Info("namespace does not exist, creating", "Namespace", namespace)
 			ns.ObjectMeta.Name = namespace
 			err = r.Create(ctx, &ns)
 			if err != nil {
