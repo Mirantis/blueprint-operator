@@ -12,6 +12,7 @@ import (
 
 	apps_v1 "k8s.io/api/apps/v1"
 	core_v1 "k8s.io/api/core/v1"
+	policy_v1 "k8s.io/api/policy/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
@@ -43,6 +44,8 @@ func (mc *ManifestController) Deserialize(data []byte) (*client.Object, error) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
+
+		mc.logger.Info("The object recvd is:", "Kind", groupVersionKind.Kind)
 
 		switch groupVersionKind.Kind {
 		case "Namespace":
@@ -84,6 +87,61 @@ func (mc *ManifestController) Deserialize(data []byte) (*client.Object, error) {
 			}
 			mc.logger.Info("Deployment created successfully:", "Deployment", deploymentObj.Name)
 
+		case "DaemonSet":
+			// @TODO: create the daemonSet if it doesn't exist
+			daemonsetObj := convertToDaemonsetObject(runtimeObject)
+			mc.logger.Info("Creating daemonset", "Name", daemonsetObj.Name)
+			mc.logger.Info("Creating daemonset", "Spec", daemonsetObj.Spec)
+			if daemonsetObj.Namespace == "" {
+				daemonsetObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, daemonsetObj)
+			if err != nil {
+				mc.logger.Info("Failed to create daemonset:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("daemonset created successfully:", "Daemonset", daemonsetObj.Name)
+
+		case "PodDisruptionBudget":
+			pdbObj := convertToPodDisruptionBudget(runtimeObject)
+			mc.logger.Info("Creating pod disruption budget", "Name", pdbObj.Name)
+			mc.logger.Info("Creating pdb", "Spec", pdbObj.Spec)
+			if pdbObj.Namespace == "" {
+				pdbObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, pdbObj)
+			if err != nil {
+				mc.logger.Info("Failed to create pod disruption budget:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("Pod disruption budget created successfully:", "PodDisruptionBudget", pdbObj.Name)
+
+		case "ServiceAccount":
+			serviceAccObj := convertToServiceAccount(runtimeObject)
+			mc.logger.Info("Creating service account", "Name", serviceAccObj.Name)
+			if serviceAccObj.Namespace == "" {
+				serviceAccObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, serviceAccObj)
+			if err != nil {
+				mc.logger.Info("Failed to create service account:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("service account created successfully:", "ServiceAccount", serviceAccObj.Name)
+
+		case "CustomResourceDefinition":
+			crdObj := convertToCRDObject(runtimeObject)
+			mc.logger.Info("Creating CRD", "Name", crdObj.Name)
+			/*if crdObj.Namespace == "" {
+			    crdObj.Namespace = "default"
+			}*/
+			err = mc.client.Create(ctx, crdObj)
+			if err != nil {
+				mc.logger.Info("Failed to create crd:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("crd created successfully:", "CRD", crdObj.Name)
+
 		default:
 			mc.logger.Info("Object kind not supported", "Kind", groupVersionKind.Kind)
 		}
@@ -104,5 +162,25 @@ func convertToServiceObject(obj runtime.Object) *core_v1.Service {
 
 func convertToDeploymentObject(obj runtime.Object) *apps_v1.Deployment {
 	myobj := obj.(*apps_v1.Deployment)
+	return myobj
+}
+
+func convertToPodDisruptionBudget(obj runtime.Object) *policy_v1.PodDisruptionBudget {
+	myobj := obj.(*policy_v1.PodDisruptionBudget)
+	return myobj
+}
+
+func convertToServiceAccount(obj runtime.Object) *core_v1.ServiceAccount {
+	myobj := obj.(*core_v1.ServiceAccount)
+	return myobj
+}
+
+func convertToCRDObject(obj runtime.Object) *apiextensionsv1.CustomResourceDefinition {
+	myobj := obj.(*apiextensionsv1.CustomResourceDefinition)
+	return myobj
+}
+
+func convertToDaemonsetObject(obj runtime.Object) *apps_v1.DaemonSet {
+	myobj := obj.(*apps_v1.DaemonSet)
 	return myobj
 }
