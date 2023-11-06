@@ -1,0 +1,19 @@
+name: Merge
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  vet:
+    uses: ./.github/workflows/vet.yml
+  unit-test:
+      uses: ./.github/workflows/unit.yml
+  build:
+    uses: ./.github/workflows/build.yml
+  # TODO add integration tests
+  push-to-ghcr:
+    if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # if all `needs` jobs are successful
+    needs: [vet, unit-test, build]
+    uses: ./.github/workflows/push-to-ghcr.yml

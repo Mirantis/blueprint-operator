@@ -14,8 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const namespaceDefault = metav1.NamespaceDefault
-
 type Chart struct {
 	Name    string                        `yaml:"name"`
 	Repo    string                        `yaml:"repo"`
@@ -36,15 +34,15 @@ func NewHelmChartController(client client.Client, logger logr.Logger) *Controlle
 	}
 }
 
-func (hc *Controller) CreateHelmChart(chartSpec Chart) error {
+func (hc *Controller) CreateHelmChart(chartSpec Chart, namespace string) error {
 
 	helmChart := helmv1.HelmChart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      chartSpec.Name,
-			Namespace: namespaceDefault,
+			Namespace: namespace,
 		},
 		Spec: helmv1.HelmChartSpec{
-			TargetNamespace: namespaceDefault,
+			TargetNamespace: namespace,
 			Chart:           chartSpec.Name,
 			Version:         chartSpec.Version,
 			Repo:            chartSpec.Repo,
@@ -56,17 +54,51 @@ func (hc *Controller) CreateHelmChart(chartSpec Chart) error {
 	return hc.createOrUpdateHelmChart(helmChart)
 }
 
-func (hc *Controller) createOrUpdateHelmChart(chart helmv1.HelmChart) error {
-	//log.Infof("Creating helm chart '%+v'", chart)
+func (hc *Controller) DeleteHelmChart(chartSpec Chart, namespace string) error {
+
+	chart := helmv1.HelmChart{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      chartSpec.Name,
+			Namespace: namespace,
+		},
+		Spec: helmv1.HelmChartSpec{
+			TargetNamespace: namespace,
+			Chart:           chartSpec.Name,
+			Version:         chartSpec.Version,
+			Repo:            chartSpec.Repo,
+			Set:             chartSpec.Set,
+			ValuesContent:   chartSpec.Values,
+		},
+	}
+
 	// set a deadline for the Kubernetes API operations
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// @TODO: create the namespace if it doesn't exist
-	//err := hc.createNsIfNotExists(ctx, chart.Namespace)
-	//if err != nil {
-	//	return fmt.Errorf("failed to create namespace: %w", err)
-	//}
+	existing, err := hc.getExistingHelmChart(ctx, chart.Namespace, chart.Name)
+	if err != nil {
+		return err
+	}
+
+	if existing == nil {
+		hc.logger.Info("helm chart to clean up does not exist", "ChartName", chart.GetName())
+		return nil
+	}
+
+	err = hc.client.Delete(ctx, &chart)
+	if err != nil {
+		hc.logger.Error(err, "failed to delete helm chart", "ChartName", chart.GetName())
+		return err
+	}
+
+	hc.logger.Info("helm chart successfully deleted", "ChartName", chart.GetName())
+	return nil
+}
+
+func (hc *Controller) createOrUpdateHelmChart(chart helmv1.HelmChart) error {
+	// set a deadline for the Kubernetes API operations
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 
 	existing, err := hc.getExistingHelmChart(ctx, chart.Namespace, chart.Name)
 	if err != nil {
@@ -80,7 +112,7 @@ func (hc *Controller) createOrUpdateHelmChart(chart helmv1.HelmChart) error {
 		err = hc.client.Update(ctx, &chart)
 		hc.logger.Info("helm chart updated", "ChartName", chart.GetName())
 	} else {
-		hc.logger.Info("helm chart does not exists, creating", "ChartName", chart.GetName())
+		hc.logger.Info("helm chart does not exists, creating", "ChartName", chart.GetName(), "Namespace", chart.GetNamespace())
 		err = hc.client.Create(ctx, &chart)
 		if err != nil {
 			return err
