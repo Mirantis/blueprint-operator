@@ -13,6 +13,8 @@ import (
 	apps_v1 "k8s.io/api/apps/v1"
 	core_v1 "k8s.io/api/core/v1"
 	policy_v1 "k8s.io/api/policy/v1"
+	rbac_v1 "k8s.io/api/rbac/v1"
+
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
@@ -52,11 +54,16 @@ func (mc *ManifestController) Deserialize(data []byte) (*client.Object, error) {
 			// @TODO: create the namespace if it doesn't exist
 			namespaceObj := convertToNamespaceObject(runtimeObject)
 			mc.logger.Info("Creating namespace", "Namespace", namespaceObj.Name)
-			err = mc.client.Create(ctx, namespaceObj)
+			err := mc.client.Create(ctx, namespaceObj)
 			if err != nil {
+				if strings.Contains(err.Error(), "already exists") {
+					mc.logger.Info("Namespace already exists:", "Namespace", namespaceObj.Name)
+					return nil, nil
+				}
 				return nil, err
 			}
 			mc.logger.Info("Namespace created successfully:", "Namespace", namespaceObj.Name)
+
 		case "Service":
 			// @TODO: create the service if it doesn't exist
 			serviceObj := convertToServiceObject(runtimeObject)
@@ -129,6 +136,32 @@ func (mc *ManifestController) Deserialize(data []byte) (*client.Object, error) {
 			}
 			mc.logger.Info("service account created successfully:", "ServiceAccount", serviceAccObj.Name)
 
+		case "Role":
+			roleObj := convertToRoleObject(runtimeObject)
+			mc.logger.Info("Creating role", "Name", roleObj.Name)
+			if roleObj.Namespace == "" {
+				roleObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, roleObj)
+			if err != nil {
+				mc.logger.Info("Failed to create role:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("Role created successfully:", "Role", roleObj.Name)
+
+		case "ClusterRole":
+			clusterRoleObj := convertToClusterRoleObject(runtimeObject)
+			mc.logger.Info("Creating clusterrole", "Name", clusterRoleObj.Name)
+			if clusterRoleObj.Namespace == "" {
+				clusterRoleObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, clusterRoleObj)
+			if err != nil {
+				mc.logger.Info("Failed to create clusterrole:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("ClusterRole created successfully:", "Role", clusterRoleObj.Name)
+
 		case "CustomResourceDefinition":
 			crdObj := convertToCRDObject(runtimeObject)
 			mc.logger.Info("Creating CRD", "Name", crdObj.Name)
@@ -182,5 +215,15 @@ func convertToCRDObject(obj runtime.Object) *apiextensionsv1.CustomResourceDefin
 
 func convertToDaemonsetObject(obj runtime.Object) *apps_v1.DaemonSet {
 	myobj := obj.(*apps_v1.DaemonSet)
+	return myobj
+}
+
+func convertToRoleObject(obj runtime.Object) *rbac_v1.Role {
+	myobj := obj.(*rbac_v1.Role)
+	return myobj
+}
+
+func convertToClusterRoleObject(obj runtime.Object) *rbac_v1.ClusterRole {
+	myobj := obj.(*rbac_v1.ClusterRole)
 	return myobj
 }
