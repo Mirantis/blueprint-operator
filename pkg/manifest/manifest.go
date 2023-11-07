@@ -2,6 +2,8 @@ package manifest
 
 import (
 	"context"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -32,7 +34,48 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 	}
 }
 
-func (mc *ManifestController) Deserialize(data []byte) (*client.Object, error) {
+func (mc *ManifestController) CreateManifest(url string) error {
+	var client http.Client
+	mc.logger.Info("url received", "URL", url)
+
+	// Run http get request to fetch teh contents of the manifest
+	resp, err := client.Get(url)
+	if err != nil {
+		mc.logger.Error(err, "failed to run Unable to read response")
+		return err
+	}
+	defer resp.Body.Close()
+
+	var bodyBytes []byte
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err = io.ReadAll(resp.Body)
+		if err != nil {
+			mc.logger.Error(err, "failed to read http response body")
+			return err
+		}
+
+	} else {
+		mc.logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
+		return err
+	}
+
+	return mc.createOrUpdateManifest(bodyBytes)
+}
+
+func (mc *ManifestController) createOrUpdateManifest(bodyBytes []byte) error {
+	/* @TODO: Add code to check if manifest is already created
+	 */
+
+	// Deserialize the manifest contents and fetch all the objects
+	_, err := mc.Deserialize(bodyBytes)
+	if err != nil {
+		mc.logger.Error(err, "failed to deserialize manifest")
+		return err
+	}
+	return nil
+}
+
+func (mc *ManifestController) Deserialize(data []byte) ([]*runtime.Object, error) {
 	apiextensionsv1.AddToScheme(scheme.Scheme)
 	apiextensionsv1beta1.AddToScheme(scheme.Scheme)
 	adm_v1.AddToScheme(scheme.Scheme)

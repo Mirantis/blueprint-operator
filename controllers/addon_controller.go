@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"context"
-	"io"
-	"net/http"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -67,6 +65,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	logger.Info("Reconciler instance details", "Name", instance.Spec.Chart.Name)
 
 	hc := helm.NewHelmChartController(r.Client, logger)
+	mc := manifest.NewManifestController(r.Client, logger)
 
 	addonFinalizerName := "boundless.mirantis.com/finalizer"
 
@@ -108,31 +107,9 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	// Code for manifest
-	var client http.Client
-	logger.Info("URL received", "URL", instance.Spec.Manifest.URL)
-	resp, err := client.Get(instance.Spec.Manifest.URL)
+	err = mc.CreateManifest(instance.Spec.Manifest.URL)
 	if err != nil {
-		logger.Error(err, "failed to install addon : Manifest, Unable to read response")
-		return ctrl.Result{Requeue: true}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error(err, "failed to install addon : Manifest, unable read bytes")
-			return ctrl.Result{Requeue: true}, err
-		}
-
-		mc := manifest.NewManifestController(r.Client, logger)
-		_, err = mc.Deserialize(bodyBytes)
-		if err != nil {
-			logger.Error(err, "failed to deserialize manifest")
-			return ctrl.Result{Requeue: true}, err
-		}
-
-	} else {
-		logger.Error(err, "failed to install addon : Manifest, Http status NOT OK")
+		logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 		return ctrl.Result{Requeue: true}, err
 	}
 
