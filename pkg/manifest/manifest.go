@@ -10,6 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	adm_v1 "k8s.io/api/admissionregistration/v1"
 	apps_v1 "k8s.io/api/apps/v1"
 	core_v1 "k8s.io/api/core/v1"
 	policy_v1 "k8s.io/api/policy/v1"
@@ -162,6 +163,58 @@ func (mc *ManifestController) Deserialize(data []byte) (*client.Object, error) {
 			}
 			mc.logger.Info("ClusterRole created successfully:", "Role", clusterRoleObj.Name)
 
+		case "Secret":
+			secretObj := convertToSecretObject(runtimeObject)
+			mc.logger.Info("Creating secret", "Name", secretObj.Name)
+			if secretObj.Namespace == "" {
+				secretObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, secretObj)
+			if err != nil {
+				mc.logger.Info("Failed to create secret:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("secret created successfully:", "Secret", secretObj.Name)
+
+		case "RoleBinding":
+			roleBindingObj := convertToRoleBindingObject(runtimeObject)
+			mc.logger.Info("Creating role binding", "Name", roleBindingObj.Name)
+			if roleBindingObj.Namespace == "" {
+				roleBindingObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, roleBindingObj)
+			if err != nil {
+				mc.logger.Info("Failed to create role binding:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("role binding created successfully:", "RoleBinding", roleBindingObj.Name)
+
+		case "ClusterRoleBinding":
+			clusterRoleBindingObj := convertToClusterRoleBindingObject(runtimeObject)
+			mc.logger.Info("Creating cluster role binding", "Name", clusterRoleBindingObj.Name)
+			/*if clusterRoleBindingObj.Namespace == "" {
+			    roleBindingObj.Namespace = "default"
+			}*/
+			err = mc.client.Create(ctx, clusterRoleBindingObj)
+			if err != nil {
+				mc.logger.Info("Failed to create cluster role binding:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("cluster role binding created successfully:", "ClusterRoleBinding", clusterRoleBindingObj.Name)
+
+		case "ConfigMap":
+			configMapObj := convertToConfigMapObject(runtimeObject)
+			mc.logger.Info("Creating configmap", "Name", configMapObj.Name)
+			if configMapObj.Namespace == "" {
+				configMapObj.Namespace = "default"
+			}
+			err = mc.client.Create(ctx, configMapObj)
+			if err != nil {
+				mc.logger.Info("Failed to create configmap:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("configmap created successfully:", "ConfigMap", configMapObj.Name)
+
 		case "CustomResourceDefinition":
 			crdObj := convertToCRDObject(runtimeObject)
 			mc.logger.Info("Creating CRD", "Name", crdObj.Name)
@@ -174,6 +227,19 @@ func (mc *ManifestController) Deserialize(data []byte) (*client.Object, error) {
 				return nil, err
 			}
 			mc.logger.Info("crd created successfully:", "CRD", crdObj.Name)
+
+		case "ValidatingWebhookConfiguration":
+			webhookObj := convertToValidatingWebhookObject(runtimeObject)
+			mc.logger.Info("Creating validating webhook", "Name", webhookObj.Name)
+			/*if crdObj.Namespace == "" {
+			    crdObj.Namespace = "default"
+			}*/
+			err = mc.client.Create(ctx, webhookObj)
+			if err != nil {
+				mc.logger.Info("Failed to create validating webhook:", "Error", err)
+				return nil, err
+			}
+			mc.logger.Info("validating webhook created successfully:", "ValidatingWebhook", webhookObj.Name)
 
 		default:
 			mc.logger.Info("Object kind not supported", "Kind", groupVersionKind.Kind)
@@ -225,5 +291,30 @@ func convertToRoleObject(obj runtime.Object) *rbac_v1.Role {
 
 func convertToClusterRoleObject(obj runtime.Object) *rbac_v1.ClusterRole {
 	myobj := obj.(*rbac_v1.ClusterRole)
+	return myobj
+}
+
+func convertToRoleBindingObject(obj runtime.Object) *rbac_v1.RoleBinding {
+	myobj := obj.(*rbac_v1.RoleBinding)
+	return myobj
+}
+
+func convertToClusterRoleBindingObject(obj runtime.Object) *rbac_v1.ClusterRoleBinding {
+	myobj := obj.(*rbac_v1.ClusterRoleBinding)
+	return myobj
+}
+
+func convertToSecretObject(obj runtime.Object) *core_v1.Secret {
+	myobj := obj.(*core_v1.Secret)
+	return myobj
+}
+
+func convertToConfigMapObject(obj runtime.Object) *core_v1.ConfigMap {
+	myobj := obj.(*core_v1.ConfigMap)
+	return myobj
+}
+
+func convertToValidatingWebhookObject(obj runtime.Object) *adm_v1.ValidatingWebhookConfiguration {
+	myobj := obj.(*adm_v1.ValidatingWebhookConfiguration)
 	return myobj
 }
