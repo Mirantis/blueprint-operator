@@ -83,3 +83,29 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests/status
+  verbs:
+  - get
+  - patch
+  - update

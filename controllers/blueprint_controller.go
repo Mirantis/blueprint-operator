@@ -237,8 +237,8 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 				Set:     spec.Chart.Set,
 				Values:  spec.Chart.Values,
 			},
-			Manifest: boundlessv1alpha1.Manifest{
-				URL: spec.Manifest.URL,
+			Mani: boundlessv1alpha1.Mani{
+				URL: spec.Mani.URL,
 			},
 		},
 	}

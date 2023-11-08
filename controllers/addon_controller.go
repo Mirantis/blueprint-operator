@@ -107,9 +107,10 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	// Code for manifest
-	err = mc.CreateManifest(instance.Spec.Manifest.URL)
+	logger.Info("Sakshi::Creating manifest", "URL", instance.Spec.Mani.URL)
+	err = mc.CreateManifest(instance.Spec.Namespace, instance.Spec.Mani.URL)
 	if err != nil {
-		logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
+		logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Mani.URL)
 		return ctrl.Result{Requeue: true}, err
 	}
 

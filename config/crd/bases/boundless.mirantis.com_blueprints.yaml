@@ -69,7 +69,7 @@ spec:
                           type: boolean
                         kind:
                           type: string
-                        manifest:
+                        mani:
                           properties:
                             url:
                               type: string
@@ -84,7 +84,7 @@ spec:
                       - chart
                       - enabled
                       - kind
-                      - manifest
+                      - mani
                       - name
                       type: object
                     type: array
