@@ -62,7 +62,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil {
+	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil && instance.Spec.Components.Core.Ingress.Provider != "" {
 		logger.Info("Reconciling ingress")
 		err = r.createOrUpdateIngress(ctx, logger, ingressResource(instance.Spec.Components.Core.Ingress))
 		if err != nil {
