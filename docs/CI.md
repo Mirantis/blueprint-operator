@@ -14,9 +14,6 @@ CI for a PR will trigger whenever a PR is opened, reopened, or pushed. The jobs 
 
 Merging to main runs many of the same tests as a PR to verify that merging the code didn't introduce any new issues. Merging will also run integration tests to verify that the code works with the rest of the system as these tests require more setup and take longer to run. After all of the steps successfully run, the same image will be pushed with the commit `sha` and `dev` tags.
 
-TODO: code coverage
-TODO: If you merge a change into main and an issue is found, you will be notified on slack that you have broken main and need to fix it.
-
 ## Releases
 
 A release is triggered when a pre-release is created in the github repo. This will run EVERYTHING from scratch. Starting from zero may take more time but this ensures that nothing slips by us before sending out the release. This includes any static code analysis, unit tests, integration tests, and building the binaries. If everything passes, the same image will pushed with `latest`, `sha`, `semver`, and `dev` tags. This process is documented in [Creating a release](docs/creating-a-release.md).
