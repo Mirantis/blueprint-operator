@@ -1,0 +1,33 @@
+name: e2e
+
+on:
+  workflow_call:
+
+jobs:
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Load environment
+        uses: c-py/action-dotenv-to-setenv@v4
+        with:
+          env-file: .github/development.env
+
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.8.0
+        with:
+          cluster_name: bctl-e2e-cluster
+          node_image: ${{ env.KIND_CLUSTER_VERSION }}
+
+      - name: Run E2E tests
+        run: go test ./test -v
