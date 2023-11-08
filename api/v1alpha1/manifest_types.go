@@ -1,9 +1,7 @@
 package v1alpha1
 
 import (
-	core_v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//"k8s.io/apimachinery/pkg/runtime"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -15,8 +13,7 @@ type ManifestSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Manifest. Edit manifest_types.go to remove/update
-	Url       string             `json:"url,omitempty"`
-	Namespace *core_v1.Namespace `json:"namespace,omitempty"`
+	Url string `json:"url,omitempty"`
 }
 
 // ManifestStatus defines the observed state of Manifest

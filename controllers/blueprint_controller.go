@@ -222,6 +222,7 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 }
 
 func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
+
 	return &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
@@ -230,6 +231,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 		Spec: boundlessv1alpha1.AddonSpec{
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
+			Kind:      spec.Kind,
 			Chart: boundlessv1alpha1.Chart{
 				Name:    spec.Chart.Name,
 				Repo:    spec.Chart.Repo,
@@ -237,8 +239,8 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 				Set:     spec.Chart.Set,
 				Values:  spec.Chart.Values,
 			},
-			Mani: boundlessv1alpha1.Mani{
-				URL: spec.Mani.URL,
+			Manifest: boundlessv1alpha1.ManifestInfo{
+				URL: spec.Manifest.URL,
 			},
 		},
 	}

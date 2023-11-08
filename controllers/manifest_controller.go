@@ -33,7 +33,8 @@ type ManifestReconciler struct {
 func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	logger := log.FromContext(ctx)
+	logger.Info("Reconcile request on Manifest instance")
 
 	return ctrl.Result{}, nil
 }

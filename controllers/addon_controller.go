@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,64 +55,69 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	chart := helm.Chart{
-		Name:    instance.Spec.Chart.Name,
-		Repo:    instance.Spec.Chart.Repo,
-		Version: instance.Spec.Chart.Version,
-		Set:     instance.Spec.Chart.Set,
-		Values:  instance.Spec.Chart.Values,
-	}
-
-	logger.Info("Reconciler instance details", "Name", instance.Spec.Chart.Name)
-
-	hc := helm.NewHelmChartController(r.Client, logger)
-	mc := manifest.NewManifestController(r.Client, logger)
-
-	addonFinalizerName := "boundless.mirantis.com/finalizer"
-
-	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
-		// The object is not being deleted, so if it does not have our finalizer,
-		// then lets add the finalizer and update the object. This is equivalent
-		// registering our finalizer.
-		if !controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
-			controllerutil.AddFinalizer(instance, addonFinalizerName)
-			if err := r.Update(ctx, instance); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	} else {
-		// The object is being deleted
-		if controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
-			// our finalizer is present, so lets delete the helm chart
-			if err := hc.DeleteHelmChart(chart, instance.Spec.Namespace); err != nil {
-				// if fail to delete the helm chart here, return with error
-				// so that it can be retried
-				return ctrl.Result{}, err
-			}
-
-			// remove our finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(instance, addonFinalizerName)
-			if err := r.Update(ctx, instance); err != nil {
-				return ctrl.Result{}, err
-			}
+	switch instance.Spec.Kind {
+	case "chart":
+		chart := helm.Chart{
+			Name:    instance.Spec.Chart.Name,
+			Repo:    instance.Spec.Chart.Repo,
+			Version: instance.Spec.Chart.Version,
+			Set:     instance.Spec.Chart.Set,
+			Values:  instance.Spec.Chart.Values,
 		}
 
-		// Stop reconciliation as the item is being deleted
-		return ctrl.Result{}, nil
-	}
+		logger.Info("Reconciler instance details", "Name", instance.Spec.Chart.Name)
 
-	logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-	if err2 := hc.CreateHelmChart(chart, instance.Spec.Namespace); err2 != nil {
-		logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
-		return ctrl.Result{Requeue: true}, err2
-	}
+		hc := helm.NewHelmChartController(r.Client, logger)
 
-	// Code for manifest
-	logger.Info("Sakshi::Creating manifest", "URL", instance.Spec.Mani.URL)
-	err = mc.CreateManifest(instance.Spec.Namespace, instance.Spec.Mani.URL)
-	if err != nil {
-		logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Mani.URL)
-		return ctrl.Result{Requeue: true}, err
+		addonFinalizerName := "boundless.mirantis.com/finalizer"
+
+		if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+			// The object is not being deleted, so if it does not have our finalizer,
+			// then lets add the finalizer and update the object. This is equivalent
+			// registering our finalizer.
+			if !controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+				controllerutil.AddFinalizer(instance, addonFinalizerName)
+				if err := r.Update(ctx, instance); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+		} else {
+			// The object is being deleted
+			if controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+				// our finalizer is present, so lets delete the helm chart
+				if err := hc.DeleteHelmChart(chart, instance.Spec.Namespace); err != nil {
+					// if fail to delete the helm chart here, return with error
+					// so that it can be retried
+					return ctrl.Result{}, err
+				}
+
+				// remove our finalizer from the list and update it.
+				controllerutil.RemoveFinalizer(instance, addonFinalizerName)
+				if err := r.Update(ctx, instance); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+
+			// Stop reconciliation as the item is being deleted
+			return ctrl.Result{}, nil
+		}
+
+		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
+		if err2 := hc.CreateHelmChart(chart, instance.Spec.Namespace); err2 != nil {
+			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
+			return ctrl.Result{Requeue: true}, err2
+		}
+	case "manifest":
+		mc := manifest.NewManifestController(r.Client, logger)
+		err = mc.CreateManifest(instance.Spec.Namespace, instance.Spec.Name, instance.Spec.Manifest.URL)
+		if err != nil {
+			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
+			return ctrl.Result{Requeue: true}, err
+		}
+
+	default:
+		logger.Info("Unknown AddOn kind", "Kind", instance.Spec.Kind)
+		return ctrl.Result{Requeue: false}, fmt.Errorf("Unknown AddOn Kind: %w", err)
 	}
 
 	logger.Info("Finished reconcile request on MkeAddon instance", "Name", req.Name)

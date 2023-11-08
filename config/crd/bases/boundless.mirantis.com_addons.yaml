@@ -61,7 +61,7 @@ spec:
                 type: boolean
               kind:
                 type: string
-              mani:
+              manifest:
                 properties:
                   url:
                     type: string
@@ -73,10 +73,8 @@ spec:
               namespace:
                 type: string
             required:
-            - chart
             - enabled
             - kind
-            - mani
             - name
             type: object
           status:
