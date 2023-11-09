@@ -73,7 +73,7 @@ func (mc *ManifestController) createOrUpdateManifest(namespace, name, url string
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	existing, err := mc.getExistingManifest(ctx, namespace, "ss-ns")
+	existing, err := mc.getExistingManifest(ctx, namespace, name)
 	if err != nil {
 		return err
 	}
