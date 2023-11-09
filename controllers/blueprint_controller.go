@@ -232,7 +232,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Kind:      spec.Kind,
-			Chart: boundlessv1alpha1.Chart{
+			Chart: boundlessv1alpha1.ChartInfo{
 				Name:    spec.Chart.Name,
 				Repo:    spec.Chart.Repo,
 				Version: spec.Chart.Version,

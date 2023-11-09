@@ -16,6 +16,11 @@ import (
 	"github.com/mirantis/boundless-operator/pkg/manifest"
 )
 
+const (
+	typeManifest = "manifest"
+	typeChart    = "chart"
+)
+
 // AddonReconciler reconciles a Addon object
 type AddonReconciler struct {
 	client.Client
@@ -56,7 +61,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	switch instance.Spec.Kind {
-	case "chart":
+	case typeChart:
 		chart := helm.Chart{
 			Name:    instance.Spec.Chart.Name,
 			Repo:    instance.Spec.Chart.Repo,
@@ -103,11 +108,11 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 
 		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-		if err2 := hc.CreateHelmChart(chart, instance.Spec.Namespace); err2 != nil {
+		if err := hc.CreateHelmChart(chart, instance.Spec.Namespace); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
-			return ctrl.Result{Requeue: true}, err2
+			return ctrl.Result{Requeue: true}, err
 		}
-	case "manifest":
+	case typeManifest:
 		mc := manifest.NewManifestController(r.Client, logger)
 		err = mc.CreateManifest(instance.Spec.Namespace, instance.Spec.Name, instance.Spec.Manifest.URL)
 		if err != nil {

@@ -17,11 +17,11 @@ type AddonSpec struct {
 	Kind      string       `json:"kind"`
 	Enabled   bool         `json:"enabled"`
 	Namespace string       `json:"namespace,omitempty"`
-	Chart     Chart        `json:"chart,omitempty"`
+	Chart     ChartInfo    `json:"chart,omitempty"`
 	Manifest  ManifestInfo `json:"manifest,omitempty"`
 }
 
-type Chart struct {
+type ChartInfo struct {
 	Name    string                        `json:"name"`
 	Repo    string                        `json:"repo"`
 	Version string                        `json:"version"`
