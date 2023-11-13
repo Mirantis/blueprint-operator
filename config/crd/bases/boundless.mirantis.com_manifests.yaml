@@ -39,6 +39,8 @@ spec:
                 description: Foo is an example field of Manifest. Edit manifest_types.go
                   to remove/update
                 type: string
+            required:
+            - url
             type: object
           status:
             description: ManifestStatus defines the observed state of Manifest

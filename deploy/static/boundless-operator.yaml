@@ -296,6 +296,8 @@ spec:
               url:
                 description: Foo is an example field of Manifest. Edit manifest_types.go to remove/update
                 type: string
+            required:
+            - url
             type: object
           status:
             description: ManifestStatus defines the observed state of Manifest
@@ -691,7 +693,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/mirantis/boundless-operator:latest
+        image: ghcr.io/mirantis/boundless-operator:manifest
         livenessProbe:
           httpGet:
             path: /healthz
