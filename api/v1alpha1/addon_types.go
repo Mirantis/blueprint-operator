@@ -13,19 +13,24 @@ type AddonSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	Enabled   bool   `json:"enabled"`
-	Namespace string `json:"namespace,omitempty"`
-	Chart     Chart  `json:"chart"`
+	Name      string       `json:"name"`
+	Kind      string       `json:"kind"`
+	Enabled   bool         `json:"enabled"`
+	Namespace string       `json:"namespace,omitempty"`
+	Chart     ChartInfo    `json:"chart,omitempty"`
+	Manifest  ManifestInfo `json:"manifest,omitempty"`
 }
 
-type Chart struct {
+type ChartInfo struct {
 	Name    string                        `json:"name"`
 	Repo    string                        `json:"repo"`
 	Version string                        `json:"version"`
 	Set     map[string]intstr.IntOrString `json:"set,omitempty"`
 	Values  string                        `json:"values,omitempty"`
+}
+
+type ManifestInfo struct {
+	URL string `json:"url"`
 }
 
 // AddonStatus defines the observed state of Addon

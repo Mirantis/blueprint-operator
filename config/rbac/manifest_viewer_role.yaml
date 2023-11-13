@@ -1,0 +1,27 @@
+# permissions for end users to view manifests.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: manifest-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: boundless-operator
+    app.kubernetes.io/part-of: boundless-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: manifest-viewer-role
+rules:
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests/status
+  verbs:
+  - get

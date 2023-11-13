@@ -69,12 +69,18 @@ spec:
                 type: boolean
               kind:
                 type: string
+              manifest:
+                properties:
+                  url:
+                    type: string
+                required:
+                - url
+                type: object
               name:
                 type: string
               namespace:
                 type: string
             required:
-            - chart
             - enabled
             - kind
             - name
@@ -153,12 +159,18 @@ spec:
                           type: boolean
                         kind:
                           type: string
+                        manifest:
+                          properties:
+                            url:
+                              type: string
+                          required:
+                          - url
+                          type: object
                         name:
                           type: string
                         namespace:
                           type: string
                       required:
-                      - chart
                       - enabled
                       - kind
                       - name
@@ -242,6 +254,51 @@ spec:
                 type: boolean
             required:
             - ingressReady
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: manifests.boundless.mirantis.com
+spec:
+  group: boundless.mirantis.com
+  names:
+    kind: Manifest
+    listKind: ManifestList
+    plural: manifests
+    singular: manifest
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Manifest is the Schema for the manifests API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ManifestSpec defines the desired state of Manifest
+            properties:
+              url:
+                description: Foo is an example field of Manifest. Edit manifest_types.go to remove/update
+                type: string
+            type: object
+          status:
+            description: ManifestStatus defines the observed state of Manifest
             type: object
         type: object
     served: true
@@ -387,6 +444,32 @@ rules:
   - boundless.mirantis.com
   resources:
   - ingresses/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - boundless.mirantis.com
+  resources:
+  - manifests/status
   verbs:
   - get
   - patch
