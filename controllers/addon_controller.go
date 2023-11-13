@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	typeManifest = "manifest"
-	typeChart    = "chart"
+	kindManifest = "manifest"
+	kindChart    = "chart"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -61,7 +61,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	switch instance.Spec.Kind {
-	case typeChart:
+	case kindChart:
 		chart := helm.Chart{
 			Name:    instance.Spec.Chart.Name,
 			Repo:    instance.Spec.Chart.Repo,
@@ -112,7 +112,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 			return ctrl.Result{Requeue: true}, err
 		}
-	case typeManifest:
+	case kindManifest:
 		mc := manifest.NewManifestController(r.Client, logger)
 		err = mc.CreateManifest(instance.Spec.Namespace, instance.Spec.Name, instance.Spec.Manifest.URL)
 		if err != nil {
