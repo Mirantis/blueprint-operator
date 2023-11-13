@@ -62,17 +62,18 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	err := r.Client.Get(ctx, key, existing)
 
 	if err == nil {
-		logger.Info("Sakshi::::Manifesrt CRD", "CRD", existing)
+		logger.Error(err, "failed to get manifest object")
+		return ctrl.Result{}, err
 	}
 
-	logger.Info("Sakshi::::Manifesrt CRD URL", "URL", existing.Spec.Url)
+	logger.Info("url received in manifest object", "URL", existing.Spec.Url)
 
 	var Client http.Client
 
 	// Run http get request to fetch the contents of the manifest file
 	resp, err := Client.Get(existing.Spec.Url)
 	if err != nil {
-		logger.Error(err, "failed to run Unable to read response")
+		logger.Error(err, "failed to read response")
 		return ctrl.Result{}, err
 	}
 

@@ -45,7 +45,6 @@ func (mc *ManifestController) CreateManifest(namespace, name, url string) error 
 
 func (mc *ManifestController) createOrUpdateManifest(namespace, name, url string) error {
 
-	mc.logger.Info("Sakshi:::::Fn createOrUpdateManifest() URL", "URL", url)
 	m := boundlessv1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -55,8 +54,6 @@ func (mc *ManifestController) createOrUpdateManifest(namespace, name, url string
 			Url: url,
 		},
 	}
-
-	mc.logger.Info("Sakshi:::::Fn createOrUpdateManifest() Manifest", "Manifest", m)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -78,7 +75,6 @@ func (mc *ManifestController) createOrUpdateManifest(namespace, name, url string
 			mc.logger.Info("failed to create manifest crd", "Error", err)
 			return err
 		}
-		mc.logger.Info("Sakshi:: manifest created successfully", "Manifest", m)
 		mc.logger.Info("manifest created successfully", "ManifestName", m.Name)
 	}
 
