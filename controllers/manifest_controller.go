@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	adm_v1 "k8s.io/api/admissionregistration/v1"
@@ -70,14 +71,14 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			// This means that manifest crd deletion workflow has been initiated.
 			// Start cleaning up manifest objects
 
-			url, ok := m[req.Name]
+			/*url, ok := m[req.Name]
 			if !ok {
 				logger.Error(err, "failed to get url from cache")
 				return ctrl.Result{}, err
 			}
 
 			logger.Info("url retrived successfully from cache", "URL", url)
-			_, err = r.DeleteManifestObjects(url, logger)
+			_, err = r.DeleteManifestObjects(url, logger)*/
 			/*if err != nil
 			{
 
@@ -91,9 +92,55 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		//return ctrl.Result{}, err
 	}
 
-	logger.Info("url received in manifest object", "URL", existing.Spec.Url)
+	addonFinalizerName := "manifest/finalizer"
 
-	m[req.Name] = existing.Spec.Url
+	if existing.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// then lets add the finalizer and update the object. This is equivalent
+		// registering our finalizer.
+		if !controllerutil.ContainsFinalizer(existing, addonFinalizerName) {
+			controllerutil.AddFinalizer(existing, addonFinalizerName)
+			if err := r.Update(ctx, existing); err != nil {
+				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", addonFinalizerName)
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		// The object is being deleted
+		if controllerutil.ContainsFinalizer(existing, addonFinalizerName) {
+			// our finalizer is present, so lets delete the manifest objects
+			logger.Info("Sakshi::url received in manifest object", "URL", existing.Spec.Url)
+			_, err = r.DeleteManifestObjects(existing.Spec.Url, logger)
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(existing, addonFinalizerName)
+			if err := r.Update(ctx, existing); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, nil
+	}
+
+	logger.Info("Sakshi::::url received in manifest object", "URL", existing.Spec.Url)
+	logger.Info("Sakshi:::checksum received in manifest object", "URL", existing.Spec.Checksum)
+
+	sum, ok := m[req.Name]
+	if !ok {
+		//logger.Error(err, "failed to get url from cache")
+		// Entry not present, add it
+		m[req.Name] = existing.Spec.Checksum
+	} else {
+		// Present. compare it with the new request
+		if sum == existing.Spec.Checksum {
+			// Do nothing
+			logger.Info("Checksum is same, no update needed", "Cache", sum, "Object", existing.Spec.Checksum)
+			return ctrl.Result{}, nil
+		} else {
+			logger.Info("Checksum is not same, update needed", "Cache", sum, "Object", existing.Spec.Checksum)
+			// ToDo : Add code for update
+		}
+	}
 
 	var Client http.Client
 

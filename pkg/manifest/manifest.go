@@ -2,7 +2,10 @@ package manifest
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -28,60 +31,14 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 	}
 }
 
-func (mc *ManifestController) DeleteManifest(namespace, name, url string) error {
-	m := boundlessv1alpha1.Manifest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: boundlessv1alpha1.ManifestSpec{
-			Url: url,
-		},
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	existing, err := mc.getExistingManifest(m.Namespace, m.Name)
-	if err != nil {
-		return err
-	}
-
-	if existing == nil {
-		mc.logger.Info("manifest object does not exist", "Name", m.Name)
-		return nil
-
-	}
-
-	mc.logger.Info("deleting the manifest crd", "ManifestName", m.Name, "Namespace", m.Namespace)
-
-	err = mc.client.Delete(ctx, &m)
-	if err != nil {
-		mc.logger.Info("failed to delete manifest crd", "Error", err)
-		return err
-	}
-	mc.logger.Info("manifest deleted successfully", "ManifestName", m.Name)
-
-	return nil
-
-}
-
 func (mc *ManifestController) CreateManifest(namespace, name, url string) error {
-	/*manifest := boundlessv1alpha1.Manifest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: boundlessv1alpha1.ManifestSpec{
-			Url: url,
-		},
-	}*/
+	sum, err := mc.getCheckSumUrl(url)
+	if err != nil {
+		mc.logger.Error(err, "Failed to get checksum for url")
+		return err
+	}
 
-	return mc.createOrUpdateManifest(namespace, name, url)
-
-}
-
-func (mc *ManifestController) createOrUpdateManifest(namespace, name, url string) error {
+	mc.logger.Info("Sakshi:::checksum for url", "Checksum", sum)
 
 	m := boundlessv1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
@@ -89,9 +46,16 @@ func (mc *ManifestController) createOrUpdateManifest(namespace, name, url string
 			Namespace: namespace,
 		},
 		Spec: boundlessv1alpha1.ManifestSpec{
-			Url: url,
+			Url:      url,
+			Checksum: sum,
 		},
 	}
+
+	return mc.createOrUpdateManifest(m)
+
+}
+
+func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifest) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -139,4 +103,73 @@ func (mc *ManifestController) getExistingManifest(namespace, name string) (*boun
 		}
 	}
 	return existing, nil
+}
+
+func (mc *ManifestController) getCheckSumUrl(url string) (string, error) {
+	var Client http.Client
+
+	// Run http get request to fetch the contents of the manifest file
+	resp, err := Client.Get(url)
+	if err != nil {
+		mc.logger.Error(err, "failed to read response")
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	var bodyBytes []byte
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err = io.ReadAll(resp.Body)
+		if err != nil {
+			mc.logger.Error(err, "failed to read http response body")
+			return "", err
+		}
+
+	} else {
+		mc.logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
+		return "", err
+	}
+
+	sum := sha256.Sum256(bodyBytes)
+	mc.logger.Info("computed checksum :", "Checksum", string(sum[:]))
+
+	return string(sum[:]), nil
+}
+
+func (mc *ManifestController) DeleteManifest(namespace, name, url string) error {
+	/*m := boundlessv1alpha1.Manifest{
+	    ObjectMeta: metav1.ObjectMeta{
+	        Name:      name,
+	        Namespace: namespace,
+	    },
+	    Spec: boundlessv1alpha1.ManifestSpec{
+	        Url: url,
+	    },
+	}*/
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	existing, err := mc.getExistingManifest(namespace, name)
+	if err != nil {
+		return err
+	}
+
+	if existing == nil {
+		mc.logger.Info("manifest object does not exist", "Name", name)
+		return nil
+
+	}
+
+	mc.logger.Info("deleting the manifest crd", "ManifestName", name, "Namespace", namespace)
+
+	err = mc.client.Delete(ctx, existing)
+	if err != nil {
+		mc.logger.Info("failed to delete manifest crd", "Error", err)
+		return err
+	}
+	mc.logger.Info("manifest deleted successfully", "ManifestName", name)
+
+	return nil
+
 }

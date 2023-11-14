@@ -13,7 +13,8 @@ type ManifestSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Manifest. Edit manifest_types.go to remove/update
-	Url string `json:"url"`
+	Url      string `json:"url"`
+	Checksum string `json:"checksum"`
 }
 
 // ManifestStatus defines the observed state of Manifest
