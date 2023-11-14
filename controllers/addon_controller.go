@@ -114,6 +114,40 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 	case kindManifest:
 		mc := manifest.NewManifestController(r.Client, logger)
+
+		addonFinalizerName := "boundless.mirantis.com/finalizer"
+
+		if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+			// The object is not being deleted, so if it does not have our finalizer,
+			// then lets add the finalizer and update the object. This is equivalent
+			// registering our finalizer.
+			if !controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+				controllerutil.AddFinalizer(instance, addonFinalizerName)
+				if err := r.Update(ctx, instance); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+		} else {
+			// The object is being deleted
+			if controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+				// our finalizer is present, so lets delete the helm chart
+				if err := mc.DeleteManifest(instance.Spec.Namespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
+					// if fail to delete the manifest here, return with error
+					// so that it can be retried
+					return ctrl.Result{}, err
+				}
+
+				// remove our finalizer from the list and update it.
+				controllerutil.RemoveFinalizer(instance, addonFinalizerName)
+				if err := r.Update(ctx, instance); err != nil {
+					return ctrl.Result{}, err
+				}
+			}
+
+			// Stop reconciliation as the item is being deleted
+			return ctrl.Result{}, nil
+		}
+
 		err = mc.CreateManifest(instance.Spec.Namespace, instance.Spec.Name, instance.Spec.Manifest.URL)
 		if err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)

@@ -21,8 +21,6 @@ import (
 	rbac_v1 "k8s.io/api/rbac/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
-	//"k8s.io/Client-go/kubernetes/scheme"
-
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -32,7 +30,10 @@ import (
 type ManifestReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	//m      map[string]string
 }
+
+var m = make(map[string]string)
 
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
@@ -58,15 +59,41 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Name:      req.Name,
 	}
 
+	logger.Info("Sakshi:: key details", "Namespace", req.Namespace, "Name", req.Name)
+
 	existing := &boundlessv1alpha1.Manifest{}
 	err := r.Client.Get(ctx, key, existing)
 
-	if err == nil {
-		logger.Error(err, "failed to get manifest object")
-		return ctrl.Result{}, err
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			logger.Info("manifest does not exist", "Namespace", req.Namespace, "Name", req.Name)
+			// This means that manifest crd deletion workflow has been initiated.
+			// Start cleaning up manifest objects
+
+			url, ok := m[req.Name]
+			if !ok {
+				logger.Error(err, "failed to get url from cache")
+				return ctrl.Result{}, err
+			}
+
+			logger.Info("url retrived successfully from cache", "URL", url)
+			_, err = r.DeleteManifestObjects(url, logger)
+			/*if err != nil
+			{
+
+			}*/
+			return ctrl.Result{}, nil
+		} else {
+			logger.Error(err, "failed to get manifest object")
+			return ctrl.Result{}, err
+		}
+		//logger.Error(err, "failed to get manifest object")
+		//return ctrl.Result{}, err
 	}
 
 	logger.Info("url received in manifest object", "URL", existing.Spec.Url)
+
+	m[req.Name] = existing.Spec.Url
 
 	var Client http.Client
 
@@ -92,6 +119,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, err
 	}
 	_, err = r.CreateManifestObjects(bodyBytes, logger)
+	/*if err != nil
+	{
+
+	}*/
 
 	return ctrl.Result{}, nil
 }
@@ -296,6 +327,225 @@ func (r *ManifestReconciler) CreateManifestObjects(data []byte, logger logr.Logg
 					return nil, err
 				}
 				logger.Info("validating webhook created successfully:", "ValidatingWebhook", webhookObj.Name)
+
+			default:
+				logger.Info("Object kind not supported", "Kind", groupVersionKind.Kind)
+			}
+		}
+	}
+
+	return nil, nil
+}
+
+func (r *ManifestReconciler) DeleteManifestObjects(url string, logger logr.Logger) ([]*runtime.Object, error) {
+	apiextensionsv1.AddToScheme(clientgoscheme.Scheme)
+	apiextensionsv1beta1.AddToScheme(clientgoscheme.Scheme)
+	adm_v1.AddToScheme(clientgoscheme.Scheme)
+	apps_v1.AddToScheme(clientgoscheme.Scheme)
+	core_v1.AddToScheme(clientgoscheme.Scheme)
+	policy_v1.AddToScheme(clientgoscheme.Scheme)
+	rbac_v1.AddToScheme(clientgoscheme.Scheme)
+
+	var Client http.Client
+
+	// Run http get request to fetch the contents of the manifest file
+	resp, err := Client.Get(url)
+	if err != nil {
+		logger.Error(err, "failed to read http get response")
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	var bodyBytes []byte
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err = io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Error(err, "failed to read http response body")
+			return nil, err
+		}
+
+	} else {
+		logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
+		return nil, err
+	}
+
+	decoder := clientgoscheme.Codecs.UniversalDeserializer()
+
+	for _, obj := range strings.Split(string(bodyBytes), "---") {
+		if obj != "" {
+			runtimeObject, groupVersionKind, err := decoder.Decode([]byte(obj), nil, nil)
+			if err != nil {
+				logger.Info("Failed to decode yaml:", "Error", err)
+				return nil, err
+			}
+
+			logger.Info("Decode details", "runtimeObject", runtimeObject, "groupVersionKind", groupVersionKind)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+
+			logger.Info("The object recvd is:", "Kind", groupVersionKind.Kind)
+
+			switch groupVersionKind.Kind {
+			case "Namespace":
+				namespaceObj := convertToNamespaceObject(runtimeObject)
+				err := r.Client.Delete(ctx, namespaceObj)
+				if err != nil {
+					logger.Info("Failed to delete Namespace:", "Namespace", namespaceObj.Name)
+				} else {
+					logger.Info("Namespace deleted successfully:", "Namespace", namespaceObj.Name)
+				}
+
+			case "Service":
+				serviceObj := convertToServiceObject(runtimeObject)
+				if serviceObj.Namespace == "" {
+					serviceObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, serviceObj)
+				if err != nil {
+					logger.Info("Failed to delete service:", "Error", err)
+				} else {
+					logger.Info("Service deleted successfully:", "Service", serviceObj.Name)
+				}
+
+			case "Deployment":
+				deploymentObj := convertToDeploymentObject(runtimeObject)
+				if deploymentObj.Namespace == "" {
+					deploymentObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, deploymentObj)
+				if err != nil {
+					logger.Info("Failed to delete deployment:", "Error", err)
+				} else {
+					logger.Info("Deployment deleted successfully:", "Deployment", deploymentObj.Name)
+				}
+
+			case "DaemonSet":
+				daemonsetObj := convertToDaemonsetObject(runtimeObject)
+				if daemonsetObj.Namespace == "" {
+					daemonsetObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, daemonsetObj)
+				if err != nil {
+					logger.Info("Failed to delete daemonset:", "Error", err)
+				} else {
+					logger.Info("daemonset deleted successfully:", "Daemonset", daemonsetObj.Name)
+				}
+
+			case "PodDisruptionBudget":
+				pdbObj := convertToPodDisruptionBudget(runtimeObject)
+				if pdbObj.Namespace == "" {
+					pdbObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, pdbObj)
+				if err != nil {
+					logger.Info("Failed to delete pod disruption budget:", "Error", err)
+				} else {
+					logger.Info("Pod disruption budget deleted successfully:", "PodDisruptionBudget", pdbObj.Name)
+				}
+
+			case "ServiceAccount":
+				serviceAccObj := convertToServiceAccount(runtimeObject)
+				if serviceAccObj.Namespace == "" {
+					serviceAccObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, serviceAccObj)
+				if err != nil {
+					logger.Info("Failed to delete service account:", "Error", err)
+				} else {
+					logger.Info("service account deleted successfully:", "ServiceAccount", serviceAccObj.Name)
+				}
+
+			case "Role":
+				roleObj := convertToRoleObject(runtimeObject)
+				if roleObj.Namespace == "" {
+					roleObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, roleObj)
+				if err != nil {
+					logger.Info("Failed to delete role:", "Error", err)
+				} else {
+					logger.Info("Role deleted successfully:", "Role", roleObj.Name)
+				}
+
+			case "ClusterRole":
+				clusterRoleObj := convertToClusterRoleObject(runtimeObject)
+				if clusterRoleObj.Namespace == "" {
+					clusterRoleObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, clusterRoleObj)
+				if err != nil {
+					logger.Info("Failed to delete clusterrole:", "Error", err)
+				} else {
+					logger.Info("ClusterRole deleted successfully:", "Role", clusterRoleObj.Name)
+				}
+
+			case "Secret":
+				secretObj := convertToSecretObject(runtimeObject)
+				if secretObj.Namespace == "" {
+					secretObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, secretObj)
+				if err != nil {
+					logger.Info("Failed to delete secret:", "Error", err)
+				} else {
+					logger.Info("secret deleted successfully:", "Secret", secretObj.Name)
+				}
+
+			case "RoleBinding":
+				roleBindingObj := convertToRoleBindingObject(runtimeObject)
+				if roleBindingObj.Namespace == "" {
+					roleBindingObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, roleBindingObj)
+				if err != nil {
+					logger.Info("Failed to delete role binding:", "Error", err)
+				} else {
+					logger.Info("role binding deleted successfully:", "RoleBinding", roleBindingObj.Name)
+				}
+
+			case "ClusterRoleBinding":
+				clusterRoleBindingObj := convertToClusterRoleBindingObject(runtimeObject)
+
+				err = r.Client.Delete(ctx, clusterRoleBindingObj)
+				if err != nil {
+					logger.Info("Failed to delete cluster role binding:", "Error", err)
+				} else {
+					logger.Info("cluster role binding deleted successfully:", "ClusterRoleBinding", clusterRoleBindingObj.Name)
+				}
+
+			case "ConfigMap":
+				configMapObj := convertToConfigMapObject(runtimeObject)
+				if configMapObj.Namespace == "" {
+					configMapObj.Namespace = "default"
+				}
+				err = r.Client.Delete(ctx, configMapObj)
+				if err != nil {
+					logger.Info("Failed to delete configmap:", "Error", err)
+				} else {
+					logger.Info("configmap deleted successfully:", "ConfigMap", configMapObj.Name)
+				}
+
+			case "CustomResourceDefinition":
+				crdObj := convertToCRDObject(runtimeObject)
+
+				err = r.Client.Delete(ctx, crdObj)
+				if err != nil {
+					logger.Info("Failed to delete crd:", "Error", err)
+				} else {
+					logger.Info("crd deleted successfully:", "CRD", crdObj.Name)
+				}
+
+			case "ValidatingWebhookConfiguration":
+				webhookObj := convertToValidatingWebhookObject(runtimeObject)
+
+				err = r.Client.Delete(ctx, webhookObj)
+				if err != nil {
+					logger.Info("Failed to delete validating webhook:", "Error", err)
+				} else {
+					logger.Info("validating webhook deleted successfully:", "ValidatingWebhook", webhookObj.Name)
+				}
 
 			default:
 				logger.Info("Object kind not supported", "Kind", groupVersionKind.Kind)
