@@ -3,6 +3,7 @@ package manifest
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -131,21 +132,12 @@ func (mc *ManifestController) getCheckSumUrl(url string) (string, error) {
 	}
 
 	sum := sha256.Sum256(bodyBytes)
-	mc.logger.Info("computed checksum :", "Checksum", string(sum[:]))
+	mc.logger.Info("computed checksum :", "Checksum", hex.EncodeToString(sum[:]))
 
-	return string(sum[:]), nil
+	return hex.EncodeToString(sum[:]), nil
 }
 
 func (mc *ManifestController) DeleteManifest(namespace, name, url string) error {
-	/*m := boundlessv1alpha1.Manifest{
-	    ObjectMeta: metav1.ObjectMeta{
-	        Name:      name,
-	        Namespace: namespace,
-	    },
-	    Spec: boundlessv1alpha1.ManifestSpec{
-	        Url: url,
-	    },
-	}*/
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
