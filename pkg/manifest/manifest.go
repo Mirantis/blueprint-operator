@@ -39,8 +39,6 @@ func (mc *ManifestController) CreateManifest(namespace, name, url string) error 
 		return err
 	}
 
-	mc.logger.Info("Sakshi:::checksum for url", "Checksum", sum)
-
 	m := boundlessv1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -68,6 +66,7 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 
 	if existing != nil {
 		// ToDo : add code for update
+		// Use checksum to see if any updates are required.
 		return nil
 
 	} else {
