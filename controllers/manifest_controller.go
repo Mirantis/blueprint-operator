@@ -76,8 +76,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Name:      req.Name,
 	}
 
-	//logger.Info("Sakshi:: key details", "Namespace", req.Namespace, "Name", req.Name)
-
 	existing := &boundlessv1alpha1.Manifest{}
 	err := r.Client.Get(ctx, key, existing)
 
@@ -109,8 +107,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if controllerutil.ContainsFinalizer(existing, addonFinalizerName) {
 			// The finalizer is present, so lets delete the objects for this manifest
 
-			//logger.Info("Sakshi::Print object list for this manifest", "ObjectList", objs[req.Name])
-			_ = r.DeleteManifestObjects(req, ctx)
+			if err := r.DeleteManifestObjects(req, ctx); err != nil {
+				logger.Error(err, "failed to remove finalizer")
+				return ctrl.Result{}, err
+			}
 
 			// Delete entry from map
 			delete(objs, req.Name)
@@ -121,15 +121,11 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				logger.Error(err, "failed to remove finalizer")
 				return ctrl.Result{}, err
 			}
-
 		}
 
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
-
-	//logger.Info("Sakshi::::url received in manifest object", "URL", existing.Spec.Url)
-	//logger.Info("Sakshi:::checksum received in manifest object", "Checksum", existing.Spec.Checksum)
 
 	// Validate checksum entry in the checkSum map
 	sum, ok := checkSum[req.Name]
@@ -737,8 +733,6 @@ func (r *ManifestReconciler) DeleteManifestObjects(req ctrl.Request, ctx context
 	// Fetch all the objects stored in the manifest cache and delete them
 	for _, val := range objs[req.Name] {
 
-		//logger.Info("Sakshi:::::Retrieved object from the list", "Val", val)
-
 		switch val.Kind {
 		case "Namespace":
 			err := r.deleteNamespaceObject(val, ctx)
@@ -854,6 +848,7 @@ func (r *ManifestReconciler) deleteNamespaceObject(val ManifestObjects, ctx cont
 	err = r.Client.Delete(ctx, namespace)
 	if err != nil {
 		logger.Info("failed to delete namespace:", "Error", err)
+		return err
 	} else {
 		logger.Info("namespace deleted successfully:", "Namespace", namespace.Name)
 	}
@@ -884,6 +879,7 @@ func (r *ManifestReconciler) deleteServiceObject(val ManifestObjects, ctx contex
 	err = r.Client.Delete(ctx, service)
 	if err != nil {
 		logger.Info("failed to delete service:", "Error", err)
+		return err
 	} else {
 		logger.Info("service deleted successfully:", "Service", service.Name)
 	}
@@ -909,11 +905,10 @@ func (r *ManifestReconciler) deleteServiceAccountObject(val ManifestObjects, ctx
 		}
 	}
 
-	//logger.Info("Sakshi:::Service account object retrived successfully:", "Serviceaccount", serviceAccount)
-
 	err = r.Client.Delete(ctx, serviceAccount)
 	if err != nil {
 		logger.Info("failed to delete service account:", "Error", err)
+		return err
 	} else {
 		logger.Info("service account deleted successfully:", "Service", serviceAccount.Name)
 	}
@@ -939,11 +934,10 @@ func (r *ManifestReconciler) deleteCRDObject(val ManifestObjects, ctx context.Co
 		}
 	}
 
-	//logger.Info("Sakshi:::crd object retrived successfully:", "CRD", crd)
-
 	err = r.Client.Delete(ctx, crd)
 	if err != nil {
 		logger.Info("failed to delete crd:", "Error", err)
+		return err
 	} else {
 		logger.Info("crd deleted successfully:", "CRD", crd.Name)
 	}
@@ -969,11 +963,10 @@ func (r *ManifestReconciler) deleteDeploymentObject(val ManifestObjects, ctx con
 		}
 	}
 
-	//logger.Info("Sakshi:::deployment object retrived successfully:", "Deployment", deployment)
-
 	err = r.Client.Delete(ctx, deployment)
 	if err != nil {
 		logger.Info("failed to delete deployment:", "Error", err)
+		return err
 	} else {
 		logger.Info("deployment deleted successfully:", "Deployment", deployment.Name)
 	}
@@ -999,11 +992,10 @@ func (r *ManifestReconciler) deleteDaemonsetObject(val ManifestObjects, ctx cont
 		}
 	}
 
-	//logger.Info("Sakshi:::daemonset object retrived successfully:", "Daemonset", daemonset)
-
 	err = r.Client.Delete(ctx, daemonset)
 	if err != nil {
 		logger.Info("failed to delete daemonset:", "Error", err)
+		return err
 	} else {
 		logger.Info("daemonset deleted successfully:", "Daemonset", daemonset.Name)
 	}
@@ -1029,11 +1021,10 @@ func (r *ManifestReconciler) deletePDBObject(val ManifestObjects, ctx context.Co
 		}
 	}
 
-	//logger.Info("Sakshi:::policy discruption budget object retrived successfully:", "PolicyDiscruptionBudget", pdb)
-
 	err = r.Client.Delete(ctx, pdb)
 	if err != nil {
 		logger.Info("failed to delete policy discruption budget:", "Error", err)
+		return err
 	} else {
 		logger.Info("policy discruption budget deleted successfully:", "PolicyDiscruptionBudget", pdb.Name)
 	}
@@ -1059,11 +1050,10 @@ func (r *ManifestReconciler) deleteRoleObject(val ManifestObjects, ctx context.C
 		}
 	}
 
-	//logger.Info("Sakshi:::role object retrived successfully:", "Role", role)
-
 	err = r.Client.Delete(ctx, role)
 	if err != nil {
 		logger.Info("failed to delete role:", "Error", err)
+		return err
 	} else {
 		logger.Info("role deleted successfully:", "Role", role.Name)
 	}
@@ -1089,11 +1079,10 @@ func (r *ManifestReconciler) deleteClusterRoleObject(val ManifestObjects, ctx co
 		}
 	}
 
-	//logger.Info("Sakshi:::clusterRole object retrived successfully:", "ClusterRole", clusterRole)
-
 	err = r.Client.Delete(ctx, clusterRole)
 	if err != nil {
 		logger.Info("failed to delete clusterRole:", "Error", err)
+		return err
 	} else {
 		logger.Info("clusterRole deleted successfully:", "ClusterRole", clusterRole.Name)
 	}
@@ -1119,11 +1108,10 @@ func (r *ManifestReconciler) deleteSecretObject(val ManifestObjects, ctx context
 		}
 	}
 
-	//logger.Info("Sakshi:::secret object retrived successfully:", "Secret", secret)
-
 	err = r.Client.Delete(ctx, secret)
 	if err != nil {
 		logger.Info("failed to delete secret:", "Error", err)
+		return err
 	} else {
 		logger.Info("secret deleted successfully:", "Secret", secret.Name)
 	}
@@ -1149,11 +1137,10 @@ func (r *ManifestReconciler) deleteRoleBindingObject(val ManifestObjects, ctx co
 		}
 	}
 
-	//logger.Info("Sakshi:::roleBinding object retrived successfully:", "RoleBinding", roleBinding)
-
 	err = r.Client.Delete(ctx, roleBinding)
 	if err != nil {
 		logger.Info("failed to delete roleBinding:", "Error", err)
+		return err
 	} else {
 		logger.Info("roleBinding deleted successfully:", "RoleBinding", roleBinding.Name)
 	}
@@ -1179,11 +1166,10 @@ func (r *ManifestReconciler) deleteClusterRoleBindingObject(val ManifestObjects,
 		}
 	}
 
-	//logger.Info("Sakshi:::clusterRoleBinding object retrived successfully:", "ClusterRoleBinding", clusterRoleBinding)
-
 	err = r.Client.Delete(ctx, clusterRoleBinding)
 	if err != nil {
 		logger.Info("failed to delete clusterRoleBinding:", "Error", err)
+		return err
 	} else {
 		logger.Info("clusterRoleBinding deleted successfully:", "ClusterRoleBinding", clusterRoleBinding.Name)
 	}
@@ -1209,11 +1195,10 @@ func (r *ManifestReconciler) deleteConfigmapObject(val ManifestObjects, ctx cont
 		}
 	}
 
-	//logger.Info("Sakshi:::configMap object retrived successfully:", "ConfigMap", configMap)
-
 	err = r.Client.Delete(ctx, configMap)
 	if err != nil {
 		logger.Info("failed to delete configMap:", "Error", err)
+		return err
 	} else {
 		logger.Info("configMap deleted successfully:", "ConfigMap", configMap.Name)
 	}
@@ -1239,11 +1224,10 @@ func (r *ManifestReconciler) deleteValidatingWebhookObject(val ManifestObjects, 
 		}
 	}
 
-	//logger.Info("Sakshi:::webhook object retrived successfully:", "Webhook", webhook)
-
 	err = r.Client.Delete(ctx, webhook)
 	if err != nil {
 		logger.Info("failed to delete webhook:", "Error", err)
+		return err
 	} else {
 		logger.Info("webhook deleted successfully:", "Webhook", webhook.Name)
 	}
