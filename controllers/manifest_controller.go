@@ -35,11 +35,9 @@ type ManifestReconciler struct {
 }
 
 type ManifestObjects struct {
-	ApiVersion string
-	Kind       string
-	Name       string
-	Group      string
-	Namespace  string
+	Kind      string
+	Name      string
+	Namespace string
 }
 
 // The checkSum map stores the checksum for each manifest.
@@ -323,11 +321,9 @@ func (r *ManifestReconciler) addNamespaceObject(obj runtime.Object, groupVersion
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  "",
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: "",
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("namespace object added successfully to the list")
@@ -354,11 +350,9 @@ func (r *ManifestReconciler) addServiceObject(obj runtime.Object, groupVersionKi
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("service object added successfully to the list")
@@ -384,11 +378,9 @@ func (r *ManifestReconciler) addDeploymentObject(obj runtime.Object, groupVersio
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("deployment object added successfully to the list")
@@ -415,11 +407,9 @@ func (r *ManifestReconciler) addPodDisruptionBudget(obj runtime.Object, groupVer
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("pod disruption object added successfully to the list")
@@ -446,11 +436,9 @@ func (r *ManifestReconciler) addServiceAccount(obj runtime.Object, groupVersionK
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("service account object added successfully to the list")
@@ -476,11 +464,9 @@ func (r *ManifestReconciler) addCRDObject(obj runtime.Object, groupVersionKind *
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  "",
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: "",
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("crd object added successfully to the list")
@@ -506,11 +492,9 @@ func (r *ManifestReconciler) addDaemonsetObject(obj runtime.Object, groupVersion
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("daemonset object added successfully to the list")
@@ -536,11 +520,9 @@ func (r *ManifestReconciler) addRoleObject(obj runtime.Object, groupVersionKind 
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("role object added successfully to the list")
@@ -566,11 +548,9 @@ func (r *ManifestReconciler) addClusterRoleObject(obj runtime.Object, groupVersi
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("clusterrole object added successfully to the list")
@@ -596,11 +576,9 @@ func (r *ManifestReconciler) addRoleBindingObject(obj runtime.Object, groupVersi
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("rolebinding object added successfully to the list")
@@ -626,11 +604,9 @@ func (r *ManifestReconciler) addClusterRoleBindingObject(obj runtime.Object, gro
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  "",
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: "",
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("cluster role binding object added successfully to the list")
@@ -656,11 +632,9 @@ func (r *ManifestReconciler) addSecretObject(obj runtime.Object, groupVersionKin
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("secret object added successfully to the list")
@@ -686,11 +660,9 @@ func (r *ManifestReconciler) addConfigMapObject(obj runtime.Object, groupVersion
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  myobj.Namespace,
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: myobj.Namespace,
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("configmap object added successfully to the list")
@@ -716,11 +688,9 @@ func (r *ManifestReconciler) addValidatingWebhookObject(obj runtime.Object, grou
 
 	// Add this object to the list
 	newObj := ManifestObjects{
-		ApiVersion: groupVersionKind.Version,
-		Kind:       groupVersionKind.Kind,
-		Name:       myobj.Name,
-		Group:      groupVersionKind.Group,
-		Namespace:  "",
+		Kind:      groupVersionKind.Kind,
+		Name:      myobj.Name,
+		Namespace: "",
 	}
 	objs[req.Name] = append(objs[req.Name], newObj)
 	logger.Info("validating webhook object added successfully to the list")
