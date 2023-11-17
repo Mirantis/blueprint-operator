@@ -133,10 +133,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// We will reach here only in case of create request.
 	// Run http get request to fetch the contents of the manifest file.
-	var Client http.Client
-	resp, err := Client.Get(existing.Spec.Url)
+	var client http.Client
+	resp, err := client.Get(existing.Spec.Url)
 	if err != nil {
-		logger.Error(err, "failed to read response")
+		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return ctrl.Result{}, err
 	}
 
@@ -193,8 +193,6 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
-
-			logger.Info("The object recvd is:", "Kind", groupVersionKind.Kind)
 
 			switch groupVersionKind.Kind {
 			case "Namespace":
@@ -621,6 +619,8 @@ func (r *ManifestReconciler) addValidatingWebhookObject(obj runtime.Object, grou
 func (r *ManifestReconciler) addObjectToList(kind string, name string, namespace string, req ctrl.Request, manifestObjs *[]boundlessv1alpha1.ManifestObject) {
 
 	// Add this object to the list
+	// @TODO: Check if we can use dynamic clients to create the objects
+	// https://mirantis.jira.com/browse/BOP-102
 	updatedObject := boundlessv1alpha1.ManifestObject{
 		Kind:      kind,
 		Name:      name,
