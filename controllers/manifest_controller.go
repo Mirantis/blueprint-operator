@@ -21,6 +21,7 @@ import (
 	core_v1 "k8s.io/api/core/v1"
 	policy_v1 "k8s.io/api/policy/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
@@ -34,21 +35,10 @@ type ManifestReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-type ManifestObjects struct {
-	Kind      string
-	Name      string
-	Namespace string
-}
-
 // The checkSum map stores the checksum for each manifest.
 // Storing this value is crucial as this will help the manifest controller
 // differentiate between create and update requests.
 var checkSum = make(map[string]string)
-
-// The objs map stores the list of objects in a manifest.
-// This list will be used by the manifest controller to track all the
-// objects in case of delete and update.
-var objs = make(map[string][]ManifestObjects)
 
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
@@ -110,9 +100,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				return ctrl.Result{}, err
 			}
 
-			// Delete entry from map
-			delete(objs, req.Name)
-
 			// Remove the finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(existing, addonFinalizerName)
 			if err := r.Update(ctx, existing); err != nil {
@@ -167,7 +154,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
 		return ctrl.Result{}, err
 	}
-	err = r.CreateManifestObjects(req, bodyBytes, logger)
+	err = r.CreateManifestObjects(req, bodyBytes, logger, ctx)
 	if err != nil {
 		logger.Error(err, "failed to create manifest objects", "ResponseCode", resp.StatusCode)
 		return ctrl.Result{}, err
@@ -183,7 +170,7 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte, logger logr.Logger) error {
+func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte, logger logr.Logger, ctx context.Context) error {
 	apiextensionsv1.AddToScheme(clientgoscheme.Scheme)
 	apiextensionsv1beta1.AddToScheme(clientgoscheme.Scheme)
 	adm_v1.AddToScheme(clientgoscheme.Scheme)
@@ -194,6 +181,8 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 
 	decoder := clientgoscheme.Codecs.UniversalDeserializer()
 
+	manifestObjs := []boundlessv1alpha1.ManifestObject{}
+
 	for _, obj := range strings.Split(string(data), "---") {
 		if obj != "" {
 			runtimeObject, groupVersionKind, err := decoder.Decode([]byte(obj), nil, nil)
@@ -202,8 +191,6 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 				return err
 			}
 
-			//logger.Info("Decode details", "runtimeObject", runtimeObject, "groupVersionKind", groupVersionKind)
-
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 
@@ -211,85 +198,85 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 
 			switch groupVersionKind.Kind {
 			case "Namespace":
-				err := r.addNamespaceObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addNamespaceObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "Service":
-				err := r.addServiceObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addServiceObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "Deployment":
-				err := r.addDeploymentObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addDeploymentObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "DaemonSet":
-				err := r.addDaemonsetObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addDaemonsetObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "PodDisruptionBudget":
-				err := r.addPodDisruptionBudget(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addPodDisruptionBudget(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "ServiceAccount":
-				err := r.addServiceAccount(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addServiceAccount(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "Role":
-				err := r.addRoleObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addRoleObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "ClusterRole":
-				err := r.addClusterRoleObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addClusterRoleObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "Secret":
-				err := r.addSecretObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addSecretObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "RoleBinding":
-				err := r.addRoleBindingObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addRoleBindingObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "ClusterRoleBinding":
-				err := r.addClusterRoleBindingObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addClusterRoleBindingObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "ConfigMap":
-				err := r.addConfigMapObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addConfigMapObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "CustomResourceDefinition":
-				err := r.addCRDObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addCRDObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
 
 			case "ValidatingWebhookConfiguration":
-				err := r.addValidatingWebhookObject(runtimeObject, groupVersionKind, req, ctx)
+				err := r.addValidatingWebhookObject(runtimeObject, groupVersionKind, req, ctx, &manifestObjs)
 				if err != nil {
 					return err
 				}
@@ -300,10 +287,41 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 		}
 	}
 
+	// Update the CRD
+	key := types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Name,
+	}
+
+	existing := &boundlessv1alpha1.Manifest{}
+	err := r.Client.Get(ctx, key, existing)
+	if err != nil {
+		logger.Error(err, "failed to get manifest object")
+		return err
+	}
+
+	updatedCRD := boundlessv1alpha1.Manifest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            existing.Name,
+			Namespace:       existing.Namespace,
+			ResourceVersion: existing.ResourceVersion,
+		},
+		Spec: boundlessv1alpha1.ManifestSpec{
+			Url:      existing.Spec.Url,
+			Checksum: existing.Spec.Checksum,
+			Objects:  manifestObjs,
+		},
+	}
+
+	if err := r.Update(ctx, &updatedCRD); err != nil {
+		logger.Error(err, "failed to update manifest crd with objectList")
+		return err
+	}
+
 	return nil
 }
 
-func (r *ManifestReconciler) addNamespaceObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addNamespaceObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
 	myobj := obj.(*core_v1.Namespace)
@@ -320,18 +338,11 @@ func (r *ManifestReconciler) addNamespaceObject(obj runtime.Object, groupVersion
 	logger.Info("namespace created successfully:", "Namespace", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: "",
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("namespace object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, "", req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addServiceObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addServiceObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
 	myobj := obj.(*core_v1.Service)
@@ -349,18 +360,11 @@ func (r *ManifestReconciler) addServiceObject(obj runtime.Object, groupVersionKi
 	logger.Info("service created successfully:", "Service", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("service object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addDeploymentObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addDeploymentObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*apps_v1.Deployment)
 
@@ -377,19 +381,12 @@ func (r *ManifestReconciler) addDeploymentObject(obj runtime.Object, groupVersio
 	logger.Info("deployment created successfully:", "Deployment", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("deployment object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 
 }
 
-func (r *ManifestReconciler) addPodDisruptionBudget(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addPodDisruptionBudget(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*policy_v1.PodDisruptionBudget)
 
@@ -406,19 +403,12 @@ func (r *ManifestReconciler) addPodDisruptionBudget(obj runtime.Object, groupVer
 	logger.Info("pod disruption budget created successfully:", "PodDisruption", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("pod disruption object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 
 }
 
-func (r *ManifestReconciler) addServiceAccount(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addServiceAccount(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*core_v1.ServiceAccount)
 
@@ -435,18 +425,11 @@ func (r *ManifestReconciler) addServiceAccount(obj runtime.Object, groupVersionK
 	logger.Info("service account created successfully:", "ServiceAccount", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("service account object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addCRDObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addCRDObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*apiextensionsv1.CustomResourceDefinition)
 
@@ -463,18 +446,11 @@ func (r *ManifestReconciler) addCRDObject(obj runtime.Object, groupVersionKind *
 	logger.Info("crd created successfully:", "CRD", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: "",
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("crd object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, "", req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addDaemonsetObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addDaemonsetObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*apps_v1.DaemonSet)
 
@@ -491,18 +467,11 @@ func (r *ManifestReconciler) addDaemonsetObject(obj runtime.Object, groupVersion
 	logger.Info("daemonset created successfully:", "Daemonset", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("daemonset object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addRoleObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addRoleObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*rbac_v1.Role)
 
@@ -519,18 +488,11 @@ func (r *ManifestReconciler) addRoleObject(obj runtime.Object, groupVersionKind 
 	logger.Info("role created successfully:", "Role", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("role object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addClusterRoleObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addClusterRoleObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*rbac_v1.ClusterRole)
 
@@ -547,18 +509,11 @@ func (r *ManifestReconciler) addClusterRoleObject(obj runtime.Object, groupVersi
 	logger.Info("clusterrole created successfully:", "Clusterrole", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("clusterrole object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addRoleBindingObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addRoleBindingObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*rbac_v1.RoleBinding)
 
@@ -575,18 +530,11 @@ func (r *ManifestReconciler) addRoleBindingObject(obj runtime.Object, groupVersi
 	logger.Info("rolebinding created successfully:", "Rolebinding", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("rolebinding object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addClusterRoleBindingObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addClusterRoleBindingObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*rbac_v1.ClusterRoleBinding)
 
@@ -603,18 +551,11 @@ func (r *ManifestReconciler) addClusterRoleBindingObject(obj runtime.Object, gro
 	logger.Info("cluster role binding created successfully:", "ClusterRoleBinding", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: "",
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("cluster role binding object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, "", req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addSecretObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addSecretObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*core_v1.Secret)
 
@@ -631,18 +572,11 @@ func (r *ManifestReconciler) addSecretObject(obj runtime.Object, groupVersionKin
 	logger.Info("secret created successfully:", "Secret", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("secret object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addConfigMapObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addConfigMapObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*core_v1.ConfigMap)
 
@@ -659,18 +593,11 @@ func (r *ManifestReconciler) addConfigMapObject(obj runtime.Object, groupVersion
 	logger.Info("configmap created successfully:", "Configmap", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: myobj.Namespace,
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("configmap object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, myobj.Namespace, req, manifestObjs)
 	return nil
 }
 
-func (r *ManifestReconciler) addValidatingWebhookObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context) error {
+func (r *ManifestReconciler) addValidatingWebhookObject(obj runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 	myobj := obj.(*adm_v1.ValidatingWebhookConfiguration)
 
@@ -687,115 +614,140 @@ func (r *ManifestReconciler) addValidatingWebhookObject(obj runtime.Object, grou
 	logger.Info("validating webhook created successfully:", "ValidatingWebhook", myobj.Name)
 
 	// Add this object to the list
-	newObj := ManifestObjects{
-		Kind:      groupVersionKind.Kind,
-		Name:      myobj.Name,
-		Namespace: "",
-	}
-	objs[req.Name] = append(objs[req.Name], newObj)
-	logger.Info("validating webhook object added successfully to the list")
-
+	r.addObjectToList(groupVersionKind.Kind, myobj.Name, "", req, manifestObjs)
 	return nil
+}
+
+func (r *ManifestReconciler) addObjectToList(kind string, name string, namespace string, req ctrl.Request, manifestObjs *[]boundlessv1alpha1.ManifestObject) {
+
+	// Add this object to the list
+	updatedObject := boundlessv1alpha1.ManifestObject{
+		Kind:      kind,
+		Name:      name,
+		Namespace: namespace,
+	}
+
+	*manifestObjs = append(*manifestObjs, updatedObject)
+
 }
 
 func (r *ManifestReconciler) DeleteManifestObjects(req ctrl.Request, ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	// Fetch all the objects stored in the manifest cache and delete them
-	for _, val := range objs[req.Name] {
+	// Fetch the existing CRD
+	key := types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Name,
+	}
+	existing := &boundlessv1alpha1.Manifest{}
+	err := r.Client.Get(ctx, key, existing)
 
-		switch val.Kind {
-		case "Namespace":
-			err := r.deleteNamespaceObject(val, ctx)
-			if err != nil {
-				return err
-			}
-		case "Service":
-			err := r.deleteServiceObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "Deployment":
-			err := r.deleteDeploymentObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "DaemonSet":
-			err := r.deleteDaemonsetObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "PodDisruptionBudget":
-			err := r.deletePDBObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "ServiceAccount":
-			err := r.deleteServiceAccountObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "Role":
-			err := r.deleteRoleObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "ClusterRole":
-			err := r.deleteClusterRoleObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "Secret":
-			err := r.deleteSecretObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "RoleBinding":
-			err := r.deleteRoleBindingObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "ClusterRoleBinding":
-			err := r.deleteClusterRoleBindingObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "ConfigMap":
-			err := r.deleteConfigmapObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "CustomResourceDefinition":
-			err := r.deleteCRDObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		case "ValidatingWebhookConfiguration":
-			err := r.deleteValidatingWebhookObject(val, ctx)
-			if err != nil {
-				return err
-			}
-
-		default:
-			logger.Info("Object kind not supported", "Kind", val.Kind)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			logger.Info("manifest does not exist", "Namespace", req.Namespace, "Name", req.Name)
+			return nil
+		} else {
+			logger.Error(err, "failed to get manifest object")
+			return err
 		}
+	}
+	// Fetch all the objects stored in the manifest object list and delete them
+	if len(existing.Spec.Objects) > 0 {
+		for _, val := range existing.Spec.Objects {
 
+			switch val.Kind {
+			case "Namespace":
+				err := r.deleteNamespaceObject(val, ctx)
+				if err != nil {
+					return err
+				}
+			case "Service":
+				err := r.deleteServiceObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "Deployment":
+				err := r.deleteDeploymentObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "DaemonSet":
+				err := r.deleteDaemonsetObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "PodDisruptionBudget":
+				err := r.deletePDBObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "ServiceAccount":
+				err := r.deleteServiceAccountObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "Role":
+				err := r.deleteRoleObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "ClusterRole":
+				err := r.deleteClusterRoleObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "Secret":
+				err := r.deleteSecretObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "RoleBinding":
+				err := r.deleteRoleBindingObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "ClusterRoleBinding":
+				err := r.deleteClusterRoleBindingObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "ConfigMap":
+				err := r.deleteConfigmapObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "CustomResourceDefinition":
+				err := r.deleteCRDObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			case "ValidatingWebhookConfiguration":
+				err := r.deleteValidatingWebhookObject(val, ctx)
+				if err != nil {
+					return err
+				}
+
+			default:
+				logger.Info("Object kind not supported", "Kind", val.Kind)
+			}
+
+		}
 	}
 	return nil
 }
 
-func (r *ManifestReconciler) deleteNamespaceObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteNamespaceObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	namespace := &core_v1.Namespace{}
@@ -826,7 +778,7 @@ func (r *ManifestReconciler) deleteNamespaceObject(val ManifestObjects, ctx cont
 	return nil
 }
 
-func (r *ManifestReconciler) deleteServiceObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteServiceObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	service := &core_v1.Service{}
@@ -857,7 +809,7 @@ func (r *ManifestReconciler) deleteServiceObject(val ManifestObjects, ctx contex
 	return nil
 }
 
-func (r *ManifestReconciler) deleteServiceAccountObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteServiceAccountObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	serviceAccount := &core_v1.ServiceAccount{}
@@ -886,7 +838,7 @@ func (r *ManifestReconciler) deleteServiceAccountObject(val ManifestObjects, ctx
 	return nil
 }
 
-func (r *ManifestReconciler) deleteCRDObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteCRDObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	crd := &apiextensionsv1.CustomResourceDefinition{}
@@ -915,7 +867,7 @@ func (r *ManifestReconciler) deleteCRDObject(val ManifestObjects, ctx context.Co
 	return nil
 }
 
-func (r *ManifestReconciler) deleteDeploymentObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteDeploymentObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	deployment := &apps_v1.Deployment{}
@@ -944,7 +896,7 @@ func (r *ManifestReconciler) deleteDeploymentObject(val ManifestObjects, ctx con
 	return nil
 }
 
-func (r *ManifestReconciler) deleteDaemonsetObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteDaemonsetObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	daemonset := &apps_v1.DaemonSet{}
@@ -973,7 +925,7 @@ func (r *ManifestReconciler) deleteDaemonsetObject(val ManifestObjects, ctx cont
 	return nil
 }
 
-func (r *ManifestReconciler) deletePDBObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deletePDBObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	pdb := &policy_v1.PodDisruptionBudget{}
@@ -1002,7 +954,7 @@ func (r *ManifestReconciler) deletePDBObject(val ManifestObjects, ctx context.Co
 	return nil
 }
 
-func (r *ManifestReconciler) deleteRoleObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteRoleObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	role := &rbac_v1.Role{}
@@ -1031,7 +983,7 @@ func (r *ManifestReconciler) deleteRoleObject(val ManifestObjects, ctx context.C
 	return nil
 }
 
-func (r *ManifestReconciler) deleteClusterRoleObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteClusterRoleObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	clusterRole := &rbac_v1.ClusterRole{}
@@ -1060,7 +1012,7 @@ func (r *ManifestReconciler) deleteClusterRoleObject(val ManifestObjects, ctx co
 	return nil
 }
 
-func (r *ManifestReconciler) deleteSecretObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteSecretObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	secret := &core_v1.Secret{}
@@ -1089,7 +1041,7 @@ func (r *ManifestReconciler) deleteSecretObject(val ManifestObjects, ctx context
 	return nil
 }
 
-func (r *ManifestReconciler) deleteRoleBindingObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteRoleBindingObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	roleBinding := &rbac_v1.RoleBinding{}
@@ -1118,7 +1070,7 @@ func (r *ManifestReconciler) deleteRoleBindingObject(val ManifestObjects, ctx co
 	return nil
 }
 
-func (r *ManifestReconciler) deleteClusterRoleBindingObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteClusterRoleBindingObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	clusterRoleBinding := &rbac_v1.ClusterRoleBinding{}
@@ -1147,7 +1099,7 @@ func (r *ManifestReconciler) deleteClusterRoleBindingObject(val ManifestObjects,
 	return nil
 }
 
-func (r *ManifestReconciler) deleteConfigmapObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteConfigmapObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	configMap := &core_v1.ConfigMap{}
@@ -1176,7 +1128,7 @@ func (r *ManifestReconciler) deleteConfigmapObject(val ManifestObjects, ctx cont
 	return nil
 }
 
-func (r *ManifestReconciler) deleteValidatingWebhookObject(val ManifestObjects, ctx context.Context) error {
+func (r *ManifestReconciler) deleteValidatingWebhookObject(val boundlessv1alpha1.ManifestObject, ctx context.Context) error {
 	logger := log.FromContext(ctx)
 
 	webhook := &adm_v1.ValidatingWebhookConfiguration{}

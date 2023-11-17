@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	kindManifest = "manifest"
-	kindChart    = "chart"
+	kindManifest       = "manifest"
+	kindChart          = "chart"
+	BoundlessNamespace = "boundless-system"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -74,7 +75,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		hc := helm.NewHelmChartController(r.Client, logger)
 
-		addonFinalizerName := "boundless.mirantis.com/finalizer"
+		addonFinalizerName := "boundless.mirantis.com/helmchart-finalizer"
 
 		if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 			// The object is not being deleted, so if it does not have our finalizer,
@@ -115,7 +116,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	case kindManifest:
 		mc := manifest.NewManifestController(r.Client, logger)
 
-		addonFinalizerName := "boundless.mirantis.com/finalizer"
+		addonFinalizerName := "boundless.mirantis.com/manifest-finalizer"
 
 		if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 			// The object is not being deleted, so if it does not have our finalizer,
@@ -131,7 +132,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			// The object is being deleted
 			if controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
 				// our finalizer is present, so lets delete the helm chart
-				if err := mc.DeleteManifest(instance.Spec.Namespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
+				if err := mc.DeleteManifest(BoundlessNamespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
 					// if fail to delete the manifest here, return with error
 					// so that it can be retried
 					return ctrl.Result{}, err
@@ -148,7 +149,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, nil
 		}
 
-		err = mc.CreateManifest(instance.Spec.Namespace, instance.Spec.Name, instance.Spec.Manifest.URL)
+		err = mc.CreateManifest(BoundlessNamespace, instance.Spec.Name, instance.Spec.Manifest.URL)
 		if err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			return ctrl.Result{Requeue: true}, err

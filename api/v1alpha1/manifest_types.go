@@ -13,14 +13,21 @@ type ManifestSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Manifest. Edit manifest_types.go to remove/update
-	Url      string `json:"url"`
-	Checksum string `json:"checksum"`
+	Url      string           `json:"url"`
+	Checksum string           `json:"checksum"`
+	Objects  []ManifestObject `json:"objects,omitempty"`
 }
 
 // ManifestStatus defines the observed state of Manifest
 type ManifestStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+}
+
+type ManifestObject struct {
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
 }
 
 //+kubebuilder:object:root=true
