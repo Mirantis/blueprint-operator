@@ -39,6 +39,8 @@ spec:
                 type: string
               objects:
                 items:
+                  description: ManifestObject consists of the fields required to update/delete
+                    an object
                   properties:
                     kind:
                       type: string
@@ -53,8 +55,6 @@ spec:
                   type: object
                 type: array
               url:
-                description: Foo is an example field of Manifest. Edit manifest_types.go
-                  to remove/update
                 type: string
             required:
             - checksum

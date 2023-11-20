@@ -17,9 +17,11 @@ import (
 )
 
 const (
-	kindManifest       = "manifest"
-	kindChart          = "chart"
-	BoundlessNamespace = "boundless-system"
+	kindManifest            = "manifest"
+	kindChart               = "chart"
+	BoundlessNamespace      = "boundless-system"
+	addonHelmchartFinalizer = "boundless.mirantis.com/helmchart-finalizer"
+	addonManifestFinalizer  = "boundless.mirantis.com/manifest-finalizer"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -75,21 +77,19 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		hc := helm.NewHelmChartController(r.Client, logger)
 
-		addonFinalizerName := "boundless.mirantis.com/helmchart-finalizer"
-
 		if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 			// The object is not being deleted, so if it does not have our finalizer,
 			// then lets add the finalizer and update the object. This is equivalent
 			// registering our finalizer.
-			if !controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
-				controllerutil.AddFinalizer(instance, addonFinalizerName)
+			if !controllerutil.ContainsFinalizer(instance, addonHelmchartFinalizer) {
+				controllerutil.AddFinalizer(instance, addonHelmchartFinalizer)
 				if err := r.Update(ctx, instance); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
 		} else {
 			// The object is being deleted
-			if controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+			if controllerutil.ContainsFinalizer(instance, addonHelmchartFinalizer) {
 				// our finalizer is present, so lets delete the helm chart
 				if err := hc.DeleteHelmChart(chart, instance.Spec.Namespace); err != nil {
 					// if fail to delete the helm chart here, return with error
@@ -98,7 +98,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				}
 
 				// remove our finalizer from the list and update it.
-				controllerutil.RemoveFinalizer(instance, addonFinalizerName)
+				controllerutil.RemoveFinalizer(instance, addonHelmchartFinalizer)
 				if err := r.Update(ctx, instance); err != nil {
 					return ctrl.Result{}, err
 				}
@@ -116,21 +116,19 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	case kindManifest:
 		mc := manifest.NewManifestController(r.Client, logger)
 
-		addonFinalizerName := "boundless.mirantis.com/manifest-finalizer"
-
 		if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 			// The object is not being deleted, so if it does not have our finalizer,
 			// then lets add the finalizer and update the object. This is equivalent
 			// registering our finalizer.
-			if !controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
-				controllerutil.AddFinalizer(instance, addonFinalizerName)
+			if !controllerutil.ContainsFinalizer(instance, addonManifestFinalizer) {
+				controllerutil.AddFinalizer(instance, addonManifestFinalizer)
 				if err := r.Update(ctx, instance); err != nil {
 					return ctrl.Result{}, err
 				}
 			}
 		} else {
 			// The object is being deleted
-			if controllerutil.ContainsFinalizer(instance, addonFinalizerName) {
+			if controllerutil.ContainsFinalizer(instance, addonManifestFinalizer) {
 				// our finalizer is present, so lets delete the helm chart
 				if err := mc.DeleteManifest(BoundlessNamespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
 					// if fail to delete the manifest here, return with error
@@ -139,7 +137,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				}
 
 				// remove our finalizer from the list and update it.
-				controllerutil.RemoveFinalizer(instance, addonFinalizerName)
+				controllerutil.RemoveFinalizer(instance, addonManifestFinalizer)
 				if err := r.Update(ctx, instance); err != nil {
 					return ctrl.Result{}, err
 				}

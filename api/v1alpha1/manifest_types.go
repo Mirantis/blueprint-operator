@@ -12,7 +12,6 @@ type ManifestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Manifest. Edit manifest_types.go to remove/update
 	Url      string           `json:"url"`
 	Checksum string           `json:"checksum"`
 	Objects  []ManifestObject `json:"objects,omitempty"`
@@ -24,6 +23,7 @@ type ManifestStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
+// ManifestObject consists of the fields required to update/delete an object
 type ManifestObject struct {
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
