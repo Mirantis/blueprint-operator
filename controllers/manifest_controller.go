@@ -100,6 +100,9 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				return ctrl.Result{}, err
 			}
 
+			// delete checksum entry
+			delete(checkSum, req.Name)
+
 			// Remove the finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(existing, addonFinalizerName)
 			if err := r.Update(ctx, existing); err != nil {
