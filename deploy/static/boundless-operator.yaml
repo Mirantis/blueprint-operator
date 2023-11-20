@@ -293,9 +293,29 @@ spec:
           spec:
             description: ManifestSpec defines the desired state of Manifest
             properties:
+              checksum:
+                type: string
+              objects:
+                items:
+                  properties:
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  required:
+                  - kind
+                  - name
+                  - namespace
+                  type: object
+                type: array
               url:
                 description: Foo is an example field of Manifest. Edit manifest_types.go to remove/update
                 type: string
+            required:
+            - checksum
+            - url
             type: object
           status:
             description: ManifestStatus defines the observed state of Manifest
