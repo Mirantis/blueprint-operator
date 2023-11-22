@@ -65,6 +65,10 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	switch instance.Spec.Kind {
 	case kindChart:
+		if instance.Spec.Chart == nil {
+			logger.Info("Chart info is missing")
+			return ctrl.Result{Requeue: false}, fmt.Errorf("chart info is missing: %w", err)
+		}
 		chart := helm.Chart{
 			Name:    instance.Spec.Chart.Name,
 			Repo:    instance.Spec.Chart.Repo,
@@ -114,6 +118,10 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{Requeue: true}, err
 		}
 	case kindManifest:
+		if instance.Spec.Manifest == nil {
+			logger.Info("Manifest info is missing")
+			return ctrl.Result{Requeue: false}, fmt.Errorf("manifest info is missing: %w", err)
+		}
 		mc := manifest.NewManifestController(r.Client, logger)
 
 		if instance.ObjectMeta.DeletionTimestamp.IsZero() {

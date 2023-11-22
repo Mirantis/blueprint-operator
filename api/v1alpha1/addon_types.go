@@ -13,12 +13,12 @@ type AddonSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name      string       `json:"name"`
-	Kind      string       `json:"kind"`
-	Enabled   bool         `json:"enabled"`
-	Namespace string       `json:"namespace,omitempty"`
-	Chart     ChartInfo    `json:"chart,omitempty"`
-	Manifest  ManifestInfo `json:"manifest,omitempty"`
+	Name      string        `json:"name"`
+	Kind      string        `json:"kind"`
+	Enabled   bool          `json:"enabled"`
+	Namespace string        `json:"namespace,omitempty"`
+	Chart     *ChartInfo    `json:"chart,omitempty"`
+	Manifest  *ManifestInfo `json:"manifest,omitempty"`
 }
 
 type ChartInfo struct {
