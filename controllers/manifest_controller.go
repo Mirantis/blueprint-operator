@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"reflect"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -22,12 +24,13 @@ import (
 	core_v1 "k8s.io/api/core/v1"
 	policy_v1 "k8s.io/api/policy/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"github.com/mirantis/boundless-operator/pkg/event"
 )
 
 const (
@@ -39,12 +42,14 @@ const (
 // ManifestReconciler reconciles a Manifest object
 type ManifestReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -79,6 +84,14 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
+	// only update the status to progressing if its not already set to not trigger infinite reconciliations
+	if existing.Status.Type == "" {
+		err := r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentProgressing, "Creating Manifest")
+		if err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+	}
+
 	addonFinalizerName := "manifest/finalizer"
 
 	if existing.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -89,7 +102,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			controllerutil.AddFinalizer(existing, addonFinalizerName)
 			if err := r.Update(ctx, existing); err != nil {
 				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", addonFinalizerName)
-				return ctrl.Result{}, err
+				return ctrl.Result{Requeue: true}, err
 			}
 			return ctrl.Result{}, err
 		}
@@ -99,14 +112,16 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			// The finalizer is present, so lets delete the objects for this manifest
 			if err := r.DeleteManifestObjects(existing.Spec.Objects, ctx); err != nil {
 				logger.Error(err, "failed to delete manifest objects")
-				return ctrl.Result{}, err
+				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to delete manifest objects %s/%s", existing.Namespace, existing.Name)
+				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to delete manifest objects", fmt.Sprintf("failed to delete manifest objects : %s", err))
+				return ctrl.Result{Requeue: true}, err
 			}
 
 			// Remove the finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(existing, addonFinalizerName)
 			if err := r.Update(ctx, existing); err != nil {
 				logger.Error(err, "failed to remove finalizer")
-				return ctrl.Result{}, err
+				return ctrl.Result{Requeue: true}, err
 			}
 		}
 
@@ -145,6 +160,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// TODO: https://github.com/Mirantis/boundless-operator/pull/17#pullrequestreview-1754136032
 		if err := r.UpdateManifestObjects(req, ctx, existing); err != nil {
 			logger.Error(err, "failed to update manifest")
+			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest", fmt.Sprintf("failed to update manifest : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -169,6 +186,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while create operation")
+			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while create operation %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while create operation", fmt.Sprintf("failed to update manifest crd while create operation : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -176,16 +195,27 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
-			return ctrl.Result{}, err
+			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to fetch manifest file content for url", fmt.Sprintf("failed to fetch manifest file content for url : %s", err))
+			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
 
 		logger.Info("received new crd request. Creating manifest objects..")
 		err = r.CreateManifestObjects(req, bodyBytes, logger, ctx, existing)
 		if err != nil {
 			logger.Error(err, "failed to create objects for the manifest", "Name", req.Name)
+			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to create objects for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to create objects for the manifest", fmt.Sprintf("failed to create objects for the manifest : %s", err))
 			return ctrl.Result{}, err
 		}
 
+	}
+
+	r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest %s/%s", existing.Namespace, existing.Name)
+	err = r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentAvailable, "Manifest Created")
+	if err != nil {
+		logger.Error(err, "Failed to update status after manifest creation")
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -2133,4 +2163,31 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 
 	return bodyBytes, nil
 
+}
+
+func (r *ManifestReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
+	manifest := &boundlessv1alpha1.Manifest{}
+	err := r.Get(ctx, namespacedName, manifest)
+	if err != nil {
+		logger.Error(err, "Failed to get manifest to update status")
+		return err
+	}
+
+	if manifest.Status.Type == typeToApply && manifest.Status.Reason == reasonToApply {
+		// avoid infinite reconciliation loops
+		logger.Info("No updates to status needed")
+		return nil
+	}
+
+	logger.Info("Update status for manifest", "Name", manifest.Name)
+
+	patch := client.MergeFrom(manifest.DeepCopy())
+	manifest.Status.Type = typeToApply
+	manifest.Status.Reason = reasonToApply
+	if len(messageToApply) > 0 {
+		manifest.Status.Message = messageToApply[0]
+	}
+	manifest.Status.LastTransitionTime = metav1.Now()
+
+	return r.Status().Patch(ctx, manifest, patch)
 }

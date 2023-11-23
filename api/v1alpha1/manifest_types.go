@@ -22,6 +22,8 @@ type ManifestSpec struct {
 type ManifestStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	Status `json:",inline"`
 }
 
 // ManifestObject consists of the fields required to update/delete an object
@@ -33,6 +35,7 @@ type ManifestObject struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.type",description="Whether the component is running and stable."
 
 // Manifest is the Schema for the manifests API
 type Manifest struct {
