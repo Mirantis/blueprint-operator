@@ -65,12 +65,43 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 	}
 
 	if existing != nil {
-		// ToDo : add code for update
 		// Use checksum to see if any updates are required.
+		if existing.Spec.Checksum != m.Spec.Checksum {
+			mc.logger.Info("manifest crd exists, checksum differs", "Existing", existing.Spec.Checksum, "New", m.Spec.Checksum)
+			mc.logger.Info("Sakshi:::manifest crd exists, object list", "ObjectList", existing.Spec.Objects)
+
+			// This will differ both in case either the url has changed or the contents of the url has changed.
+			// Store the newChecksum to the new computed value and store checksum to the old value.
+			// This value will be reset by manifest controller after the update workflow is completed.
+
+			newManifest := boundlessv1alpha1.Manifest{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            m.Name,
+					Namespace:       m.Namespace,
+					ResourceVersion: existing.ResourceVersion,
+				},
+				Spec: boundlessv1alpha1.ManifestSpec{
+					Url:         m.Spec.Url,
+					Checksum:    existing.Spec.Checksum,
+					NewChecksum: m.Spec.Checksum,
+					Objects:     existing.Spec.Objects,
+				},
+			}
+			err := mc.client.Update(ctx, &newManifest)
+			if err != nil {
+				mc.logger.Info("failed to update manifest crd", "Error", err)
+				return err
+			}
+			mc.logger.Info("manifest updated successfully", "ManifestName", m.Name)
+		}
 		return nil
 
 	} else {
 		mc.logger.Info("manifest crd does not exist, creating", "ManifestName", m.Name, "Namespace", m.Namespace)
+
+		// In this case, NewChecksum will be an empty string
+		//m.Spec.NewChecksum = m.Spec.Checksum
+		m.Spec.NewChecksum = ""
 
 		err := mc.client.Create(ctx, &m)
 		if err != nil {
