@@ -68,7 +68,6 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 		// Use checksum to see if any updates are required.
 		if existing.Spec.Checksum != m.Spec.Checksum {
 			mc.logger.Info("manifest crd exists, checksum differs", "Existing", existing.Spec.Checksum, "New", m.Spec.Checksum)
-			mc.logger.Info("Sakshi:::manifest crd exists, object list", "ObjectList", existing.Spec.Objects)
 
 			// This will differ both in case either the url has changed or the contents of the url has changed.
 			// Store the newChecksum to the new computed value and store checksum to the old value.

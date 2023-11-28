@@ -69,8 +69,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	existing := &boundlessv1alpha1.Manifest{}
 	err := r.Client.Get(ctx, key, existing)
 
-	logger.Info("Sakshi:::Manifest instance", "ObjectList", existing.Spec.Objects)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			logger.Info("manifest does not exist", "Namespace", req.Namespace, "Name", req.Name)
@@ -137,7 +135,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 
-		logger.Info("Sakshi::Newchecksum is empty.. Creating manifest objects")
+		logger.Info("received new crd request. Creating manifest objects..")
 		err = r.CreateManifestObjects(req, bodyBytes, logger, ctx, existing)
 		if err != nil {
 			logger.Error(err, "failed to create objects for the manifest", "Name", req.Name)
@@ -271,8 +269,6 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 			}
 		}
 	}
-
-	logger.Info("Sakshi:: CreateManifest Object list", "ObjectList", manifestObjs)
 
 	// Update the CRD
 	updatedCRD := boundlessv1alpha1.Manifest{
@@ -1942,8 +1938,6 @@ func (r *ManifestReconciler) deleteValidatingWebhookObject(val boundlessv1alpha1
 func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context.Context, existing *boundlessv1alpha1.Manifest) error {
 	logger := log.FromContext(ctx)
 
-	logger.Info("Sakshi: Update starts:: manifest objects", "Objects", existing.Spec.Objects)
-
 	// Read the URL contents
 	bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
 	if err != nil {
@@ -2059,9 +2053,6 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	}
 
 	// Get the list of new objects
-	logger.Info("List of new objects", "NewObjects", newManifestObjs)
-
-	logger.Info("Sakshi: Update ends:: manifest objects", "Objects", existing.Spec.Objects)
 	oldObjects := existing.Spec.Objects
 
 	// Update the CRD
