@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,7 +64,16 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	switch instance.Spec.Kind {
+	var kind string
+	if strings.EqualFold(kindChart, instance.Spec.Kind) {
+		kind = kindChart
+	} else if strings.EqualFold(kindManifest, instance.Spec.Kind) {
+		kind = kindManifest
+	} else {
+		kind = instance.Spec.Kind
+	}
+
+	switch kind {
 	case kindChart:
 		chart := helm.Chart{
 			Name:    instance.Spec.Chart.Name,
