@@ -2052,7 +2052,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 		}
 	}
 
-	// Get the list of new objects
+	// Get the list of old objects
 	oldObjects := existing.Spec.Objects
 
 	// Update the CRD
