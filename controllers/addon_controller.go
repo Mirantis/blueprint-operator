@@ -5,16 +5,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/go-logr/logr"
+	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
+	"github.com/mirantis/boundless-operator/pkg/event"
+	"github.com/mirantis/boundless-operator/pkg/helm"
+	"github.com/mirantis/boundless-operator/pkg/manifest"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/helm"
-	"github.com/mirantis/boundless-operator/pkg/manifest"
 )
 
 const (
@@ -28,12 +32,14 @@ const (
 // AddonReconciler reconciles a Addon object
 type AddonReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 }
 
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -75,6 +81,8 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		kind = instance.Spec.Kind
 	}
 
+	// @TODO: Update addon status only once per reconcile; React to Statuses of HelmChart / Manifests
+
 	switch kind {
 	case kindChart:
 		if instance.Spec.Chart == nil {
@@ -110,6 +118,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				if err := hc.DeleteHelmChart(chart, instance.Spec.Namespace); err != nil {
 					// if fail to delete the helm chart here, return with error
 					// so that it can be retried
+					r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Chart Addon %s/%s: %s", instance.Spec.Namespace, instance.Name, err)
 					return ctrl.Result{}, err
 				}
 
@@ -127,8 +136,13 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
 		if err := hc.CreateHelmChart(chart, instance.Spec.Namespace); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
+			r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentUnhealthy, "Failed to Create HelmChart")
 			return ctrl.Result{Requeue: true}, err
 		}
+		r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Chart Addon %s/%s", instance.Spec.Namespace, instance.Name)
+		r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentAvailable, "Chart Addon Created")
+
 	case kindManifest:
 		if instance.Spec.Manifest == nil {
 			logger.Info("Manifest info is missing")
@@ -154,6 +168,8 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				if err := mc.DeleteManifest(BoundlessNamespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
 					// if fail to delete the manifest here, return with error
 					// so that it can be retried
+					r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
+					r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentUnhealthy, "Failed to Cleanup Manifest")
 					return ctrl.Result{}, err
 				}
 
@@ -171,8 +187,13 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		err = mc.CreateManifest(BoundlessNamespace, instance.Spec.Name, instance.Spec.Manifest.URL)
 		if err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
+			r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentUnhealthy, "Failed to Create Manifest")
 			return ctrl.Result{Requeue: true}, err
 		}
+
+		r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest Addon %s/%s", instance.Spec.Namespace, instance.Name)
+		r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentAvailable, "Manifest Addon Created")
 
 	default:
 		logger.Info("Unknown AddOn kind", "Kind", instance.Spec.Kind)
@@ -188,4 +209,31 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
 		Complete(r)
+}
+
+func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, conditionTypeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
+	addon := &boundlessv1alpha1.Addon{}
+	err := r.Get(ctx, namespacedName, addon)
+	if err != nil {
+		logger.Error(err, "Failed to get addon to update status")
+		return err
+	}
+
+	if addon.Status.Type == conditionTypeToApply && addon.Status.Reason == reasonToApply {
+		// avoid infinite reconciliation loops
+		logger.Info("No updates to status needed")
+		return nil
+	}
+
+	logger.Info("Update status for addon", "Name", addon.Name)
+
+	patch := client.MergeFrom(addon.DeepCopy())
+	addon.Status.Type = conditionTypeToApply
+	addon.Status.Reason = reasonToApply
+	if len(messageToApply) > 0 {
+		addon.Status.Message = messageToApply[0]
+	}
+	addon.Status.LastTransitionTime = metav1.Now()
+
+	return r.Status().Patch(ctx, addon, patch)
 }

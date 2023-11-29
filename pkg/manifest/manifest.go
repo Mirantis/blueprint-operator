@@ -159,7 +159,7 @@ func (mc *ManifestController) getCheckSumUrl(url string) (string, error) {
 
 	} else {
 		mc.logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
-		return "", err
+		return "", fmt.Errorf("failure in http get request ResponseCode: %d, %s", resp.StatusCode, err)
 	}
 
 	sum := sha256.Sum256(bodyBytes)

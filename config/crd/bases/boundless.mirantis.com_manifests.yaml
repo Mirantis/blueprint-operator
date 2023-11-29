@@ -15,7 +15,12 @@ spec:
     singular: manifest
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: Whether the component is running and stable.
+      jsonPath: .status.type
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Manifest is the Schema for the manifests API
@@ -64,6 +69,25 @@ spec:
             type: object
           status:
             description: ManifestStatus defines the observed state of Manifest
+            properties:
+              lastTransitionTime:
+                description: The timestamp representing the start time for the current
+                  status.
+                format: date-time
+                type: string
+              message:
+                description: Optionally, a detailed message providing additional context.
+                type: string
+              reason:
+                description: A brief reason explaining the condition.
+                type: string
+              type:
+                description: The type of condition. May be Available, Progressing,
+                  or Degraded.
+                type: string
+            required:
+            - lastTransitionTime
+            - type
             type: object
         type: object
     served: true

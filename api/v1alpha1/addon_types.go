@@ -33,14 +33,50 @@ type ManifestInfo struct {
 	URL string `json:"url"`
 }
 
+// StatusType is a type of condition that may apply to a particular component.
+type StatusType string
+
+const (
+	// TypeComponentAvailable indicates that the component is healthy.
+	TypeComponentAvailable StatusType = "Available"
+
+	// TypeComponentProgressing means that the component is in the process of being installed or upgraded.
+	TypeComponentProgressing StatusType = "Progressing"
+
+	// TypeComponentDegraded means the component is not operating as desired and user action is required.
+	TypeComponentDegraded StatusType = "Degraded"
+
+	// TypeComponentReady indicates that the component is healthy and ready.it is identical to Available.
+	TypeComponentReady StatusType = "Ready"
+
+	// TypeComponentUnhealthy indicates the component is not functioning as intended.
+	TypeComponentUnhealthy StatusType = "Unhealthy"
+)
+
+type Status struct {
+	// The type of condition. May be Available, Progressing, or Degraded.
+	Type StatusType `json:"type"`
+
+	// The timestamp representing the start time for the current status.
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
+
+	// A brief reason explaining the condition.
+	Reason string `json:"reason,omitempty"`
+
+	// Optionally, a detailed message providing additional context.
+	Message string `json:"message,omitempty"`
+}
+
 // AddonStatus defines the observed state of Addon
 type AddonStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Status `json:",inline"`
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.type",description="Whether the component is running and stable."
 
 // Addon is the Schema for the addons API
 type Addon struct {
