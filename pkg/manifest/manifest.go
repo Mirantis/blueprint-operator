@@ -86,6 +86,8 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 					Objects:     existing.Spec.Objects,
 				},
 			}
+
+			newManifest.SetFinalizers(existing.GetFinalizers())
 			err := mc.client.Update(ctx, &newManifest)
 			if err != nil {
 				mc.logger.Info("failed to update manifest crd", "Error", err)

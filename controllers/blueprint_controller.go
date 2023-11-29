@@ -152,6 +152,8 @@ func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger lo
 
 		if existing.Spec.Namespace == addon.Spec.Namespace {
 			addon.SetResourceVersion(existing.GetResourceVersion())
+			// TODO : Copy all the fields from the existing
+			addon.SetFinalizers(existing.GetFinalizers())
 			err = r.Update(ctx, addon)
 			if err != nil {
 				return fmt.Errorf("failed to update add-on %s: %w", existing.Name, err)

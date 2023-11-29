@@ -91,6 +91,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", addonFinalizerName)
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, err
 		}
 	} else {
 		// The object is being deleted
@@ -113,21 +114,64 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
+	if existing.Spec.Checksum == existing.Spec.NewChecksum {
+		logger.Info("checksum is same, no update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
+		return ctrl.Result{}, nil
+	}
+
 	if (existing.Spec.Checksum != existing.Spec.NewChecksum) && (existing.Spec.NewChecksum != "") {
 		// Update is required
 		logger.Info("checksum differs, update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
+		// First, update the checksum to avoid any reconciliation
+		// Update the CRD
+		updatedCRD := boundlessv1alpha1.Manifest{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            existing.Name,
+				Namespace:       existing.Namespace,
+				ResourceVersion: existing.ResourceVersion,
+			},
+			Spec: boundlessv1alpha1.ManifestSpec{
+				Url:         existing.Spec.Url,
+				Checksum:    existing.Spec.NewChecksum,
+				NewChecksum: existing.Spec.NewChecksum,
+			},
+		}
+
+		if err := r.Update(ctx, &updatedCRD); err != nil {
+			logger.Error(err, "failed to update manifest crd while update operation")
+			return ctrl.Result{}, err
+		}
+
+		// TODO: https://github.com/Mirantis/boundless-operator/pull/17#pullrequestreview-1754136032
 		if err := r.UpdateManifestObjects(req, ctx, existing); err != nil {
 			logger.Error(err, "failed to update manifest")
 			return ctrl.Result{}, err
 		}
 
-	} else if existing.Spec.Checksum == existing.Spec.NewChecksum {
-		logger.Info("checksum is same, no update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
-		return ctrl.Result{}, nil
 	}
 
 	if existing.Spec.NewChecksum == "" {
 		// We will reach here only in case of create request.
+		// First, update the checksum in CRD to avoid any reconciliations.
+		// Update the CRD
+		updatedCRD := boundlessv1alpha1.Manifest{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            existing.Name,
+				Namespace:       existing.Namespace,
+				ResourceVersion: existing.ResourceVersion,
+			},
+			Spec: boundlessv1alpha1.ManifestSpec{
+				Url:         existing.Spec.Url,
+				Checksum:    existing.Spec.Checksum,
+				NewChecksum: existing.Spec.Checksum,
+			},
+		}
+
+		if err := r.Update(ctx, &updatedCRD); err != nil {
+			logger.Error(err, "failed to update manifest crd while create operation")
+			return ctrl.Result{}, err
+		}
+
 		// Run http get request to fetch the contents of the manifest file.
 		bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
 		if err != nil {
@@ -270,23 +314,36 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 		}
 	}
 
+	// TODO: https://github.com/Mirantis/boundless-operator/pull/17#discussion_r1408570381
+	// Update the CRD
+	key := types.NamespacedName{
+		Namespace: req.Namespace,
+		Name:      req.Name,
+	}
+
+	crd := &boundlessv1alpha1.Manifest{}
+	err := r.Client.Get(ctx, key, crd)
+	if err != nil {
+		logger.Error(err, "failed to get manifest object")
+		return err
+	}
 	// Update the CRD
 	updatedCRD := boundlessv1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            existing.Name,
-			Namespace:       existing.Namespace,
-			ResourceVersion: existing.ResourceVersion,
+			Name:            crd.Name,
+			Namespace:       crd.Namespace,
+			ResourceVersion: crd.ResourceVersion,
 		},
 		Spec: boundlessv1alpha1.ManifestSpec{
-			Url:         existing.Spec.Url,
-			Checksum:    existing.Spec.Checksum,
-			NewChecksum: existing.Spec.Checksum,
+			Url:         crd.Spec.Url,
+			Checksum:    crd.Spec.Checksum,
+			NewChecksum: crd.Spec.NewChecksum,
 			Objects:     manifestObjs,
 		},
 	}
 
 	if err := r.Update(ctx, &updatedCRD); err != nil {
-		logger.Error(err, "failed to update manifest crd with objectList")
+		logger.Error(err, "failed to update manifest crd with objectList during create")
 		return err
 	}
 
@@ -296,19 +353,14 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 func (r *ManifestReconciler) handleNamespaceObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addNamespaceObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteNamespaceObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*core_v1.Namespace)
 
@@ -352,20 +404,14 @@ func (r *ManifestReconciler) handleNamespaceObject(runtimeObject runtime.Object,
 func (r *ManifestReconciler) handleServiceObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addServiceObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteServiceObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 
 		myobj := runtimeObject.(*core_v1.Service)
@@ -409,20 +455,14 @@ func (r *ManifestReconciler) handleServiceObject(runtimeObject runtime.Object, g
 func (r *ManifestReconciler) handleDeploymentObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addDeploymentObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteDeploymentObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*apps_v1.Deployment)
 
@@ -465,20 +505,14 @@ func (r *ManifestReconciler) handleDeploymentObject(runtimeObject runtime.Object
 func (r *ManifestReconciler) handleDaemonsetObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addDaemonsetObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteDaemonsetObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*apps_v1.DaemonSet)
 
@@ -521,20 +555,14 @@ func (r *ManifestReconciler) handleDaemonsetObject(runtimeObject runtime.Object,
 func (r *ManifestReconciler) handlePodDisruptionBudget(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addPodDisruptionBudget(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deletePDBObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*policy_v1.PodDisruptionBudget)
 
@@ -577,20 +605,14 @@ func (r *ManifestReconciler) handlePodDisruptionBudget(runtimeObject runtime.Obj
 func (r *ManifestReconciler) handleServiceAccount(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addServiceAccount(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteServiceAccountObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*core_v1.ServiceAccount)
 
@@ -632,20 +654,14 @@ func (r *ManifestReconciler) handleServiceAccount(runtimeObject runtime.Object, 
 func (r *ManifestReconciler) handleRoleObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addRoleObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteRoleObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*rbac_v1.Role)
 
@@ -687,20 +703,14 @@ func (r *ManifestReconciler) handleRoleObject(runtimeObject runtime.Object, grou
 func (r *ManifestReconciler) handleClusterRoleObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addClusterRoleObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteClusterRoleObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*rbac_v1.ClusterRole)
 
@@ -742,20 +752,14 @@ func (r *ManifestReconciler) handleClusterRoleObject(runtimeObject runtime.Objec
 func (r *ManifestReconciler) handleSecretObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addSecretObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteSecretObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*core_v1.Secret)
 
@@ -797,20 +801,14 @@ func (r *ManifestReconciler) handleSecretObject(runtimeObject runtime.Object, gr
 func (r *ManifestReconciler) handleRoleBindingObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addRoleBindingObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteRoleBindingObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*rbac_v1.RoleBinding)
 
@@ -852,20 +850,14 @@ func (r *ManifestReconciler) handleRoleBindingObject(runtimeObject runtime.Objec
 func (r *ManifestReconciler) handleClusterRoleBindingObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addClusterRoleBindingObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteClusterRoleBindingObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*rbac_v1.ClusterRoleBinding)
 
@@ -907,20 +899,14 @@ func (r *ManifestReconciler) handleClusterRoleBindingObject(runtimeObject runtim
 func (r *ManifestReconciler) handleConfigMapObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addConfigMapObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteConfigmapObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*core_v1.ConfigMap)
 
@@ -962,20 +948,14 @@ func (r *ManifestReconciler) handleConfigMapObject(runtimeObject runtime.Object,
 func (r *ManifestReconciler) handleCRDObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addCRDObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteCRDObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*apiextensionsv1.CustomResourceDefinition)
 
@@ -1017,20 +997,14 @@ func (r *ManifestReconciler) handleCRDObject(runtimeObject runtime.Object, group
 func (r *ManifestReconciler) handleValidatingWebhookObject(runtimeObject runtime.Object, groupVersionKind *schema.GroupVersionKind, req ctrl.Request, ctx context.Context, manifestObjs *[]boundlessv1alpha1.ManifestObject, action string, val boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	if action == actionCreate {
-		err := r.addValidatingWebhookObject(runtimeObject, groupVersionKind, req, ctx, manifestObjs)
-		if err != nil {
-			return err
-		}
-
-	} else if action == actionDelete {
+	if action == actionDelete {
 		err := r.deleteValidatingWebhookObject(val, ctx)
 		if err != nil {
 			return err
 		}
 
 	} else {
-		// action = update
+		// action = update/create
 		// Check if this object exists
 		myobj := runtimeObject.(*adm_v1.ValidatingWebhookConfiguration)
 
@@ -2082,7 +2056,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	}
 
 	if err := r.Update(ctx, &updatedCRD); err != nil {
-		logger.Error(err, "failed to update manifest crd with objectList")
+		logger.Error(err, "failed to update manifest crd with objectList during update operation")
 		return err
 	}
 
@@ -2093,6 +2067,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	return nil
 }
 
+// TODO: https://github.com/Mirantis/boundless-operator/pull/17#discussion_r1408571732
 func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx context.Context, oldObjects []boundlessv1alpha1.ManifestObject, newObjects []boundlessv1alpha1.ManifestObject) {
 	logger := log.FromContext(ctx)
 

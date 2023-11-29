@@ -64,6 +64,8 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
+	logger.Info("Reconcile Addon Generation id", "GenID", instance.Generation)
+
 	var kind string
 	if strings.EqualFold(kindChart, instance.Spec.Kind) {
 		kind = kindChart
@@ -135,6 +137,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				if err := r.Update(ctx, instance); err != nil {
 					return ctrl.Result{}, err
 				}
+				return ctrl.Result{}, nil
 			}
 		} else {
 			// The object is being deleted
