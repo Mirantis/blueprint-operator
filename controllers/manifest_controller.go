@@ -2123,8 +2123,19 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 }
 
 func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger logr.Logger) ([]byte, error) {
-	var client http.Client
-	resp, err := client.Get(url)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		logger.Error(err, "failed to create http request for url: %s", url)
+		return nil, err
+	}
+
+	client := http.DefaultClient
+
+	resp, err := client.Do(httpReq)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", url)
 		return nil, err
@@ -2146,4 +2157,5 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 	}
 
 	return bodyBytes, nil
+
 }
