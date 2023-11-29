@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,7 +64,18 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	switch instance.Spec.Kind {
+	logger.Info("Reconcile Addon Generation id", "GenID", instance.Generation)
+
+	var kind string
+	if strings.EqualFold(kindChart, instance.Spec.Kind) {
+		kind = kindChart
+	} else if strings.EqualFold(kindManifest, instance.Spec.Kind) {
+		kind = kindManifest
+	} else {
+		kind = instance.Spec.Kind
+	}
+
+	switch kind {
 	case kindChart:
 		if instance.Spec.Chart == nil {
 			logger.Info("Chart info is missing")
@@ -133,6 +145,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 				if err := r.Update(ctx, instance); err != nil {
 					return ctrl.Result{}, err
 				}
+				return ctrl.Result{}, nil
 			}
 		} else {
 			// The object is being deleted

@@ -12,9 +12,10 @@ type ManifestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Url      string           `json:"url"`
-	Checksum string           `json:"checksum"`
-	Objects  []ManifestObject `json:"objects,omitempty"`
+	Url         string           `json:"url"`
+	NewChecksum string           `json:"newChecksum,omitempty"`
+	Checksum    string           `json:"checksum"`
+	Objects     []ManifestObject `json:"objects,omitempty"`
 }
 
 // ManifestStatus defines the observed state of Manifest
