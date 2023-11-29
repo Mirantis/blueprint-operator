@@ -6,6 +6,10 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
+	"github.com/mirantis/boundless-operator/pkg/event"
+	"github.com/mirantis/boundless-operator/pkg/helm"
+	"github.com/mirantis/boundless-operator/pkg/manifest"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,12 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/event"
-	"github.com/mirantis/boundless-operator/pkg/helm"
-	"github.com/mirantis/boundless-operator/pkg/manifest"
 )
 
 const (
@@ -84,7 +82,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	// @TODO: Update addon status only once per reconcile; React to Statuses of HelmChart / Manifests
-	r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Creating Addon")
 
 	switch kind {
 	case kindChart:
@@ -211,7 +208,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
 

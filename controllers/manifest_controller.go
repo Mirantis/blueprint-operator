@@ -84,14 +84,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	// only update the status to progressing if its not already set to not trigger infinite reconciliations
-	if existing.Status.Type == "" {
-		err := r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentProgressing, "Creating Manifest")
-		if err != nil {
-			return ctrl.Result{Requeue: true}, err
-		}
-	}
-
 	addonFinalizerName := "manifest/finalizer"
 
 	if existing.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -102,6 +94,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			controllerutil.AddFinalizer(existing, addonFinalizerName)
 			if err := r.Update(ctx, existing); err != nil {
 				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", addonFinalizerName)
+				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest object with finalizer %s/%s", existing.Namespace, existing.Name)
+				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest object with finalizer", fmt.Sprintf("failed to update manifest object with finalizer : %s", err))
 				return ctrl.Result{Requeue: true}, err
 			}
 			return ctrl.Result{}, err
@@ -121,6 +115,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			controllerutil.RemoveFinalizer(existing, addonFinalizerName)
 			if err := r.Update(ctx, existing); err != nil {
 				logger.Error(err, "failed to remove finalizer")
+				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to remove finalizer %s/%s", existing.Namespace, existing.Name)
+				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to remove finalizer", fmt.Sprintf("failed to remove finalizer : %s", err))
 				return ctrl.Result{Requeue: true}, err
 			}
 		}
@@ -129,12 +125,12 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	if existing.Spec.Checksum == existing.Spec.NewChecksum {
+	if existing.Spec.Checksum == existing.Spec.NewChecksum && existing.Status.Type == boundlessv1alpha1.TypeComponentAvailable {
 		logger.Info("checksum is same, no update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
 		return ctrl.Result{}, nil
 	}
 
-	if (existing.Spec.Checksum != existing.Spec.NewChecksum) && (existing.Spec.NewChecksum != "") {
+	if (existing.Spec.Checksum != existing.Spec.NewChecksum || existing.Status.Type != boundlessv1alpha1.TypeComponentAvailable) && (existing.Spec.NewChecksum != "") {
 		// Update is required
 		logger.Info("checksum differs, update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
 		// First, update the checksum to avoid any reconciliation
@@ -154,6 +150,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
+			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while update operation %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation", fmt.Sprintf("failed to update manifest crd while update operation : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -194,7 +192,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// Run http get request to fetch the contents of the manifest file.
 		bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
 		if err != nil {
-			logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
+			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to fetch manifest file content for url", fmt.Sprintf("failed to fetch manifest file content for url : %s", err))
 			return ctrl.Result{RequeueAfter: time.Minute}, err
@@ -2158,7 +2156,7 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 
 	} else {
 		logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
-		return nil, err
+		return nil, fmt.Errorf("failure in http get request ResponseCode: %d, %s", resp.StatusCode, err)
 	}
 
 	return bodyBytes, nil
