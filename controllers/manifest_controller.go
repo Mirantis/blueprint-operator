@@ -6,6 +6,9 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 	"time"
 
@@ -34,9 +37,10 @@ import (
 )
 
 const (
-	actionUpdate = "update"
-	actionCreate = "create"
-	actionDelete = "delete"
+	actionUpdate        = "update"
+	actionCreate        = "create"
+	actionDelete        = "delete"
+	manifestUpdateIndex = "manifestupdateindex"
 )
 
 // ManifestReconciler reconciles a Manifest object
@@ -72,6 +76,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	existing := &boundlessv1alpha1.Manifest{}
+
 	err := r.Client.Get(ctx, key, existing)
 
 	if err != nil {
@@ -126,9 +131,12 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	if existing.Spec.Checksum == existing.Spec.NewChecksum && existing.Status.Type == boundlessv1alpha1.TypeComponentAvailable {
+	// check and update status before we leave reconciliation
+	defer r.checkManifestStatus(ctx, logger, req.NamespacedName, existing.Spec.Objects)
+
+	if existing.Spec.Checksum == existing.Spec.NewChecksum {
 		logger.Info("checksum is same, no update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, err
 	}
 
 	if (existing.Spec.Checksum != existing.Spec.NewChecksum) && (existing.Spec.NewChecksum != "") {
@@ -152,7 +160,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while update operation %s/%s : %s", existing.Namespace, existing.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation", fmt.Sprintf("failed to update manifest crd while update operation : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -160,7 +167,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.UpdateManifestObjects(req, ctx, existing); err != nil {
 			logger.Error(err, "failed to update manifest")
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest", fmt.Sprintf("failed to update manifest : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -186,7 +192,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while create operation")
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while create operation %s/%s : %s", existing.Namespace, existing.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while create operation", fmt.Sprintf("failed to update manifest crd while create operation : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -195,7 +200,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to fetch manifest file content for url", fmt.Sprintf("failed to fetch manifest file content for url : %s", err))
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
 
@@ -204,27 +208,67 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err != nil {
 			logger.Error(err, "failed to create objects for the manifest", "Name", req.Name)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to create objects for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to create objects for the manifest", fmt.Sprintf("failed to create objects for the manifest : %s", err))
 			return ctrl.Result{}, err
 		}
 
 	}
 
 	r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest %s/%s", existing.Namespace, existing.Name)
-	err = r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentAvailable, "Manifest Created")
-	if err != nil {
-		logger.Error(err, "Failed to update status after manifest creation")
-		return ctrl.Result{Requeue: true}, err
-	}
-
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
+
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Manifest{}, manifestUpdateIndex, func(rawObj client.Object) []string {
+		manifest := rawObj.(*boundlessv1alpha1.Manifest)
+		if manifest.Spec.Objects == nil || len(manifest.Spec.Objects) == 0 {
+			return nil
+		}
+
+		var indexes []string
+		for _, obj := range manifest.Spec.Objects {
+			if obj.Kind == "DaemonSet" || obj.Kind == "Deployment" {
+				indexes = append(indexes, fmt.Sprintf("%s-%s", obj.Namespace, obj.Name))
+			}
+		}
+		return indexes
+
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Manifest{}).
+		Watches(
+			&source.Kind{Type: &apps_v1.DaemonSet{}},
+			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
+		).
+		Watches(
+			&source.Kind{Type: &apps_v1.Deployment{}},
+			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
+		).
 		Complete(r)
+}
+
+func (r *ManifestReconciler) findAssociatedManifest(obj client.Object) []reconcile.Request {
+	attachedManifestList := &boundlessv1alpha1.ManifestList{}
+	err := r.List(context.TODO(), attachedManifestList, client.MatchingFields{manifestUpdateIndex: fmt.Sprintf("%s-%s", obj.GetNamespace(), obj.GetName())})
+	if err != nil {
+		fmt.Printf("err is %s\n", err)
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(attachedManifestList.Items))
+	for i, item := range attachedManifestList.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      item.GetName(),
+				Namespace: item.GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
 
 func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte, logger logr.Logger, ctx context.Context, existing *boundlessv1alpha1.Manifest) error {
@@ -2162,6 +2206,95 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 
 	return bodyBytes, nil
 
+}
+
+func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
+
+	if objects == nil || len(objects) == 0 {
+		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, "No manifest objects detected")
+		if err != nil {
+			return err
+		}
+	}
+
+	// for now focus on getting status from any Deployments or Daemonsets deployed via the manifest since
+	// they have reliable status fields we can pull from and are most likely to fail
+	// TODO update this with other objects as needed
+	stillProgressing := false
+	var reasonToApply, messageToApply string
+	for _, obj := range objects {
+		kind := obj.Kind
+
+		if kind == "Deployment" {
+			deployment := &apps_v1.Deployment{}
+			err := r.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, deployment)
+			if err != nil {
+				return err
+			}
+			if deployment.Status.AvailableReplicas == deployment.Status.Replicas && (deployment.Status.Conditions == nil || len(deployment.Status.Conditions) == 0) {
+				// this deployment is ready
+				continue
+			}
+			latestCondition := deployment.Status.Conditions[0]
+			if deployment.Status.AvailableReplicas == deployment.Status.Replicas && latestCondition.Type == apps_v1.DeploymentAvailable {
+				// this deployment is ready
+				continue
+			}
+
+			if latestCondition.Type == apps_v1.DeploymentProgressing {
+				stillProgressing = true
+				reasonToApply = latestCondition.Reason
+				messageToApply = latestCondition.Message
+			} else {
+				// deployment is in error state, so we can update the manifest status that it has issues
+				err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, latestCondition.Reason, latestCondition.Message)
+				if err != nil {
+					return err
+				}
+			}
+		} else if kind == "DaemonSet" {
+			daemonset := &apps_v1.DaemonSet{}
+			err := r.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, daemonset)
+			if err != nil {
+				return err
+			}
+
+			if daemonset.Status.DesiredNumberScheduled == daemonset.Status.CurrentNumberScheduled && daemonset.Status.DesiredNumberScheduled == daemonset.Status.NumberAvailable {
+				//daemonset is ready
+				continue
+			}
+
+			if daemonset.Status.NumberMisscheduled > 0 {
+				err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Daemonset %s failed to schedule pods", daemonset.Name))
+				if err != nil {
+					return err
+				}
+			} else {
+				stillProgressing = true
+				reasonToApply = fmt.Sprintf("Daemonset %s is still progressing", daemonset.Name)
+				messageToApply = fmt.Sprintf("Daemonset %s is still progressing", daemonset.Name)
+			}
+
+		} else {
+			continue
+		}
+
+	}
+
+	if stillProgressing {
+		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentProgressing, fmt.Sprintf("One or more components still progressing : %s", reasonToApply), messageToApply)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, "Manifest Components Available")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *ManifestReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
