@@ -6,7 +6,9 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
@@ -243,10 +245,12 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&source.Kind{Type: &apps_v1.DaemonSet{}},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Watches(
 			&source.Kind{Type: &apps_v1.Deployment{}},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Complete(r)
 }
@@ -255,7 +259,6 @@ func (r *ManifestReconciler) findAssociatedManifest(obj client.Object) []reconci
 	attachedManifestList := &boundlessv1alpha1.ManifestList{}
 	err := r.List(context.TODO(), attachedManifestList, client.MatchingFields{manifestUpdateIndex: fmt.Sprintf("%s-%s", obj.GetNamespace(), obj.GetName())})
 	if err != nil {
-		fmt.Printf("err is %s\n", err)
 		return []reconcile.Request{}
 	}
 
@@ -2241,9 +2244,9 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 				continue
 			}
 
-			if latestCondition.Type == apps_v1.DeploymentProgressing {
+			if latestCondition.Type == apps_v1.DeploymentProgressing || latestCondition.Reason == "MinimumReplicasUnavailable" {
 				stillProgressing = true
-				reasonToApply = latestCondition.Reason
+				reasonToApply = fmt.Sprintf("Deployment %s still progressing", obj.Name)
 				messageToApply = latestCondition.Message
 			} else {
 				// deployment is in error state, so we can update the manifest status that it has issues
@@ -2251,6 +2254,7 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 				if err != nil {
 					return err
 				}
+				break
 			}
 		} else if kind == "DaemonSet" {
 			daemonset := &apps_v1.DaemonSet{}
@@ -2269,6 +2273,7 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 				if err != nil {
 					return err
 				}
+				break
 			} else {
 				stillProgressing = true
 				reasonToApply = fmt.Sprintf("Daemonset %s is still progressing", daemonset.Name)
@@ -2289,7 +2294,7 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 		return nil
 	}
 
-	err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, "Manifest Components Available")
+	err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, "Manifest Components Available", "Manifest Components Available")
 	if err != nil {
 		return err
 	}
@@ -2298,6 +2303,8 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 }
 
 func (r *ManifestReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
+	logger.Info("Update status with type and reason", "TypeToApply", typeToApply, "ReasonToApply", reasonToApply)
+
 	manifest := &boundlessv1alpha1.Manifest{}
 	err := r.Get(ctx, namespacedName, manifest)
 	if err != nil {
@@ -2305,7 +2312,8 @@ func (r *ManifestReconciler) updateStatus(ctx context.Context, logger logr.Logge
 		return err
 	}
 
-	if manifest.Status.Type == typeToApply && manifest.Status.Reason == reasonToApply {
+	nilStatus := boundlessv1alpha1.ManifestStatus{}
+	if manifest.Status != nilStatus && manifest.Status.Type == typeToApply && manifest.Status.Reason == reasonToApply {
 		// avoid infinite reconciliation loops
 		logger.Info("No updates to status needed")
 		return nil

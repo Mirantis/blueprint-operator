@@ -3,7 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
@@ -29,7 +31,6 @@ import (
 const (
 	kindManifest            = "manifest"
 	kindChart               = "chart"
-	BoundlessNamespace      = "boundless-system"
 	addonHelmchartFinalizer = "boundless.mirantis.com/helmchart-finalizer"
 	addonManifestFinalizer  = "boundless.mirantis.com/manifest-finalizer"
 	addonIndexName          = "helmchartIndex"
@@ -45,6 +46,10 @@ type AddonReconciler struct {
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons/finalizers,verbs=update
+//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
@@ -181,11 +186,10 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			// The object is being deleted
 			if controllerutil.ContainsFinalizer(instance, addonManifestFinalizer) {
 				// our finalizer is present, so lets delete the helm chart
-				if err := mc.DeleteManifest(BoundlessNamespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
+				if err := mc.DeleteManifest(boundlessSystemNamespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
 					// if fail to delete the manifest here, return with error
 					// so that it can be retried
 					r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
-					//r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentUnhealthy, "Failed to Cleanup Manifest")
 					return ctrl.Result{}, err
 				}
 
@@ -200,16 +204,47 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, nil
 		}
 
-		err = mc.CreateManifest(BoundlessNamespace, instance.Spec.Name, instance.Spec.Manifest.URL)
+		err = mc.CreateManifest(boundlessSystemNamespace, instance.Spec.Name, instance.Spec.Manifest.URL)
 		if err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
-			//r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentUnhealthy, "Failed to Create Manifest")
 			return ctrl.Result{Requeue: true}, err
 		}
 
 		r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest Addon %s/%s", instance.Spec.Namespace, instance.Name)
-		//r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentAvailable, "Manifest Addon Created")
+
+		m := &boundlessv1alpha1.Manifest{}
+		err = r.Get(ctx, types.NamespacedName{Namespace: boundlessSystemNamespace, Name: instance.Spec.Name}, m)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				// might need some time for CR to  be created
+				r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
+			}
+			return ctrl.Result{}, err
+		}
+
+		logger.Info("Set owner ref field on manifest")
+		if err := controllerutil.SetControllerReference(instance, m, r.Scheme); err != nil {
+			logger.Error(err, "Failed to set owner reference on manifest", "ManifestName", m.Name)
+			return ctrl.Result{}, err
+		}
+
+		if err := r.Update(ctx, m); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if m.Status.Type == "" || m.Status.Reason == "" {
+			err = r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting status from manifest object")
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+
+		}
+		err = r.updateStatus(ctx, logger, req.NamespacedName, m.Status.Type, m.Status.Reason, m.Status.Message)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 
 	default:
 		logger.Info("Unknown AddOn kind", "Kind", instance.Spec.Kind)
@@ -222,7 +257,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// attach an index onto the Addon
+	// attaches an index onto the Addon
 	// index key is addonIndexName
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Addon{}, addonIndexName, func(rawObj client.Object) []string {
 		addon := rawObj.(*boundlessv1alpha1.Addon)
@@ -230,19 +265,20 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 			jobName := fmt.Sprintf("helm-install-%s", addon.Spec.Chart.Name)
 			return []string{fmt.Sprintf("%s-%s", addon.Spec.Namespace, jobName)}
-		} else {
-			//@TODO: manifest
-			return nil
 		}
+		// don't add this index for non helm-chart type addons
+		return nil
 	}); err != nil {
 		return err
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
+		Owns(&boundlessv1alpha1.Manifest{}).
 		Watches(
 			&source.Kind{Type: &batch.Job{}},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForJob),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Complete(r)
 }
@@ -288,6 +324,8 @@ func (r *AddonReconciler) updateHelmchartAddonStatus(ctx context.Context, logger
 }
 
 func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, conditionTypeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
+	logger.Info("Update status with type and reason", "TypeToApply", conditionTypeToApply, "ReasonToApply", reasonToApply)
+
 	addon := &boundlessv1alpha1.Addon{}
 	err := r.Get(ctx, namespacedName, addon)
 	if err != nil {
@@ -295,7 +333,8 @@ func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, 
 		return err
 	}
 
-	if addon.Status.Type == conditionTypeToApply && addon.Status.Reason == reasonToApply {
+	nilStatus := boundlessv1alpha1.AddonStatus{}
+	if addon.Status != nilStatus && addon.Status.Type == conditionTypeToApply && addon.Status.Reason == reasonToApply {
 		// avoid infinite reconciliation loops
 		logger.Info("No updates to status needed")
 		return nil
