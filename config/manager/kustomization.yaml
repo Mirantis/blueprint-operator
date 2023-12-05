@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: ghcr.io/mirantis/boundless-operator
-  newTag: manifest
+  newTag: 0.0.1
