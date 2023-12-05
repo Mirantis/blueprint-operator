@@ -3,19 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/event"
-	"github.com/mirantis/boundless-operator/pkg/helm"
-	"github.com/mirantis/boundless-operator/pkg/manifest"
 	batch "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,9 +14,19 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
+	"github.com/mirantis/boundless-operator/pkg/event"
+	"github.com/mirantis/boundless-operator/pkg/helm"
+	"github.com/mirantis/boundless-operator/pkg/manifest"
 )
 
 const (
@@ -148,7 +149,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{Requeue: true}, err
 		}
-		r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Chart Addon %s/%s", instance.Spec.Namespace, instance.Name)
 
 		// unfortunately the HelmChart CR doesn't have any useful events or status we can monitor
 		// each helmchart object creates a job that runs the helm install - update status from that instead
@@ -160,7 +160,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 		}
 
-		if err := r.updateHelmchartAddonStatus(ctx, logger, req.NamespacedName, job); err != nil {
+		if err := r.updateHelmchartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 		}
 
@@ -211,8 +211,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{Requeue: true}, err
 		}
 
-		r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest Addon %s/%s", instance.Spec.Namespace, instance.Name)
-
 		m := &boundlessv1alpha1.Manifest{}
 		err = r.Get(ctx, types.NamespacedName{Namespace: boundlessSystemNamespace, Name: instance.Spec.Name}, m)
 		if err != nil {
@@ -223,27 +221,14 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, err
 		}
 
-		logger.Info("Set owner ref field on manifest")
-		if err := controllerutil.SetControllerReference(instance, m, r.Scheme); err != nil {
-			logger.Error(err, "Failed to set owner reference on manifest", "ManifestName", m.Name)
-			return ctrl.Result{}, err
-		}
-
-		if err := r.Update(ctx, m); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		if m.Status.Type == "" || m.Status.Reason == "" {
-			err = r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting status from manifest object")
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
-
-		}
-		err = r.updateStatus(ctx, logger, req.NamespacedName, m.Status.Type, m.Status.Reason, m.Status.Message)
+		result, err := r.setOwnerReferenceOnManifest(ctx, logger, instance, m)
 		if err != nil {
-			return ctrl.Result{}, err
+			return result, err
+		}
+
+		err = r.updateManifestAddonStatus(ctx, logger, instance, m)
+		if err != nil {
+			return result, err
 		}
 
 	default:
@@ -255,10 +240,48 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return ctrl.Result{Requeue: false}, nil
 }
 
+// updateManifestAddonStatus checks if the manifest associated with the addon has a status to bubble up to addon and updates addon if so
+func (r *AddonReconciler) updateManifestAddonStatus(ctx context.Context, logger logr.Logger, addon *boundlessv1alpha1.Addon, manifest *boundlessv1alpha1.Manifest) error {
+	if manifest.Status.Type == "" || manifest.Status.Reason == "" {
+		err := r.updateStatus(ctx, logger, types.NamespacedName{Namespace: addon.Namespace, Name: addon.Name}, boundlessv1alpha1.TypeComponentProgressing, "Awaiting status from manifest object")
+		if err != nil {
+			return err
+		}
+		// manifest has no status yet so nothing to do
+		return nil
+	}
+
+	if manifest.Status.Type == boundlessv1alpha1.TypeComponentAvailable && addon.Status.Type != boundlessv1alpha1.TypeComponentAvailable {
+		// we are about to update the addon status from not available to available so let's emit an event
+		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest Addon %s/%s", addon.Spec.Namespace, addon.Name)
+	}
+
+	err := r.updateStatus(ctx, logger, types.NamespacedName{Namespace: addon.Namespace, Name: addon.Name}, manifest.Status.Type, manifest.Status.Reason, manifest.Status.Message)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// setOwnerReferenceOnManifest sets the owner reference on the manifest object to point to the addon object
+// This effectively causes the owner addon to be reconciled when the manifest is updated.
+func (r *AddonReconciler) setOwnerReferenceOnManifest(ctx context.Context, logger logr.Logger, addon *boundlessv1alpha1.Addon, manifest *boundlessv1alpha1.Manifest) (ctrl.Result, error) {
+	logger.Info("Set owner ref field on manifest")
+	if err := controllerutil.SetControllerReference(addon, manifest, r.Scheme); err != nil {
+		logger.Error(err, "Failed to set owner reference on manifest", "ManifestName", manifest.Name)
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Update(ctx, manifest); err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// attaches an index onto the Addon
-	// index key is addonIndexName
+	// This is done so we can later easily find the addon associated with a particular job
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Addon{}, addonIndexName, func(rawObj client.Object) []string {
 		addon := rawObj.(*boundlessv1alpha1.Addon)
 		if addon.Spec.Chart != nil && addon.Spec.Chart.Name != "" {
@@ -277,13 +300,15 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&boundlessv1alpha1.Manifest{}).
 		Watches(
 			&source.Kind{Type: &batch.Job{}},
-			handler.EnqueueRequestsFromMapFunc(r.findObjectsForJob),
+			handler.EnqueueRequestsFromMapFunc(r.findAddonForJob),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Complete(r)
 }
 
-func (r *AddonReconciler) findObjectsForJob(job client.Object) []reconcile.Request {
+// findAddonForJob finds the addons associated with a particular job
+// This is done by looking for the addon that was previously indexed in the form jobNamespace-jobName
+func (r *AddonReconciler) findAddonForJob(job client.Object) []reconcile.Request {
 	attachedAddonList := &boundlessv1alpha1.AddonList{}
 	err := r.List(context.TODO(), attachedAddonList, client.MatchingFields{addonIndexName: fmt.Sprintf("%s-%s", job.GetNamespace(), job.GetName())})
 	if err != nil {
@@ -302,14 +327,17 @@ func (r *AddonReconciler) findObjectsForJob(job client.Object) []reconcile.Reque
 	return requests
 }
 
-func (r *AddonReconciler) updateHelmchartAddonStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, job *batch.Job) error {
+// updateHelmchartAddonStatus checks the status of the associated helm chart job and updates the status of the Addon CR accordingly
+func (r *AddonReconciler) updateHelmchartAddonStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, job *batch.Job, addon *boundlessv1alpha1.Addon) error {
 	logger.Info("Updating Helm Chart Addon Status")
 	if job.Status.CompletionTime != nil && job.Status.Succeeded > 0 {
+		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Chart Addon %s/%s", addon.Spec.Namespace, addon.Name)
 		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, fmt.Sprintf("Helm Chart %s successfully installed", job.Name))
 		if err != nil {
 			return err
 		}
 	} else if job.Status.StartTime != nil && job.Status.Failed > 0 {
+		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedCreate, "Helm Chart Addon %s/%s has failed to install", addon.Spec.Namespace, addon.Name)
 		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Helm Chart %s install has failed", job.Name))
 		if err != nil {
 			return err
@@ -323,8 +351,10 @@ func (r *AddonReconciler) updateHelmchartAddonStatus(ctx context.Context, logger
 	return nil
 }
 
-func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, conditionTypeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
-	logger.Info("Update status with type and reason", "TypeToApply", conditionTypeToApply, "ReasonToApply", reasonToApply)
+// updateStatus queries for a fresh Addon with the provided namespacedName.
+// It then updates the Addon's status fields with the provided type, reason, and optionally message.
+func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
+	logger.Info("Update status with type and reason", "TypeToApply", typeToApply, "ReasonToApply", reasonToApply)
 
 	addon := &boundlessv1alpha1.Addon{}
 	err := r.Get(ctx, namespacedName, addon)
@@ -334,7 +364,7 @@ func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, 
 	}
 
 	nilStatus := boundlessv1alpha1.AddonStatus{}
-	if addon.Status != nilStatus && addon.Status.Type == conditionTypeToApply && addon.Status.Reason == reasonToApply {
+	if addon.Status != nilStatus && addon.Status.Type == typeToApply && addon.Status.Reason == reasonToApply {
 		// avoid infinite reconciliation loops
 		logger.Info("No updates to status needed")
 		return nil
@@ -343,7 +373,7 @@ func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, 
 	logger.Info("Update status for addon", "Name", addon.Name)
 
 	patch := client.MergeFrom(addon.DeepCopy())
-	addon.Status.Type = conditionTypeToApply
+	addon.Status.Type = typeToApply
 	addon.Status.Reason = reasonToApply
 	if len(messageToApply) > 0 {
 		addon.Status.Message = messageToApply[0]

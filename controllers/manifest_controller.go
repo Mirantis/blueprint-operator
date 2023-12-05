@@ -6,11 +6,6 @@ import (
 	"io"
 	"net/http"
 	"reflect"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 	"time"
 
@@ -20,9 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	adm_v1 "k8s.io/api/admissionregistration/v1"
 	apps_v1 "k8s.io/api/apps/v1"
@@ -56,6 +56,10 @@ type ManifestReconciler struct {
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get
+//+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=daemonsets/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -221,7 +225,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
+	// attaches an index onto the Manifest
+	// This is done so we can later easily find the addon associated with a particular deployment or daemonset
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Manifest{}, manifestUpdateIndex, func(rawObj client.Object) []string {
 		manifest := rawObj.(*boundlessv1alpha1.Manifest)
 		if manifest.Spec.Objects == nil || len(manifest.Spec.Objects) == 0 {
@@ -255,8 +260,11 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+// findAssociatedManifest finds the manifest tied to a particular object if one exists
+// This is done by looking for the manifest that was previously indexed in the form objectNamespace-objectName
 func (r *ManifestReconciler) findAssociatedManifest(obj client.Object) []reconcile.Request {
 	attachedManifestList := &boundlessv1alpha1.ManifestList{}
+	//TODO: this index will clash if we have multiple deployments / daemonsets with the same name and namespace
 	err := r.List(context.TODO(), attachedManifestList, client.MatchingFields{manifestUpdateIndex: fmt.Sprintf("%s-%s", obj.GetNamespace(), obj.GetName())})
 	if err != nil {
 		return []reconcile.Request{}
@@ -2211,6 +2219,11 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 
 }
 
+// checkManifestStatus checks the status of any deployments and daemonsets associated with the namespacedName manifest
+// Check the status of the deployment and daemonset and set the manifest to an error state if any errors are found
+// If no errors are found, we check if any deployments/daemonsets are still progressing and set the manifest status to Progressing
+// Otherwise set the manifest status to Available
+// This is not comprehensive and may need to be updated as we support more complex manifests
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
 
 	if objects == nil || len(objects) == 0 {
@@ -2222,7 +2235,6 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 
 	// for now focus on getting status from any Deployments or Daemonsets deployed via the manifest since
 	// they have reliable status fields we can pull from and are most likely to fail
-	// TODO update this with other objects as needed
 	stillProgressing := false
 	var reasonToApply, messageToApply string
 	for _, obj := range objects {
@@ -2302,6 +2314,8 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 	return nil
 }
 
+// updateStatus queries for a fresh Manifest with the provided namespacedName.
+// It then updates the Manifest's status fields with the provided type, reason, and optionally message.
 func (r *ManifestReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
 	logger.Info("Update status with type and reason", "TypeToApply", typeToApply, "ReasonToApply", reasonToApply)
 
