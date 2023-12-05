@@ -16,5 +16,7 @@ jobs:
     uses: ./.github/workflows/vet.yml
   unit-test:
       uses: ./.github/workflows/unit.yml
+  e2e:
+      uses: ./.github/workflows/e2e.yml
   build:
     uses: ./.github/workflows/build.yml
