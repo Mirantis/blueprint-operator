@@ -30,8 +30,8 @@ func InstallBoundlessOperator() error {
 	if err != nil {
 		return err
 	}
-	wd = strings.Replace(wd, "/deploy", "", -1)
-	url := fmt.Sprintf("%s/static/boundless-operator.yaml", wd)
+	wd = strings.Replace(wd, "/test", "", -1)
+	url := fmt.Sprintf("%s/deploy/static/boundless-operator.yaml", wd)
 	By(fmt.Sprintf("Installing boundless operator from the manifest located at: %s", url))
 	cmd := exec.Command("kubectl", "apply", "-f", url)
 	if _, err := cmd.CombinedOutput(); err != nil {
@@ -45,6 +45,10 @@ func InstallBoundlessOperator() error {
 	)
 	By(fmt.Sprintf("Waiting for deployment to be ready by running command: %s", cmd.Args))
 	output, err := cmd.CombinedOutput()
+	if err != nil {
+		framework.Logf("Failed to execute wait command: %s", string(output))
+		return err
+	}
 	framework.Logf("%s", string(output))
 	return err
 }
