@@ -137,11 +137,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	// check and update status before we leave reconciliation
-	defer r.checkManifestStatus(ctx, logger, req.NamespacedName, existing.Spec.Objects)
-
 	if existing.Spec.Checksum == existing.Spec.NewChecksum {
 		logger.Info("checksum is same, no update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
+		// manifest is already installed as specified - get latest status from objects in the cluster
+		err = r.checkManifestStatus(ctx, logger, req.NamespacedName, existing.Spec.Objects)
 		return ctrl.Result{}, err
 	}
 
@@ -166,6 +165,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while update operation %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation ", fmt.Sprintf("failed to update manifest crd while update operation  : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -173,9 +173,9 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.UpdateManifestObjects(req, ctx, existing); err != nil {
 			logger.Error(err, "failed to update manifest")
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest ", fmt.Sprintf("failed to update manifest  : %s", err))
 			return ctrl.Result{}, err
 		}
-
 	}
 
 	if existing.Spec.NewChecksum == "" {
@@ -2227,10 +2227,8 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
 
 	if objects == nil || len(objects) == 0 {
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, "No manifest objects detected")
-		if err != nil {
-			return err
-		}
+		logger.Info("No manifest objects for manifest")
+		return nil
 	}
 
 	// for now focus on getting status from any Deployments or Daemonsets deployed via the manifest since
