@@ -15,5 +15,5 @@ jobs:
     uses: ./.github/workflows/build.yml
   push-to-ghcr:
     if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # if all `needs` jobs are successful
-    needs: [vet, unit-test, build]
+    needs: [vet, unit-test, e2e, build]
     uses: ./.github/workflows/push-to-ghcr.yml
