@@ -27,7 +27,12 @@ spec:
     singular: addon
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: Whether the component is running and stable.
+      jsonPath: .status.type
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Addon is the Schema for the addons API
@@ -87,6 +92,23 @@ spec:
             type: object
           status:
             description: AddonStatus defines the observed state of Addon
+            properties:
+              lastTransitionTime:
+                description: The timestamp representing the start time for the current status.
+                format: date-time
+                type: string
+              message:
+                description: Optionally, a detailed message providing additional context.
+                type: string
+              reason:
+                description: A brief reason explaining the condition.
+                type: string
+              type:
+                description: The type of condition. May be Available, Progressing, or Degraded.
+                type: string
+            required:
+            - lastTransitionTime
+            - type
             type: object
         type: object
     served: true
@@ -277,7 +299,12 @@ spec:
     singular: manifest
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: Whether the component is running and stable.
+      jsonPath: .status.type
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Manifest is the Schema for the manifests API
@@ -321,6 +348,23 @@ spec:
             type: object
           status:
             description: ManifestStatus defines the observed state of Manifest
+            properties:
+              lastTransitionTime:
+                description: The timestamp representing the start time for the current status.
+                format: date-time
+                type: string
+              message:
+                description: Optionally, a detailed message providing additional context.
+                type: string
+              reason:
+                description: A brief reason explaining the condition.
+                type: string
+              type:
+                description: The type of condition. May be Available, Progressing, or Degraded.
+                type: string
+            required:
+            - lastTransitionTime
+            - type
             type: object
         type: object
     served: true
@@ -392,6 +436,13 @@ metadata:
   creationTimestamp: null
   name: boundless-operator-manager-role
 rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
 - apiGroups:
   - boundless.mirantis.com
   resources:
@@ -713,7 +764,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/mirantis/boundless-operator:latest
+        image: ghcr.io/mirantis/boundless-operator:0.2.0
         livenessProbe:
           httpGet:
             path: /healthz
