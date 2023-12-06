@@ -30,4 +30,4 @@ jobs:
           node_image: ${{ env.KIND_CLUSTER_VERSION }}
 
       - name: Run E2E tests
-        run: go test ./test -v -ginkgo.v
+        run: make e2e
