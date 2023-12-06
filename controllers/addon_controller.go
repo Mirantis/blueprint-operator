@@ -151,7 +151,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
 		if err = hc.CreateHelmChart(chart, instance.Spec.Namespace); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
-			//r.Recorder.Eventf(instance, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{Requeue: true}, err
 		}
