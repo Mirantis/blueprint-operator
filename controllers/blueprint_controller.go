@@ -17,7 +17,10 @@ import (
 	"github.com/mirantis/boundless-operator/pkg/controllers/installation"
 )
 
-const boundlessSystemNamespace = "boundless-system"
+const (
+	// NamespaceBoundlessSystem is the namespace where all boundless components are installed
+	NamespaceBoundlessSystem = "boundless-system"
+)
 
 // BlueprintReconciler reconciles a Blueprint object
 type BlueprintReconciler struct {
@@ -213,7 +216,7 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 	return &boundlessv1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: boundlessSystemNamespace,
+			Namespace: NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.IngressSpec{
 			Enabled:  spec.Enabled,
@@ -228,7 +231,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	addon := &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
-			Namespace: boundlessSystemNamespace,
+			Namespace: NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.AddonSpec{
 			Name:      spec.Name,
