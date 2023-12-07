@@ -11,6 +11,8 @@ jobs:
   unit-test:
       uses: ./.github/workflows/unit.yml
   e2e:
+    if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # if all `needs` jobs are successful
+    needs: [vet, unit-test, build]
     uses: ./.github/workflows/e2e.yml
   build:
     uses: ./.github/workflows/build.yml

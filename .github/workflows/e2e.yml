@@ -23,11 +23,5 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
-      - name: Create kind cluster
-        uses: helm/kind-action@v1.8.0
-        with:
-          cluster_name: bctl-e2e-cluster
-          node_image: ${{ env.KIND_CLUSTER_VERSION }}
-
       - name: Run E2E tests
-        run: go test ./test -v
+        run: make e2e
