@@ -112,7 +112,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 .PHONY: e2e
 e2e: manifests generate fmt ## Run e2e tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -v ./test/ -ginkgo.v -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -v ./test/e2e/... -coverprofile cover.out
 ##@ Build
 
 .PHONY: build
