@@ -10,9 +10,18 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	adm_v1 "k8s.io/api/admissionregistration/v1"
+	apps_v1 "k8s.io/api/apps/v1"
+	core_v1 "k8s.io/api/core/v1"
+	policy_v1 "k8s.io/api/policy/v1"
+	rbac_v1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -22,17 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	adm_v1 "k8s.io/api/admissionregistration/v1"
-	apps_v1 "k8s.io/api/apps/v1"
-	core_v1 "k8s.io/api/core/v1"
-	policy_v1 "k8s.io/api/policy/v1"
-	rbac_v1 "k8s.io/api/rbac/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
 	"github.com/mirantis/boundless-operator/pkg/event"
@@ -248,12 +246,12 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Manifest{}).
 		Watches(
-			&source.Kind{Type: &apps_v1.DaemonSet{}},
+			&apps_v1.DaemonSet{},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Watches(
-			&source.Kind{Type: &apps_v1.Deployment{}},
+			&apps_v1.Deployment{},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
@@ -262,7 +260,7 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // findAssociatedManifest finds the manifest tied to a particular object if one exists
 // This is done by looking for the manifest that was previously indexed in the form objectNamespace-objectName
-func (r *ManifestReconciler) findAssociatedManifest(obj client.Object) []reconcile.Request {
+func (r *ManifestReconciler) findAssociatedManifest(ctx context.Context, obj client.Object) []reconcile.Request {
 	attachedManifestList := &boundlessv1alpha1.ManifestList{}
 	//TODO: this index will clash if we have multiple deployments / daemonsets with the same name and namespace
 	err := r.List(context.TODO(), attachedManifestList, client.MatchingFields{manifestUpdateIndex: fmt.Sprintf("%s-%s", obj.GetNamespace(), obj.GetName())})

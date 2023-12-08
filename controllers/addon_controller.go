@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
 	"github.com/mirantis/boundless-operator/pkg/event"
@@ -299,7 +298,7 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
 		Watches(
-			&source.Kind{Type: &batch.Job{}},                                    // Watch all Job Objects in the cluster
+			&batch.Job{}, // Watch all Job Objects in the cluster
 			handler.EnqueueRequestsFromMapFunc(r.findAddonForJob),               // All jobs trigger this MapFunc, the MapFunc filters which jobs should trigger reconciles to which addons, if any
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}), // By default, any Update to job will trigger a run of the MapFunc, limit it to only Resource version updates
 		).
@@ -313,7 +312,7 @@ func isHelmChartAddon(addon *boundlessv1alpha1.Addon) bool {
 
 // findAddonForJob finds the addons associated with a particular job
 // This is done by looking for the addon that was previously indexed in the form jobNamespace-jobName
-func (r *AddonReconciler) findAddonForJob(job client.Object) []reconcile.Request {
+func (r *AddonReconciler) findAddonForJob(ctx context.Context, job client.Object) []reconcile.Request {
 	attachedAddonList := &boundlessv1alpha1.AddonList{}
 	err := r.List(context.TODO(), attachedAddonList, client.MatchingFields{addonIndexName: fmt.Sprintf("%s-%s", job.GetNamespace(), job.GetName())})
 	if err != nil {
