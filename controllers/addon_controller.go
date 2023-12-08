@@ -26,11 +26,6 @@ import (
 	"github.com/mirantis/boundless-operator/pkg/event"
 	"github.com/mirantis/boundless-operator/pkg/helm"
 	"github.com/mirantis/boundless-operator/pkg/manifest"
-
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/event"
-	"github.com/mirantis/boundless-operator/pkg/helm"
-	"github.com/mirantis/boundless-operator/pkg/manifest"
 )
 
 const (
