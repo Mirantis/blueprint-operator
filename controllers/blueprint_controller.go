@@ -54,13 +54,11 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	exists, err := installation.CheckHelmControllerExists(ctx, r.Client)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, fmt.Errorf("failed to check if helm controller already exists")
 	}
 	if !exists {
-		logger.Info("Helm controller is not installed")
-		logger.Info("Installing helm controller")
-		err := installation.InstallHelmController(ctx, r.Client, logger)
-		if err != nil {
+		logger.Info("Helm controller is not installed. Installing...")
+		if err = installation.InstallHelmController(ctx, r.Client, logger); err != nil {
 			return ctrl.Result{}, err
 		}
 	}

@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,85 +14,111 @@ import (
 	"github.com/mirantis/boundless-operator/api/v1alpha1"
 )
 
-var _ = Describe("Blueprint controller", func() {
+const (
+	blueprintName = "test-blueprint"
+)
 
-	// Define utility constants for object names and testing timeouts/durations and intervals.
+var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
+
+func generateBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
+	blueprint := &v1alpha1.Blueprint{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "boundless.mirantis.com/v1alpha1",
+			Kind:       "Blueprint",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      blueprintName,
+			Namespace: NamespaceBoundlessSystem,
+		},
+	}
+	for _, addon := range addons {
+		blueprint.Spec.Components.Addons = append(blueprint.Spec.Components.Addons, addon)
+	}
+	return blueprint
+}
+
+// These tests should run in the serial (not parallel) and in order specified
+// Otherwise, the results may not be predictable
+// This is because all these tests runs in a single "environment"
+var _ = Describe("Blueprint controller", Ordered, Serial, func() {
+
 	const (
-		Namespace     = NamespaceBoundlessSystem
-		BlueprintName = "test-blueprint"
-		AddonName     = "test-addon"
-
 		timeout  = time.Second * 10
-		duration = time.Second * 10
 		interval = time.Millisecond * 250
 	)
 
-	BeforeEach(func() {
-		ns := &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: NamespaceBoundlessSystem,
-			},
-		}
-		Expect(k8sClient.Create(ctx, ns)).Should(Succeed())
+	Context("A blueprint is created", func() {
+
+		It("Should successfully be created", func() {
+			blueprint := generateBlueprint()
+			Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
+
+			key := types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
+			Eventually(getObject(ctx, key, blueprint), timeout, interval).Should(BeTrue())
+		})
+
+		It("Should install Helm Controller", func() {
+			ctx := context.Background()
+			helmDeploy := &appsv1.Deployment{}
+			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
+			Eventually(getObject(ctx, lookupKey, helmDeploy), timeout, interval).Should(BeTrue())
+		})
 	})
 
-	Context("When creating a blueprint", func() {
+	Context("A blueprint is updated", func() {
+		Context("A helm addon", func() {
+			const (
+				addonName      = "test-addon"
+				addonNamespace = "test-ns"
+			)
 
-		It("Should create the specified addon", func() {
-			By("By creating a new Blueprint")
-
-			ctx := context.Background()
-			blueprint := &v1alpha1.Blueprint{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "boundless.mirantis.com/v1alpha1",
-					Kind:       "Blueprint",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      BlueprintName,
-					Namespace: Namespace,
-				},
-				Spec: v1alpha1.BlueprintSpec{
-					Components: v1alpha1.Component{
-						Addons: []v1alpha1.AddonSpec{
-							{
-								Name:      AddonName,
-								Kind:      "chart",
-								Namespace: "test-ns",
-								Chart: &v1alpha1.ChartInfo{
-									Name:    "nginx",
-									Repo:    "https://charts.bitnami.com/bitnami",
-									Version: "15.1.1",
-								},
-							},
-						},
-					},
+			nginxHelmAddon := v1alpha1.AddonSpec{
+				Name:      addonName,
+				Namespace: addonNamespace,
+				Kind:      "chart",
+				Chart: &v1alpha1.ChartInfo{
+					Name:    "nginx",
+					Repo:    "https://charts.bitnami.com/bitnami",
+					Version: "15.1.1",
 				},
 			}
-			Expect(k8sClient.Create(ctx, blueprint)).Should(Succeed())
 
-			createdBlueprint := &v1alpha1.Blueprint{}
-			createdAddon := &v1alpha1.Addon{}
+			Context("Is added to the blueprint", func() {
 
-			Eventually(func() bool {
-				lookupKey := types.NamespacedName{Name: BlueprintName, Namespace: Namespace}
-				err := k8sClient.Get(ctx, lookupKey, createdBlueprint)
-				if err != nil {
-					return false
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
+				It("Should be updated successfully", func() {
+					blueprint := generateBlueprint(nginxHelmAddon)
+					Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
+				})
 
-			Eventually(func() bool {
-				lookupKey := types.NamespacedName{Name: AddonName, Namespace: Namespace}
-				err := k8sClient.Get(ctx, lookupKey, createdAddon)
-				if err != nil {
-					return false
-				}
-				return true
-			}, timeout, interval).Should(BeTrue())
+				It("Should create the addon resource", func() {
 
-			Expect(len(createdBlueprint.Spec.Components.Addons)).Should(Equal(1))
-			Expect(createdAddon.Spec.Name).Should(Equal(AddonName))
+					lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
+					createdAddon := &v1alpha1.Addon{}
+					Eventually(getObject(ctx, lookupKey, createdAddon), timeout, interval).Should(BeTrue())
+					Expect(createdAddon.Spec.Name).Should(Equal(addonName))
+				})
+
+				It("Should create namespace specified by the addon", func() {
+					ctx := context.Background()
+					ns := &v1.Namespace{}
+					key := types.NamespacedName{Name: addonNamespace}
+					Eventually(getObject(ctx, key, ns)).Should(BeTrue())
+				})
+			})
+
+			Context("Is removed from blueprint", func() {
+
+				It("Should be updated successfully", func() {
+					blueprint := generateBlueprint()
+					Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
+				})
+
+				It("Should remove the addon resource", func() {
+					lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
+					createdAddon := &v1alpha1.Addon{}
+					Eventually(getObject(ctx, lookupKey, createdAddon), timeout, interval).Should(BeFalse())
+				})
+			})
 		})
 	})
 })

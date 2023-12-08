@@ -5,8 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"k8s.io/client-go/kubernetes/scheme"
@@ -31,10 +34,9 @@ var (
 	cancel    context.CancelFunc
 )
 
-func TestAPIs(t *testing.T) {
+func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
+	RunSpecs(t, "Controllers Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -43,9 +45,11 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:        []string{filepath.Join("..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing:    true,
-		AttachControlPlaneOutput: true,
+		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
+		ErrorIfCRDPathMissing: true,
+
+		// Set to true to see controller logs
+		AttachControlPlaneOutput: false,
 	}
 
 	var err error
@@ -54,8 +58,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = boundlessv1alpha1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(boundlessv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(helmv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
@@ -66,7 +70,7 @@ var _ = BeforeSuite(func() {
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
-	Expect(err).ToNot(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred(), "failed to create manager")
 
 	err = (&BlueprintReconciler{
 		Client: k8sManager.GetClient(),
@@ -82,10 +86,19 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ManifestReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
+		Client:   k8sManager.GetClient(),
+		Scheme:   k8sManager.GetScheme(),
+		Recorder: k8sManager.GetEventRecorderFor("manifest controller"),
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
+
+	// Create the namespace for boundless system here as this is needed for
+	// testing all the controllers
+	// Also, according to https://book.kubebuilder.io/reference/envtest.html?highlight=testing#testing-considerations
+	// the envtest does not delete namespace from the test environment.
+	// So, we can't delete and create namespace for individual tests
+	// The tests needs to be written considering this limitation
+	createBoundlessNamespace(ctx)
 
 	go func() {
 		defer GinkgoRecover()
@@ -100,3 +113,11 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+func createBoundlessNamespace(ctx context.Context) {
+	GinkgoWriter.Printf("creating namespace: %s", NamespaceBoundlessSystem)
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: NamespaceBoundlessSystem},
+	}
+	Expect(k8sClient.Create(ctx, ns)).Should(Succeed(), "failed to create namespace")
+}

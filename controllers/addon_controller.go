@@ -77,7 +77,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	instance := &boundlessv1alpha1.Addon{}
 	err = r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
-		msg := "failed to get MkeAddon instance"
+		msg := "failed to get Addon instance"
 		if errors.IsNotFound(err) {
 			// Ignore request.
 			logger.Info(msg, "Name", req.Name, "Requeue", false)
@@ -241,7 +241,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{Requeue: false}, fmt.Errorf("Unknown AddOn Kind: %w", err)
 	}
 
-	logger.Info("Finished reconcile request on MkeAddon instance", "Name", req.Name)
+	logger.Info("Finished reconcile request on Addon instance", "Name", req.Name)
 	return ctrl.Result{Requeue: false}, nil
 }
 
