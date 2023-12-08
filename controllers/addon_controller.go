@@ -35,6 +35,7 @@ const (
 	addonHelmchartFinalizer = "boundless.mirantis.com/helmchart-finalizer"
 	addonManifestFinalizer  = "boundless.mirantis.com/manifest-finalizer"
 	addonIndexName          = "helmchartIndex"
+	helmJobNameTemplate     = "helm-install-%s"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -49,7 +50,7 @@ type AddonReconciler struct {
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons/finalizers,verbs=update
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
@@ -152,7 +153,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 		// unfortunately the HelmChart CR doesn't have any useful events or status we can monitor
 		// each helmchart object creates a job that runs the helm install - update status from that instead
-		jobName := fmt.Sprintf("helm-install-%s", instance.Spec.Chart.Name)
+		jobName := fmt.Sprintf(helmJobNameTemplate, instance.Spec.Chart.Name)
 		job := &batch.Job{}
 		err = r.Get(ctx, types.NamespacedName{Namespace: instance.Spec.Namespace, Name: jobName}, job)
 		if err != nil {
@@ -284,9 +285,8 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// This is done so we can later easily find the addon associated with a particular job
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Addon{}, addonIndexName, func(rawObj client.Object) []string {
 		addon := rawObj.(*boundlessv1alpha1.Addon)
-		if addon.Spec.Chart != nil && addon.Spec.Chart.Name != "" {
-
-			jobName := fmt.Sprintf("helm-install-%s", addon.Spec.Chart.Name)
+		if isHelmChartAddon(addon) {
+			jobName := fmt.Sprintf(helmJobNameTemplate, addon.Spec.Chart.Name)
 			return []string{fmt.Sprintf("%s-%s", addon.Spec.Namespace, jobName)}
 		}
 		// don't add this index for non helm-chart type addons
@@ -299,11 +299,16 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
 		Watches(
-			&source.Kind{Type: &batch.Job{}},
-			handler.EnqueueRequestsFromMapFunc(r.findAddonForJob),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+			&source.Kind{Type: &batch.Job{}},                                    // Watch all Job Objects in the cluster
+			handler.EnqueueRequestsFromMapFunc(r.findAddonForJob),               // All jobs trigger this MapFunc, the MapFunc filters which jobs should trigger reconciles to which addons, if any
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}), // By default, any Update to job will trigger a run of the MapFunc, limit it to only Resource version updates
 		).
 		Complete(r)
+}
+
+// isHelmChartAddon checks the provided addon's spec and determines whether this addon is a chart kind
+func isHelmChartAddon(addon *boundlessv1alpha1.Addon) bool {
+	return addon.Spec.Chart != nil && addon.Spec.Chart.Name != ""
 }
 
 // findAddonForJob finds the addons associated with a particular job
@@ -352,6 +357,7 @@ func (r *AddonReconciler) updateHelmchartAddonStatus(ctx context.Context, logger
 }
 
 // updateStatus queries for a fresh Addon with the provided namespacedName.
+// This avoids some errors where we fail to update status because we have an older (stale) version of the object
 // It then updates the Addon's status fields with the provided type, reason, and optionally message.
 func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
 	logger.Info("Update status with type and reason", "TypeToApply", typeToApply, "ReasonToApply", reasonToApply)
