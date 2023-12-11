@@ -22,4 +22,8 @@ jobs:
 
       - name: Run Unit Tests
         working-directory: .
-        run: make test
+        run: make unit
+
+      - name: Run Integration Tests
+        working-directory: .
+        run: make integration
