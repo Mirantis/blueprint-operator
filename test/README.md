@@ -5,13 +5,34 @@ These are written as Go test files.
 
 ## Unit Tests
 
+To run unit test:
+```shell
+make unit
+``` 
+
+To run both unit and integration test:
+```shell
+make test
+```
+
+> Currently, this will run all tests under `/pkg` folder
 
 ## Integration Tests
 
 Integration tests are focused on testing functionality of a controller or interaction between two or more controllers. 
 The integration tests are based on [envtest](https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/envtest).
 
-Currently, all integration tests resides under `/controller` package
+Currently, all integration tests resides under `/controller` package. 
+
+To run all integration test:
+```shell
+make integration
+```
+
+To run both unit and integration test:
+```shell
+make test
+```
 
 ### EnvTest
 
