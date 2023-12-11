@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -20,7 +19,7 @@ const (
 
 var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
 
-func generateBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
+func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 	blueprint := &v1alpha1.Blueprint{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "boundless.mirantis.com/v1alpha1",
@@ -47,10 +46,21 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 		interval = time.Millisecond * 250
 	)
 
-	Context("A blueprint is created", func() {
+	BeforeEach(func() {
+		// Reset the state by creating empty blueprint
+		blueprint := newBlueprint()
+		Expect(k8sClient.Create(ctx, blueprint)).Should(Succeed())
+	})
 
+	AfterEach(func() {
+		// Reset the state by deleting the blueprint
+		blueprint := newBlueprint()
+		Expect(k8sClient.Delete(ctx, blueprint)).Should(Succeed())
+	})
+
+	Context("A blueprint is created", func() {
 		It("Should successfully be created", func() {
-			blueprint := generateBlueprint()
+			blueprint := newBlueprint()
 			Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
 			key := types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
@@ -58,6 +68,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 		})
 
 		It("Should install Helm Controller", func() {
+			// @todo (Ranyodh): This test should be moved to "Installing" CRD when we have that
 			ctx := context.Background()
 			helmDeploy := &appsv1.Deployment{}
 			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
@@ -66,13 +77,15 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 	})
 
 	Context("A blueprint is updated", func() {
-		Context("A helm addon", func() {
-			const (
-				addonName      = "test-addon"
-				addonNamespace = "test-ns"
-			)
+		var addonName, addonNamespace string
+		var helmAddon v1alpha1.AddonSpec
 
-			nginxHelmAddon := v1alpha1.AddonSpec{
+		BeforeEach(func() {
+			GinkgoWriter.Println("resetting addon names")
+			addonName = randomName("addon")
+			addonNamespace = randomName("ns")
+
+			helmAddon = v1alpha1.AddonSpec{
 				Name:      addonName,
 				Namespace: addonNamespace,
 				Kind:      "chart",
@@ -82,42 +95,45 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 					Version: "15.1.1",
 				},
 			}
+		})
+		Context("Helm chart addon is added to the blueprint", func() {
 
-			Context("Is added to the blueprint", func() {
-
-				It("Should be updated successfully", func() {
-					blueprint := generateBlueprint(nginxHelmAddon)
-					Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
-				})
-
-				It("Should create the addon resource", func() {
-
-					lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
-					createdAddon := &v1alpha1.Addon{}
-					Eventually(getObject(ctx, lookupKey, createdAddon), timeout, interval).Should(BeTrue())
-					Expect(createdAddon.Spec.Name).Should(Equal(addonName))
-				})
-
-				It("Should create namespace specified by the addon", func() {
-					ctx := context.Background()
-					ns := &v1.Namespace{}
-					key := types.NamespacedName{Name: addonNamespace}
-					Eventually(getObject(ctx, key, ns)).Should(BeTrue())
-				})
+			BeforeEach(func() {
+				GinkgoWriter.Println("Creating a blueprint with one addon")
+				By("Creating a blueprint with one addon")
+				blueprint := newBlueprint(helmAddon)
+				Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 			})
 
-			Context("Is removed from blueprint", func() {
+			It("Should create blueprint with addon successfully", func() {
+				b := &v1alpha1.Blueprint{}
+				Eventually(getObject(ctx, blueprintLookupKey, b)).Should(BeTrue())
+				Expect(containsAddon(b.Spec.Components.Addons, addonNamespace, addonName)).Should(BeTrue(), "addon %s/%s does not existing in the list", addonNamespace, addonName)
+			})
 
-				It("Should be updated successfully", func() {
-					blueprint := generateBlueprint()
-					Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
-				})
+			It("Should create the correct addon resource", func() {
+				lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
+				actual := &v1alpha1.Addon{}
+				Eventually(getObject(ctx, lookupKey, actual), timeout, interval).Should(BeTrue())
+				assertAddon(helmAddon, actual.Spec)
+			})
+		})
 
-				It("Should remove the addon resource", func() {
-					lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
-					createdAddon := &v1alpha1.Addon{}
-					Eventually(getObject(ctx, lookupKey, createdAddon), timeout, interval).Should(BeFalse())
-				})
+		Context("Helm chart addon is removed from blueprint", func() {
+
+			It("Should delete addon resource", func() {
+				By("Creating a blueprint with one addon")
+				blueprint := newBlueprint(helmAddon)
+				Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
+
+				By("Removing addon from blueprints")
+				blueprint2 := newBlueprint()
+				Expect(createOrUpdateBlueprint(ctx, blueprint2)).Should(Succeed())
+
+				By("Checking if addon is removed")
+				lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
+				createdAddon := &v1alpha1.Addon{}
+				Eventually(getObject(ctx, lookupKey, createdAddon), timeout, interval).Should(BeFalse())
 			})
 		})
 	})
