@@ -81,7 +81,6 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 		var helmAddon v1alpha1.AddonSpec
 
 		BeforeEach(func() {
-			GinkgoWriter.Println("resetting addon names")
 			addonName = randomName("addon")
 			addonNamespace = randomName("ns")
 
@@ -99,7 +98,6 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 		Context("Helm chart addon is added to the blueprint", func() {
 
 			BeforeEach(func() {
-				GinkgoWriter.Println("Creating a blueprint with one addon")
 				By("Creating a blueprint with one addon")
 				blueprint := newBlueprint(helmAddon)
 				Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
