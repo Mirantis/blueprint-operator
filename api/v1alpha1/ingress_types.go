@@ -13,9 +13,13 @@ type IngressSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Enabled is a flag to enable/disable the ingress
-	Enabled  bool   `json:"enabled"`
+	// +kubebuilder:validation:Required
+	Enabled bool `json:"enabled"`
+
+	// +kubebuilder:validation:Required
 	Provider string `json:"provider"`
-	Config   string `json:"config,omitempty"`
+
+	Config string `json:"config,omitempty"`
 }
 
 // IngressStatus defines the observed state of Ingress

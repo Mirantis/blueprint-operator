@@ -62,6 +62,8 @@ spec:
                   type: object
                 type: array
               url:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
                 type: string
             required:
             - checksum

@@ -13,8 +13,12 @@ type AddonSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Name      string        `json:"name"`
-	Kind      string        `json:"kind"`
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// +kubebuilder:validation:Enum=manifest;chart;Manifest;Chart
+	Kind string `json:"kind"`
+
 	Enabled   bool          `json:"enabled"`
 	Namespace string        `json:"namespace,omitempty"`
 	Chart     *ChartInfo    `json:"chart,omitempty"`
@@ -22,14 +26,21 @@ type AddonSpec struct {
 }
 
 type ChartInfo struct {
-	Name    string                        `json:"name"`
-	Repo    string                        `json:"repo"`
-	Version string                        `json:"version"`
-	Set     map[string]intstr.IntOrString `json:"set,omitempty"`
-	Values  string                        `json:"values,omitempty"`
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// +kubebuilder:validation:Required
+	Repo string `json:"repo"`
+
+	// +kubebuilder:validation:Required
+	Version string `json:"version"`
+
+	Set    map[string]intstr.IntOrString `json:"set,omitempty"`
+	Values string                        `json:"values,omitempty"`
 }
 
 type ManifestInfo struct {
+	// +kubebuilder:validation:MinLength:=1
 	URL string `json:"url"`
 }
 
