@@ -72,7 +72,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	instance := &boundlessv1alpha1.Addon{}
 	err = r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
-		msg := "failed to get MkeAddon instance"
+		msg := "failed to get Addon instance"
 		if errors.IsNotFound(err) {
 			// Ignore request.
 			logger.Info(msg, "Name", req.Name, "Requeue", false)
@@ -144,7 +144,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 
 		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-		if err := hc.CreateHelmChart(chart, instance.Spec.Namespace); err != nil {
+		if err = hc.CreateHelmChart(chart, instance.Spec.Namespace); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{Requeue: true}, err
@@ -186,7 +186,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			// The object is being deleted
 			if controllerutil.ContainsFinalizer(instance, addonManifestFinalizer) {
 				// our finalizer is present, so lets delete the helm chart
-				if err := mc.DeleteManifest(boundlessSystemNamespace, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
+				if err := mc.DeleteManifest(NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
 					// if fail to delete the manifest here, return with error
 					// so that it can be retried
 					r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
@@ -204,7 +204,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, nil
 		}
 
-		err = mc.CreateManifest(boundlessSystemNamespace, instance.Spec.Name, instance.Spec.Manifest.URL)
+		err = mc.CreateManifest(NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest.URL)
 		if err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
@@ -212,7 +212,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 
 		m := &boundlessv1alpha1.Manifest{}
-		err = r.Get(ctx, types.NamespacedName{Namespace: boundlessSystemNamespace, Name: instance.Spec.Name}, m)
+		err = r.Get(ctx, types.NamespacedName{Namespace: NamespaceBoundlessSystem, Name: instance.Spec.Name}, m)
 		if err != nil {
 			if errors.IsNotFound(err) {
 				// might need some time for CR to  be created
@@ -236,7 +236,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{Requeue: false}, fmt.Errorf("Unknown AddOn Kind: %w", err)
 	}
 
-	logger.Info("Finished reconcile request on MkeAddon instance", "Name", req.Name)
+	logger.Info("Finished reconcile request on Addon instance", "Name", req.Name)
 	return ctrl.Result{Requeue: false}, nil
 }
 

@@ -140,7 +140,7 @@ func CheckHelmControllerExists(ctx context.Context, runtimeClient client.Client)
 		return false, err
 	}
 
-	return false, nil
+	return true, nil
 }
 
 func waitForDeploymentReady(ctx context.Context, runtimeClient client.Client, log logr.Logger) error {
@@ -150,8 +150,10 @@ func waitForDeploymentReady(ctx context.Context, runtimeClient client.Client, lo
 	}
 	return wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
 		d := &v1.Deployment{}
-		err := runtimeClient.Get(ctx, key, d)
-		if err != nil {
+		if err := runtimeClient.Get(ctx, key, d); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
 			return false, err
 		}
 
