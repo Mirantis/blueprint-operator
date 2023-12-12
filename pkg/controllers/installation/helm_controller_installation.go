@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
-	"github.com/mirantis/boundless-operator/pkg/controllers/installation/manifests"
+	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/installation/manifests"
 )
 
 func InstallHelmController(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {

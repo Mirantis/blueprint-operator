@@ -1,6 +1,6 @@
 package controllers
 
-import "github.com/mirantis/boundless-operator/pkg/helm"
+import "github.com/mirantiscontainers/boundless-operator/pkg/helm"
 
 var NginxIngressHelmChart = helm.Chart{
 	Name:    "ingress-nginx",

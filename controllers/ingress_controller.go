@@ -9,8 +9,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/helm"
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/helm"
 )
 
 // IngressReconciler reconciles a Ingress object

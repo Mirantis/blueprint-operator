@@ -7,7 +7,7 @@ VERSION ?= latest
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # mirantis.com/boundless-operator-bundle:$VERSION and mirantis.com/boundless-operator-catalog:$VERSION.
-IMAGE_REPO ?= ghcr.io/mirantis
+IMAGE_REPO ?= ghcr.io/mirantiscontainers
 IMAGE_TAG_BASE ?= $(IMAGE_REPO)/boundless-operator
 
 # Set the Operator SDK version to use. By default, what is installed on the system is used.

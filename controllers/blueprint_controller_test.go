@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/mirantis/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
 const (

@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/event"
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 )
 
 const (
@@ -167,7 +167,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 
-		// TODO: https://github.com/Mirantis/boundless-operator/pull/17#pullrequestreview-1754136032
+		// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#pullrequestreview-1754136032
 		if err := r.UpdateManifestObjects(req, ctx, existing); err != nil {
 			logger.Error(err, "failed to update manifest")
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -396,7 +396,7 @@ func (r *ManifestReconciler) CreateManifestObjects(req ctrl.Request, data []byte
 		}
 	}
 
-	// TODO: https://github.com/Mirantis/boundless-operator/pull/17#discussion_r1408570381
+	// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#discussion_r1408570381
 	// Update the CRD
 	key := types.NamespacedName{
 		Namespace: req.Namespace,
@@ -2149,7 +2149,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	return nil
 }
 
-// TODO: https://github.com/Mirantis/boundless-operator/pull/17#discussion_r1408571732
+// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#discussion_r1408571732
 func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx context.Context, oldObjects []boundlessv1alpha1.ManifestObject, newObjects []boundlessv1alpha1.ManifestObject) {
 	logger := log.FromContext(ctx)
 

@@ -22,10 +22,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/event"
-	"github.com/mirantis/boundless-operator/pkg/helm"
-	"github.com/mirantis/boundless-operator/pkg/manifest"
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/event"
+	"github.com/mirantiscontainers/boundless-operator/pkg/helm"
+	"github.com/mirantiscontainers/boundless-operator/pkg/manifest"
 )
 
 const (
