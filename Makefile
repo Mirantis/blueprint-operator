@@ -67,16 +67,16 @@ GINKGO_ARGS?= --keep-going
 GINKGO_FOCUS?=.*
 
 .PHONY: test
-test: unit integration # runs unit and integration tests
+test: unit integration ## Run unit and integration tests
 
 .PHONY: unit
-unit: manifests generate fmt vet ## Run tests.
+unit: manifests generate fmt vet ## Run unit tests.
 	go test $(UNIT_DIR) -coverprofile cover.out
 
 .PHONY: integration
-integration: manifests generate fmt vet envtest ## Run tests.
+integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	ginkgo -trace -r -focus="$(GINKGO_FOCUS)" $(GINKGO_ARGS) "$(INT_DIR)"
+	$(GINKGO) -trace -r -focus="$(GINKGO_FOCUS)" $(GINKGO_ARGS) "$(INT_DIR)"
 
 .PHONY: e2e
 e2e: manifests generate fmt ## Run e2e tests.
@@ -154,10 +154,12 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+GINKGO ?= $(LOCALBIN)/ginkgo
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.11.1
+GINKGO_VERSION ?= v2.11.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -196,3 +198,9 @@ else
 OPERATOR_SDK = $(shell which operator-sdk)
 endif
 endif
+
+.PHONY: ginkgo
+ginkgo: $(GINKGO) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
+$(GINKGO): $(LOCALBIN)
+	test -s $(LOCALBIN)/ginkgo && $(LOCALBIN)/ginkgo --version | grep -q $(GINKGO_VERSION) || \
+	GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)
