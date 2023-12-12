@@ -68,10 +68,16 @@ spec:
                         enabled:
                           type: boolean
                         kind:
+                          enum:
+                          - manifest
+                          - chart
+                          - Manifest
+                          - Chart
                           type: string
                         manifest:
                           properties:
                             url:
+                              minLength: 1
                               type: string
                           required:
                           - url
