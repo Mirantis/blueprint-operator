@@ -70,7 +70,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: ghcr.io/mirantis/boundless-operator:0.2.0
+        image: ghcr.io/mirantiscontainers/boundless-operator:0.2.0
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

@@ -9,7 +9,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: boundless-operator
-repo: github.com/mirantis/boundless-operator
+repo: github.com/mirantiscontainers/boundless-operator
 resources:
 - api:
     crdVersion: v1
@@ -18,7 +18,7 @@ resources:
   domain: mirantis.com
   group: boundless
   kind: Addon
-  path: github.com/mirantis/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -27,7 +27,7 @@ resources:
   domain: mirantis.com
   group: boundless
   kind: Blueprint
-  path: github.com/mirantis/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -36,7 +36,7 @@ resources:
   domain: mirantis.com
   group: boundless
   kind: Ingress
-  path: github.com/mirantis/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -45,6 +45,6 @@ resources:
   domain: mirantis.com
   group: boundless
   kind: Manifest
-  path: github.com/mirantis/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
   version: v1alpha1
 version: "3"
