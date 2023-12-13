@@ -1,11 +1,20 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	kindManifest = "manifest"
+	kindChart    = "chart"
 )
 
 // log is for logging in this package.
@@ -39,7 +48,31 @@ var _ webhook.Validator = &Blueprint{}
 func (r *Blueprint) ValidateCreate() (admission.Warnings, error) {
 	blueprintlog.Info("validate create", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object creation.
+	for _, val := range r.Spec.Components.Addons {
+		if strings.EqualFold(kindChart, val.Kind) {
+			if val.Manifest != nil {
+				blueprintlog.Info("received manifest object.", "Kind", kindChart)
+				return nil, fmt.Errorf("manifest object is not allowed for addon kind %s", kindChart)
+			}
+			if val.Chart == nil {
+				blueprintlog.Info("received empty chart object.", "Kind", kindChart)
+				return nil, fmt.Errorf("chart object can't be empty for addon kind %s", kindChart)
+			}
+		}
+
+		if strings.EqualFold(kindManifest, val.Kind) {
+			if val.Chart != nil {
+				blueprintlog.Info("received chart object.", "Kind", kindManifest)
+				return nil, fmt.Errorf("chart object is not allowed for addon kind %s", kindManifest)
+			}
+			if val.Manifest == nil {
+				blueprintlog.Info("received empty manifest object.", "Kind", kindManifest)
+				return nil, fmt.Errorf("manifest object can't be empty for addon kind %s", kindManifest)
+			}
+		}
+
+	}
+
 	return nil, nil
 }
 
