@@ -5,8 +5,14 @@
 // TODO(user): An in-depth paragraph about your project and overview of use
 
 ## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
+1. You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+
+2. You will need to deploy cert-manager in the cluster for provisioning the certificates for the webhook server. You can run the following command to deploy cert-manager in your cluster.
+```sh
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+```
+**Note:** Kubebuilder docs suggest using cert-manager. If you choose any other solution, please make sure that the certificitaes are put in the desired location. Here is the link for reference: https://book.kubebuilder.io/cronjob-tutorial/cert-manager
 
 ### Running on the cluster
 1. Install Instances of Custom Resources:
