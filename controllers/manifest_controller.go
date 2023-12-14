@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	apps_v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,9 +29,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/event"
-	"github.com/mirantis/boundless-operator/pkg/kubernetes"
 )
 
 const (
@@ -111,7 +112,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	} else {
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(existing, addonFinalizerName) {
-			// The finalizer is present, so lets delete the objects for this manifest
+			// The finalizer is present, so let's delete the objects for this manifest
 			if err := r.DeleteManifestObjects(ctx, existing.Spec.Objects); err != nil {
 				logger.Error(err, "failed to delete manifest objects")
 				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedDelete, "failed to delete manifest objects %s/%s", existing.Namespace, existing.Name)
@@ -166,7 +167,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#pullrequestreview-1754136032
-		if err := r.UpdateManifestObjects(req, ctx, existing); err != nil {
+		if err = r.UpdateManifestObjects(req, ctx, existing); err != nil {
 			logger.Error(err, "failed to update manifest")
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest ", fmt.Sprintf("failed to update manifest  : %s", err))
@@ -222,7 +223,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 // SetupWithManager sets up the controller with the Manager.
 func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// attaches an index onto the Manifest
-	// This is done so we can later easily find the addon associated with a particular deployment or daemonset
+	// This is done, so we can later easily find the addon associated with a particular deployment or daemonset
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Manifest{}, manifestUpdateIndex, func(rawObj client.Object) []string {
 		manifest := rawObj.(*boundlessv1alpha1.Manifest)
 		if manifest.Spec.Objects == nil || len(manifest.Spec.Objects) == 0 {
@@ -244,12 +245,12 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Manifest{}).
 		Watches(
-			&apps_v1.DaemonSet{},
+			&appsv1.DaemonSet{},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Watches(
-			&apps_v1.Deployment{},
+			&appsv1.Deployment{},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
 			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
@@ -434,8 +435,8 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 	if len(oldObjects) > 0 && len(newObjects) > 0 {
 		for _, old := range oldObjects {
 			found := false
-			for _, new := range newObjects {
-				if reflect.DeepEqual(old, new) {
+			for _, n := range newObjects {
+				if reflect.DeepEqual(old, n) {
 					found = true
 					break
 				}
@@ -466,9 +467,9 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 		return nil, err
 	}
 
-	client := http.DefaultClient
+	httpClient := http.DefaultClient
 
-	resp, err := client.Do(httpReq)
+	resp, err := httpClient.Do(httpReq)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", url)
 		return nil, err
@@ -513,7 +514,7 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 		kind := obj.Kind
 
 		if kind == "Deployment" {
-			deployment := &apps_v1.Deployment{}
+			deployment := &appsv1.Deployment{}
 			err := r.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, deployment)
 			if err != nil {
 				return err
@@ -523,12 +524,12 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 				continue
 			}
 			latestCondition := deployment.Status.Conditions[0]
-			if deployment.Status.AvailableReplicas == deployment.Status.Replicas && latestCondition.Type == apps_v1.DeploymentAvailable {
+			if deployment.Status.AvailableReplicas == deployment.Status.Replicas && latestCondition.Type == appsv1.DeploymentAvailable {
 				// this deployment is ready
 				continue
 			}
 
-			if latestCondition.Type == apps_v1.DeploymentProgressing || latestCondition.Reason == "MinimumReplicasUnavailable" {
+			if latestCondition.Type == appsv1.DeploymentProgressing || latestCondition.Reason == "MinimumReplicasUnavailable" {
 				stillProgressing = true
 				reasonToApply = fmt.Sprintf("Deployment %s still progressing", obj.Name)
 				messageToApply = latestCondition.Message
@@ -541,7 +542,7 @@ func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger log
 				break
 			}
 		} else if kind == "DaemonSet" {
-			daemonset := &apps_v1.DaemonSet{}
+			daemonset := &appsv1.DaemonSet{}
 			err := r.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, daemonset)
 			if err != nil {
 				return err
