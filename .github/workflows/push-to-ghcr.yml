@@ -20,8 +20,8 @@ jobs:
         uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: MirantisContainers
+          password: ${{ secrets.PAT_CI_BOUNDLESS }}
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -53,8 +53,8 @@ jobs:
         uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: MirantisContainers
+          password: ${{ secrets.PAT_CI_BOUNDLESS }}
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -90,8 +90,8 @@ jobs:
         uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: MirantisContainers
+          password: ${{ secrets.PAT_CI_BOUNDLESS }}
 
       - name: Download artifact
         uses: actions/download-artifact@v3
@@ -127,8 +127,8 @@ jobs:
         uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: MirantisContainers
+          password: ${{ secrets.PAT_CI_BOUNDLESS }}
 
       - name: Download artifact
         uses: actions/download-artifact@v3
