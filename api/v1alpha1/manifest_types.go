@@ -28,6 +28,8 @@ type ManifestStatus struct {
 
 // ManifestObject consists of the fields required to update/delete an object
 type ManifestObject struct {
+	Group     string `json:"group"`
+	Version   string `json:"version"`
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
