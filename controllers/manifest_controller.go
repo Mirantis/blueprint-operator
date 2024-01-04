@@ -208,6 +208,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		logger.Info("received new crd request. Creating manifest objects..")
+
+		_, _ = generateKustomization(logger)
 		err = r.CreateManifestObjects(req, bodyBytes, logger, ctx, existing)
 		if err != nil {
 			logger.Error(err, "failed to create objects for the manifest", "Name", req.Name)
