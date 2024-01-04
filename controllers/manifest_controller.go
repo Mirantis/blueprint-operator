@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -45,7 +44,6 @@ const (
 // ManifestReconciler reconciles a Manifest object
 type ManifestReconciler struct {
 	client.Client
-	dynamic.DynamicClient
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 }
@@ -282,7 +280,9 @@ func (r *ManifestReconciler) findAssociatedManifest(ctx context.Context, obj cli
 func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, req ctrl.Request, logger logr.Logger, data []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	if err := kubernetes.Apply(ctx, logger, r.Client, data); err != nil {
+
+	applier := kubernetes.NewApplier(logger, r.Client)
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader(data)); err != nil {
 		return err
 	}
 
@@ -351,7 +351,9 @@ func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectLi
 		u.SetNamespace(item.Namespace)
 		objs = append(objs, u)
 	}
-	if err := kubernetes.Delete(ctx, logger, r.Client, objs); err != nil {
+
+	applier := kubernetes.NewApplier(logger, r.Client)
+	if err := applier.Delete(ctx, objs); err != nil {
 		return fmt.Errorf("failed to delete objects for manifest: %w", err)
 	}
 	return nil
@@ -367,7 +369,9 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 		return err
 	}
 
-	if err = kubernetes.Apply(ctx, logger, r.Client, bodyBytes); err != nil {
+	applier := kubernetes.NewApplier(logger, r.Client)
+
+	if err = applier.Apply(ctx, kubernetes.NewManifestReader(bodyBytes)); err != nil {
 		return err
 	}
 	// Get the list of old objects
