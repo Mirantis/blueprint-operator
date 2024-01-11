@@ -106,7 +106,7 @@ func (a *Applier) createOrUpdateObject(ctx context.Context, obj *unstructured.Un
 	if apierrors.IsNotFound(err) {
 		a.log.Info("Creating object", "GroupVersionKind", gvk, "Name", name)
 		if err = a.client.Create(ctx, obj); err != nil {
-			return fmt.Errorf("failed to create resource %q of GroupVersionKind=%q : %w", name, gvk, err)
+			return fmt.Errorf("failed to create resource %q of GroupVersionKind=%q: %w", name, gvk, err)
 		}
 		a.log.Info("Created object", "GroupVersionKind", gvk, "Name", name)
 	} else {
