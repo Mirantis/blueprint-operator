@@ -277,6 +277,7 @@ func (r *ManifestReconciler) findAssociatedManifest(ctx context.Context, obj cli
 	return requests
 }
 
+// CreateManifestObjects reads manifest from a url and then create all objects in the cluster
 func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, req ctrl.Request, logger logr.Logger, data []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -359,6 +360,7 @@ func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectLi
 	return nil
 }
 
+// UpdateManifestObjects reads the manifest from a url and then create or update the new/existing objects in the cluster
 func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context.Context, existing *boundlessv1alpha1.Manifest) error {
 	logger := log.FromContext(ctx)
 
@@ -460,6 +462,7 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 
 }
 
+// ReadManifest reads the manifest from the url and returns a byte string containing the entire manifest content
 func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger logr.Logger) ([]byte, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)

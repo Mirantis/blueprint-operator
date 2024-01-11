@@ -12,11 +12,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Applier is used to create/update/delete one or more objects from a YAML manifest file to the cluster
 type Applier struct {
 	log    logr.Logger
 	client client.Client
 }
 
+// NewApplier creates an Applier instance
 func NewApplier(logger logr.Logger, client client.Client) *Applier {
 	return &Applier{
 		log:    logger,
@@ -24,6 +26,8 @@ func NewApplier(logger logr.Logger, client client.Client) *Applier {
 	}
 }
 
+// Apply reads the manifest objects from the reader, and then either create or update
+// the objects in the cluster.
 func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 	var err error
 
@@ -35,10 +39,10 @@ func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 	// separate out the CRDs and other objects
 	// CRDs need to be created first
 	crds, others := a.splitCrdAndOthers(objs)
-	a.log.Info("Found objects", "CRD", len(crds), "Other", len(others))
+	a.log.V(2).Info("Found objects", "CRD Objects", len(crds), "Other Objects", len(others))
 	for _, o := range crds {
 		if err = a.createOrUpdateObject(ctx, o); err != nil {
-			return fmt.Errorf("failed to apply crds resources from manifest: %w", err)
+			return fmt.Errorf("failed to apply %s crds resources from manifest: %w", o.GetName(), err)
 		}
 	}
 
@@ -46,14 +50,14 @@ func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 
 	// create other objects
 	for _, o := range others {
-		//client.MergeFrom(o)
 		if err = a.createOrUpdateObject(ctx, o); err != nil {
-			return fmt.Errorf("failed to apply resources from manifest at: %w", err)
+			return fmt.Errorf("failed to apply '%s/%s' resources in namespace '%s' from manifest at: %w", o.GetKind(), o.GetName(), o.GetNamespace(), err)
 		}
 	}
 	return nil
 }
 
+// Delete deletes the provided objects from the cluster.
 func (a *Applier) Delete(ctx context.Context, objs []unstructured.Unstructured) error {
 	for _, o := range objs {
 		existing := &unstructured.Unstructured{}
@@ -64,7 +68,7 @@ func (a *Applier) Delete(ctx context.Context, objs []unstructured.Unstructured) 
 		}
 		if err := a.client.Get(ctx, key, existing); err != nil {
 			if apierrors.IsNotFound(err) {
-				a.log.Error(err, "Already delete", "Namespace", o.GetNamespace(), "Name", o.GetName())
+				a.log.Error(err, "Already deleted", "Namespace", o.GetNamespace(), "Name", o.GetName())
 				continue
 			}
 			return fmt.Errorf("failed to delete object: %s/%s", o.GetNamespace(), o.GetName())
