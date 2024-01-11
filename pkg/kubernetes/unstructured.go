@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -12,6 +13,7 @@ import (
 // UnstructuredReader an interface that all manifest readers should implement
 type UnstructuredReader interface {
 	Read() (*unstructured.Unstructured, error)
+	ReadManifest() ([]*unstructured.Unstructured, error)
 }
 
 // NewManifestReader initializes a reader for yaml manifests
@@ -46,4 +48,27 @@ func (m *manifestReader) Read() (*unstructured.Unstructured, error) {
 		}
 		return o, nil
 	}
+}
+
+// ReadManifest decodes the whole manifest and return list of unstructured objects
+func (m *manifestReader) ReadManifest() ([]*unstructured.Unstructured, error) {
+	var o []*unstructured.Unstructured
+	var errs error
+	for {
+		obj, err := m.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			errors.Join(errs, fmt.Errorf("could not read object: %w", err))
+			continue
+		}
+		if obj == nil {
+			continue
+		}
+
+		o = append(o, obj)
+	}
+
+	return o, errs
 }

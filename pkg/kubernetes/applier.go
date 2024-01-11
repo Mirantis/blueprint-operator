@@ -2,9 +2,7 @@ package kubernetes
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,10 +26,11 @@ func NewApplier(logger logr.Logger, client client.Client) *Applier {
 
 // Apply reads the manifest objects from the reader, and then either create or update
 // the objects in the cluster.
+// @TODO: Continue on failure to create/update object and return failed objects
 func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 	var err error
 
-	objs, err := a.readManifest(reader)
+	objs, err := reader.ReadManifest()
 	if err != nil {
 		return fmt.Errorf("failed to decode objects: %w", err)
 	}
@@ -60,22 +59,22 @@ func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 // Delete deletes the provided objects from the cluster.
 func (a *Applier) Delete(ctx context.Context, objs []unstructured.Unstructured) error {
 	for _, o := range objs {
-		existing := &unstructured.Unstructured{}
-		existing.SetGroupVersionKind(o.GroupVersionKind())
+		object := &unstructured.Unstructured{}
+		object.SetGroupVersionKind(o.GroupVersionKind())
 		key := client.ObjectKey{
 			Namespace: o.GetNamespace(),
 			Name:      o.GetName(),
 		}
-		if err := a.client.Get(ctx, key, existing); err != nil {
+		if err := a.client.Get(ctx, key, object); err != nil {
 			if apierrors.IsNotFound(err) {
 				a.log.Error(err, "Already deleted", "Namespace", o.GetNamespace(), "Name", o.GetName())
 				continue
 			}
 			return fmt.Errorf("failed to delete object: %s/%s", o.GetNamespace(), o.GetName())
 		}
-		a.log.Info("Deleting object", "Kind", existing.GetKind(), "Namespace", existing.GetNamespace(), "Name", existing.GetName())
-		if err := a.client.Delete(ctx, existing); err != nil {
-			return fmt.Errorf("failed to delete %s/%s/%s", existing.GetKind(), existing.GetNamespace(), existing.GetName())
+		a.log.Info("Deleting object", "Kind", object.GetKind(), "Namespace", object.GetNamespace(), "Name", object.GetName())
+		if err := a.client.Delete(ctx, object); err != nil {
+			return fmt.Errorf("failed to delete %s/%s/%s", object.GetKind(), object.GetNamespace(), object.GetName())
 		}
 	}
 	return nil
@@ -120,26 +119,4 @@ func (a *Applier) createOrUpdateObject(ctx context.Context, obj *unstructured.Un
 	}
 
 	return nil
-}
-
-func (a *Applier) readManifest(r UnstructuredReader) ([]*unstructured.Unstructured, error) {
-	var o []*unstructured.Unstructured
-	var errs error
-	for {
-		obj, err := r.Read()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			errors.Join(errs, fmt.Errorf("could not read object: %w", err))
-			continue
-		}
-		if obj == nil {
-			continue
-		}
-
-		o = append(o, obj)
-	}
-
-	return o, errs
 }
