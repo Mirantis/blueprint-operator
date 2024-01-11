@@ -95,7 +95,7 @@ func (a *Applier) splitCrdAndOthers(objs []*unstructured.Unstructured) ([]*unstr
 
 func (a *Applier) createOrUpdateObject(ctx context.Context, obj *unstructured.Unstructured) error {
 	name := obj.GetName()
-	kind := obj.GetKind()
+	gvk := obj.GroupVersionKind()
 
 	existing := &unstructured.Unstructured{}
 	existing.SetGroupVersionKind(obj.GroupVersionKind())
@@ -104,18 +104,18 @@ func (a *Applier) createOrUpdateObject(ctx context.Context, obj *unstructured.Un
 	a.log.Info("Checking if object with key exists", "Key", key)
 	err := a.client.Get(ctx, key, existing)
 	if apierrors.IsNotFound(err) {
-		a.log.Info("Creating object", "Kind", kind, "Name", name)
+		a.log.Info("Creating object", "GroupVersionKind", gvk, "Name", name)
 		if err = a.client.Create(ctx, obj); err != nil {
-			return fmt.Errorf("failed to create resource %q of kind %q: %w", name, kind, err)
+			return fmt.Errorf("failed to create resource %q of GroupVersionKind=%q : %w", name, gvk, err)
 		}
-		a.log.Info("Created object", "Kind", kind, "Name", name)
+		a.log.Info("Created object", "GroupVersionKind", gvk, "Name", name)
 	} else {
-		a.log.Info("Updating object", "Kind", kind, "Name", name)
+		a.log.Info("Updating object", "GroupVersionKind", gvk, "Name", name)
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		if err = a.client.Update(ctx, obj); err != nil {
-			return fmt.Errorf("failed to update resource %q of kind %q: %w", name, kind, err)
+			return fmt.Errorf("failed to update resource %q of GroupVersionKind=%q: %w", name, gvk, err)
 		}
-		a.log.Info("Updated object", "Kind", kind, "Name", name)
+		a.log.Info("Updated object", "GroupVersionKind", gvk, "Name", name)
 	}
 
 	return nil
