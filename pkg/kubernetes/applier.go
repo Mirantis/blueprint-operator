@@ -57,7 +57,7 @@ func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 }
 
 // Delete deletes the provided objects from the cluster.
-func (a *Applier) Delete(ctx context.Context, objs []unstructured.Unstructured) error {
+func (a *Applier) Delete(ctx context.Context, objs []*unstructured.Unstructured) error {
 	for _, o := range objs {
 		object := &unstructured.Unstructured{}
 		object.SetGroupVersionKind(o.GroupVersionKind())

@@ -340,7 +340,7 @@ func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, req ctrl
 func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectList []boundlessv1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
-	var objs []unstructured.Unstructured
+	var objs []*unstructured.Unstructured
 	for _, item := range objectList {
 		u := unstructured.Unstructured{}
 		u.SetGroupVersionKind(schema.GroupVersionKind{
@@ -350,7 +350,7 @@ func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectLi
 		})
 		u.SetName(item.Name)
 		u.SetNamespace(item.Namespace)
-		objs = append(objs, u)
+		objs = append(objs, &u)
 	}
 
 	applier := kubernetes.NewApplier(logger, r.Client)
