@@ -3,7 +3,6 @@ package installation
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/apps/v1"
@@ -12,11 +11,16 @@ import (
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/installation/manifests"
+)
+
+const (
+	// NamespaceBoundlessSystem is the namespace where all boundless components are installed
+	NamespaceBoundlessSystem = "boundless-system"
+	DeploymentHelmController = "helm-controller"
 )
 
 func InstallHelmController(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {
@@ -27,7 +31,7 @@ func InstallHelmController(ctx context.Context, runtimeClient client.Client, log
 	// create namespace
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "boundless-system",
+			Name: NamespaceBoundlessSystem,
 		},
 	}
 
@@ -119,7 +123,7 @@ func InstallHelmController(ctx context.Context, runtimeClient client.Client, log
 
 	// wait for helm controller to be ready
 	logger.Info("waiting for helm controller")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentHelmController, NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
@@ -143,7 +147,7 @@ func CheckHelmControllerExists(ctx context.Context, runtimeClient client.Client)
 	return true, nil
 }
 
-func waitForDeploymentReady(ctx context.Context, runtimeClient client.Client, log logr.Logger) error {
+/*func waitForDeploymentReady(ctx context.Context, runtimeClient client.Client, log logr.Logger) error {
 	key := client.ObjectKey{
 		Namespace: "boundless-system",
 		Name:      "helm-controller",
@@ -164,7 +168,7 @@ func waitForDeploymentReady(ctx context.Context, runtimeClient client.Client, lo
 		log.V(1).Info(fmt.Sprintf("waiting for helm controller to %d replicas, currently at %d", d.Status.Replicas, d.Status.AvailableReplicas))
 		return false, nil
 	})
-}
+}*/
 
 func yamlToServiceAccount(yml []byte) (*corev1.ServiceAccount, error) {
 	svcAcc := &corev1.ServiceAccount{}
