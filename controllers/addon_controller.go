@@ -217,6 +217,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			if errors.IsNotFound(err) {
 				// might need some time for CR to  be created
 				r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
 			}
 			return ctrl.Result{}, err
 		}
