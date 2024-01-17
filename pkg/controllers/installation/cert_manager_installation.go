@@ -2,14 +2,12 @@ package installation
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 
 	v1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/installation/manifests"
@@ -70,25 +68,4 @@ func CheckIfCertManagerAlreadyExists(ctx context.Context, runtimeClient client.C
 	}
 
 	return true, nil
-}
-
-func waitForDeploymentReady(ctx context.Context, runtimeClient client.Client, log logr.Logger, deploymentName, namespace string) error {
-	key := client.ObjectKey{
-		Namespace: namespace,
-		Name:      deploymentName,
-	}
-	return wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
-		d := &v1.Deployment{}
-		err := runtimeClient.Get(ctx, key, d)
-		if err != nil {
-			return false, err
-		}
-
-		if d.Status.AvailableReplicas == d.Status.Replicas {
-			// Expected replicas active
-			return true, nil
-		}
-		log.V(1).Info(fmt.Sprintf("waiting for deployment %s to %d replicas, currently at %d", deploymentName, d.Status.Replicas, d.Status.AvailableReplicas))
-		return false, nil
-	})
 }

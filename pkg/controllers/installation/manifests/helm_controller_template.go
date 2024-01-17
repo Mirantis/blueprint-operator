@@ -1,21 +1,19 @@
 package manifests
 
-var HelmServiceAccount = `
+// Source: https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+
+const HelmControllerTemplate = `
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: boundless-system
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: helm-controller
   namespace: boundless-system
-`
-
-var HelmNamespace = `
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: boundless-system
-`
-
-var HelmChart = `
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -108,8 +106,8 @@ spec:
           type: object
       served: true
       storage: true
-`
-var HelmChartConig = `
+
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -139,9 +137,7 @@ spec:
           type: object
       served: true
       storage: true
-`
-
-var HelmChartrelease = `
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
@@ -225,34 +221,7 @@ spec:
           type: object
       served: true
       storage: true
-`
-
-var HelmDeployment = `
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: helm-controller
-  namespace: boundless-system
-  labels:
-    app: helm-controller
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: helm-controller
-  template:
-    metadata:
-      labels:
-        app: helm-controller
-    spec:
-      containers:
-        - name: helm-controller
-          image: rancher/helm-controller:v0.12.1
-          command: ["helm-controller"]
-      serviceAccountName: helm-controller
-`
-
-var ClusterRole = `
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -326,9 +295,7 @@ rules:
       - update
       - patch
       - delete
-`
-
-var HelmClusterRoleBinding1 = `
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -341,9 +308,7 @@ subjects:
   - kind: ServiceAccount
     name: helm-controller
     namespace: boundless-system
-`
-
-var HelmClusterRoleBinding2 = `
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -356,4 +321,27 @@ subjects:
   - kind: ServiceAccount
     name: helm-controller
     namespace: boundless-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helm-controller
+  namespace: boundless-system
+  labels:
+    app: helm-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helm-controller
+  template:
+    metadata:
+      labels:
+        app: helm-controller
+    spec:
+      containers:
+        - name: helm-controller
+          image: rancher/helm-controller:v0.12.1
+          command: ["helm-controller"]
+      serviceAccountName: helm-controller
 `
