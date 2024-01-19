@@ -2,6 +2,7 @@ package installation
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -36,17 +37,17 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 
 	// Wait for all the deployments to be ready
 	logger.Info("waiting for ca injector deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCAInjector, NamespaceCertManager); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCAInjector, NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
 	logger.Info("waiting for cert manager deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCertManager, NamespaceCertManager); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCertManager, NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
 	logger.Info("waiting for webhook deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentWebhook, NamespaceCertManager); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentWebhook, NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
@@ -55,7 +56,36 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 	return nil
 }
 
-func CheckIfCertManagerAlreadyExists(ctx context.Context, runtimeClient client.Client) (bool, error) {
+// CheckIfCertManagerAlreadyExists checks if cert manager is already installed in the cluster.
+// This shall check both BOP specific as well as external installations.
+func CheckIfCertManagerAlreadyExists(ctx context.Context, runtimeClient client.Client, logger logr.Logger) (bool, error) {
+	// First, we check if an external cert manager instance already exists in the cluster.
+	exists, err := checkIfExternalCertManagerExists(ctx, runtimeClient)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if an external cert manager installation already exists in the cluster")
+	}
+	if !exists {
+		logger.Info("No external cert-manager installation detected.")
+
+		// Check BOP-specific installation
+		key := client.ObjectKey{
+			Namespace: NamespaceBoundlessSystem,
+			Name:      DeploymentCertManager,
+		}
+		if err := runtimeClient.Get(ctx, key, &v1.Deployment{}); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	}
+	logger.Info("External cert-manager installation detected.")
+	return true, nil
+}
+
+// checkIfExternalCertManagerExists checks if an external cert manager instance already exists.
+func checkIfExternalCertManagerExists(ctx context.Context, runtimeClient client.Client) (bool, error) {
 	key := client.ObjectKey{
 		Namespace: NamespaceCertManager,
 		Name:      DeploymentCertManager,

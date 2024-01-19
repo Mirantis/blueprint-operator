@@ -64,7 +64,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	exist, err := installation.CheckIfCertManagerAlreadyExists(ctx, r.Client)
+	exist, err := installation.CheckIfCertManagerAlreadyExists(ctx, r.Client, logger)
 	if err != nil {
 		logger.Error(err, "failed to check if cert manager already exists")
 		return ctrl.Result{}, fmt.Errorf("failed to check if cert manager already exists")
