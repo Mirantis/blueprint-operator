@@ -49,16 +49,22 @@ spec:
                   description: ManifestObject consists of the fields required to update/delete
                     an object
                   properties:
+                    group:
+                      type: string
                     kind:
                       type: string
                     name:
                       type: string
                     namespace:
                       type: string
+                    version:
+                      type: string
                   required:
+                  - group
                   - kind
                   - name
                   - namespace
+                  - version
                   type: object
                 type: array
               url:

@@ -12,8 +12,8 @@ The release process is automated using github actions that trigger when a releas
   a. Run through all tests (lint, unit, integration)
   b. Build the release images
   c. Publish the release images to
-    i. ghcr.io/mirantis/boundless-operator:<tag>
-    ii. ghcr.io/mirantis/boundless-operator:latest
-    iii. ghcr.io/mirantis/boundless-operator:<commit SHA>
+    i. ghcr.io/mirantiscontainers/boundless-operator:<tag>
+    ii. ghcr.io/mirantiscontainers/boundless-operator:latest
+    iii. ghcr.io/mirantiscontainers/boundless-operator:<commit SHA>
 4. Once CI finished, take a look at the images and make sure they look good
 5. Change the release from pre-release to latest on the github page

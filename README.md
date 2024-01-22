@@ -33,6 +33,8 @@ make docker-build docker-push IMG=<some-registry>/boundless-operator:tag
 make deploy IMG=<some-registry>/boundless-operator:tag
 ```
 
+**Note**: If no IMG is specified, the latest image is used.
+
 ### Uninstall CRDs
 To delete the CRDs from the cluster:
 

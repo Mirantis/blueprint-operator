@@ -13,11 +13,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	boundlessv1alpha1 "github.com/mirantis/boundless-operator/api/v1alpha1"
-	"github.com/mirantis/boundless-operator/pkg/controllers/installation"
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/installation"
 )
 
-const boundlessSystemNamespace = "boundless-system"
+const (
+	// NamespaceBoundlessSystem is the namespace where all boundless components are installed
+	NamespaceBoundlessSystem = "boundless-system"
+)
 
 // BlueprintReconciler reconciles a Blueprint object
 type BlueprintReconciler struct {
@@ -51,15 +54,28 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	exists, err := installation.CheckHelmControllerExists(ctx, r.Client)
 	if err != nil {
-		return ctrl.Result{}, err
+		logger.Error(err, "failed to check if helm controller already exists")
+		return ctrl.Result{}, fmt.Errorf("failed to check if helm controller already exists")
 	}
 	if !exists {
-		logger.Info("Helm controller is not installed")
-		logger.Info("Installing helm controller")
-		err := installation.InstallHelmController(ctx, r.Client, logger)
-		if err != nil {
+		logger.Info("Helm controller is not installed. Installing...")
+		if err = installation.InstallHelmController(ctx, r.Client, logger); err != nil {
 			return ctrl.Result{}, err
 		}
+	}
+
+	exist, err := installation.CheckIfCertManagerAlreadyExists(ctx, r.Client, logger)
+	if err != nil {
+		logger.Error(err, "failed to check if cert manager already exists")
+		return ctrl.Result{}, fmt.Errorf("failed to check if cert manager already exists")
+	}
+	if !exist {
+		logger.Info("cert manager is not installed. Installing...")
+		if err = installation.InstallCertManager(ctx, r.Client, logger); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		logger.Info("cert manager is already installed.")
 	}
 
 	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil && instance.Spec.Components.Core.Ingress.Provider != "" {
@@ -213,7 +229,7 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 	return &boundlessv1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: boundlessSystemNamespace,
+			Namespace: NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.IngressSpec{
 			Enabled:  spec.Enabled,
@@ -228,7 +244,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	addon := &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
-			Namespace: boundlessSystemNamespace,
+			Namespace: NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.AddonSpec{
 			Name:      spec.Name,
