@@ -64,6 +64,20 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
+	exist, err := installation.CheckIfCertManagerAlreadyExists(ctx, r.Client, logger)
+	if err != nil {
+		logger.Error(err, "failed to check if cert manager already exists")
+		return ctrl.Result{}, fmt.Errorf("failed to check if cert manager already exists")
+	}
+	if !exist {
+		logger.Info("cert manager is not installed. Installing...")
+		if err = installation.InstallCertManager(ctx, r.Client, logger); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		logger.Info("cert manager is already installed.")
+	}
+
 	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil && instance.Spec.Components.Core.Ingress.Provider != "" {
 		logger.Info("Reconciling ingress")
 		err = r.createOrUpdateIngress(ctx, logger, ingressResource(instance.Spec.Components.Core.Ingress))
