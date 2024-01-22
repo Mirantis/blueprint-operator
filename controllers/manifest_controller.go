@@ -31,6 +31,7 @@ import (
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
 	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 )
 
@@ -501,92 +502,13 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 
 }
 
-// checkManifestStatus checks the status of any deployments and daemonsets associated with the namespacedName manifest
-// Check the status of the deployment and daemonset and set the manifest to an error state if any errors are found
-// If no errors are found, we check if any deployments/daemonsets are still progressing and set the manifest status to Progressing
-// Otherwise set the manifest status to Available
-// This is not comprehensive and may need to be updated as we support more complex manifests
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
-
-	if objects == nil || len(objects) == 0 {
-		logger.Info("No manifest objects for manifest")
-		return nil
+	mc := manifest.NewManifestController(r.Client, logger)
+	manifestStatus, err := mc.CheckManifestStatus(ctx, logger, namespacedName, objects)
+	if err != nil {
+		return err
 	}
-
-	// for now focus on getting status from any Deployments or Daemonsets deployed via the manifest since
-	// they have reliable status fields we can pull from and are most likely to fail
-	stillProgressing := false
-	var reasonToApply, messageToApply string
-	for _, obj := range objects {
-		kind := obj.Kind
-
-		if kind == "Deployment" {
-			deployment := &appsv1.Deployment{}
-			err := r.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, deployment)
-			if err != nil {
-				return err
-			}
-			if deployment.Status.AvailableReplicas == deployment.Status.Replicas && (deployment.Status.Conditions == nil || len(deployment.Status.Conditions) == 0) {
-				// this deployment is ready
-				continue
-			}
-			latestCondition := deployment.Status.Conditions[0]
-			if deployment.Status.AvailableReplicas == deployment.Status.Replicas && latestCondition.Type == appsv1.DeploymentAvailable {
-				// this deployment is ready
-				continue
-			}
-
-			if latestCondition.Type == appsv1.DeploymentProgressing || latestCondition.Reason == "MinimumReplicasUnavailable" {
-				stillProgressing = true
-				reasonToApply = fmt.Sprintf("Deployment %s still progressing", obj.Name)
-				messageToApply = latestCondition.Message
-			} else {
-				// deployment is in error state, so we can update the manifest status that it has issues
-				err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, latestCondition.Reason, latestCondition.Message)
-				if err != nil {
-					return err
-				}
-				break
-			}
-		} else if kind == "DaemonSet" {
-			daemonset := &appsv1.DaemonSet{}
-			err := r.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, daemonset)
-			if err != nil {
-				return err
-			}
-
-			if daemonset.Status.DesiredNumberScheduled == daemonset.Status.CurrentNumberScheduled && daemonset.Status.DesiredNumberScheduled == daemonset.Status.NumberAvailable {
-				//daemonset is ready
-				continue
-			}
-
-			if daemonset.Status.NumberMisscheduled > 0 {
-				err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Daemonset %s failed to schedule pods", daemonset.Name))
-				if err != nil {
-					return err
-				}
-				break
-			} else {
-				stillProgressing = true
-				reasonToApply = fmt.Sprintf("Daemonset %s is still progressing", daemonset.Name)
-				messageToApply = fmt.Sprintf("Daemonset %s is still progressing", daemonset.Name)
-			}
-
-		} else {
-			continue
-		}
-
-	}
-
-	if stillProgressing {
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentProgressing, fmt.Sprintf("One or more components still progressing : %s", reasonToApply), messageToApply)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, "Manifest Components Available", "Manifest Components Available")
+	err = r.updateStatus(ctx, logger, namespacedName, manifestStatus.StatusType, manifestStatus.Reason, manifestStatus.Message)
 	if err != nil {
 		return err
 	}
