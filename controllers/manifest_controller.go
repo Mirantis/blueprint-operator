@@ -31,7 +31,7 @@ import (
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
+	pkgmanifest "github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
 	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 )
 
@@ -135,6 +135,17 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	if existing.Spec.Checksum == existing.Spec.NewChecksum {
 		logger.Info("checksum is same, no update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
+
+		if pkgmanifest.ShouldRetryManifest(logger, existing) {
+			logger.Info("Reapplying manifest")
+			// wipe the manifest checksum to get reconcile to run an Update
+			existing.Spec.Checksum = ""
+			if err = r.Update(ctx, existing); err != nil {
+				logger.Error(err, "failed to wipe checksum for manifest")
+			}
+			return ctrl.Result{}, err
+		}
+
 		// manifest is already installed as specified - get latest status from objects in the cluster
 		err = r.checkManifestStatus(ctx, logger, req.NamespacedName, existing.Spec.Objects)
 		return ctrl.Result{}, err
@@ -152,9 +163,11 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-				Url:         existing.Spec.Url,
-				Checksum:    existing.Spec.NewChecksum,
-				NewChecksum: existing.Spec.NewChecksum,
+				Url:           existing.Spec.Url,
+				Checksum:      existing.Spec.NewChecksum,
+				NewChecksum:   existing.Spec.NewChecksum,
+				FailurePolicy: existing.Spec.FailurePolicy,
+				Timeout:       existing.Spec.Timeout,
 			},
 		}
 
@@ -172,6 +185,16 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest ", fmt.Sprintf("failed to update manifest  : %s", err))
 			return ctrl.Result{}, err
 		}
+
+		if existing.Spec.Timeout != "" && existing.Spec.FailurePolicy == pkgmanifest.FailurePolicyRetry {
+			timeoutDuration, err := time.ParseDuration(existing.Spec.Timeout)
+			if err != nil {
+				logger.Error(err, "failed to parse timeout for manifest", "Timeout", timeoutDuration)
+				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+				return ctrl.Result{}, err
+			}
+			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: existing.Namespace, Name: existing.Name}, timeoutDuration, existing.Spec.FailurePolicy, false)
+		}
 	}
 
 	if existing.Spec.NewChecksum == "" {
@@ -185,9 +208,11 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-				Url:         existing.Spec.Url,
-				Checksum:    existing.Spec.Checksum,
-				NewChecksum: existing.Spec.Checksum,
+				Url:           existing.Spec.Url,
+				Checksum:      existing.Spec.Checksum,
+				NewChecksum:   existing.Spec.Checksum,
+				Timeout:       existing.Spec.Timeout,
+				FailurePolicy: existing.Spec.FailurePolicy,
 			},
 		}
 
@@ -198,7 +223,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// Run http get request to fetch the contents of the manifest file.
-		bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
+		bodyBytes, err := r.ReadManifest(existing.Spec.Url, logger)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -206,17 +231,71 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		logger.Info("received new crd request. Creating manifest objects..")
-		err = r.CreateManifestObjects(ctx, req, logger, bodyBytes)
+		err = r.CreateManifestObjects(ctx, key, logger, bodyBytes)
 		if err != nil {
 			logger.Error(err, "failed to create objects for the manifest", "Name", req.Name)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to create objects for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
 			return ctrl.Result{}, err
 		}
 
+		if existing.Spec.Timeout != "" && existing.Spec.FailurePolicy != pkgmanifest.FailurePolicyNone {
+			timeoutDuration, err := time.ParseDuration(existing.Spec.Timeout)
+			if err != nil {
+				logger.Error(err, "failed to parse timeout for manifest", "Timeout", timeoutDuration)
+				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+				return ctrl.Result{}, err
+			}
+			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: existing.Namespace, Name: existing.Name}, timeoutDuration, existing.Spec.FailurePolicy, true)
+		}
 	}
 
 	r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest %s/%s", existing.Namespace, existing.Name)
 	return ctrl.Result{}, nil
+}
+
+// retryUpgradeInstallAfterTimeout checks if the manifest is Available after Timeout, and if it is not then it retries the upgrade/install.
+func (r *ManifestReconciler) retryUpgradeInstallAfterTimeout(ctx context.Context, logger logr.Logger, manifestName types.NamespacedName, timeout time.Duration, failurePolicy string, isInstall bool) {
+
+	mc := pkgmanifest.NewManifestController(r.Client, logger)
+	timeoutErr := mc.AwaitTimeout(logger, manifestName, timeout)
+	if timeoutErr != nil {
+		// manifest is not available before timeout
+		var manifest boundlessv1alpha1.Manifest
+		err := r.Get(ctx, manifestName, &manifest)
+		if err != nil {
+			logger.Error(err, "Failed to get manifest")
+			return
+		}
+
+		r.Recorder.AnnotatedEventf(&manifest, map[string]string{event.AddonAnnotationKey: manifest.Name}, event.TypeWarning, event.ReasonFailedCreate, "manifest creation timed out %s/%s : %s", manifest.Namespace, manifest.Name, timeoutErr.Error())
+
+		if isInstall {
+			// if it's an install then delete existing manifest objects so they can be fully re-installed
+
+			logger.Info("Deleting manifest objects ", "ManifestName", manifestName)
+			err = r.DeleteManifestObjects(ctx, manifest.Spec.Objects)
+			if err != nil {
+				logger.Error(err, "Failed to delete manifest objects")
+				return
+			}
+		}
+
+		// wipe the manifest checksum to get reconcile to run an Update
+		manifest.Spec.Checksum = ""
+		if err = r.Update(ctx, &manifest); err != nil {
+			logger.Error(err, "failed to wipe checksum for manifest")
+			return
+		}
+
+		// set up another potential retry if manifest still not available after next timeout
+		if failurePolicy == pkgmanifest.FailurePolicyRetry {
+			go r.retryUpgradeInstallAfterTimeout(ctx, logger, manifestName, timeout, failurePolicy, isInstall)
+		}
+
+		return
+	}
+
+	logger.Info("Manifest is Available before Timeout", "ManifestName", manifestName)
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -279,7 +358,7 @@ func (r *ManifestReconciler) findAssociatedManifest(ctx context.Context, obj cli
 }
 
 // CreateManifestObjects reads manifest from a url and then create all objects in the cluster
-func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, req ctrl.Request, logger logr.Logger, data []byte) error {
+func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, manifestNamespacedName types.NamespacedName, logger logr.Logger, data []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -305,15 +384,11 @@ func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, req ctrl
 
 	// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#discussion_r1408570381
 	// Update the CRD
-	key := types.NamespacedName{
-		Namespace: req.Namespace,
-		Name:      req.Name,
-	}
 
 	crd := &boundlessv1alpha1.Manifest{}
-	if err = r.Client.Get(ctx, key, crd); err != nil {
-		logger.Error(err, "failed to get manifest resource %s/%s", req.Namespace, req.Namespace)
-		return fmt.Errorf("failed to get manifest resource %s/%s: %w", req.Namespace, req.Namespace, err)
+	if err = r.Client.Get(ctx, manifestNamespacedName, crd); err != nil {
+		logger.Error(err, "failed to get manifest resource %s/%s", manifestNamespacedName.Namespace, manifestNamespacedName.Namespace)
+		return fmt.Errorf("failed to get manifest resource %s/%s: %w", manifestNamespacedName.Namespace, manifestNamespacedName.Namespace, err)
 	}
 	// Update the CRD
 	updatedCRD := boundlessv1alpha1.Manifest{
@@ -323,10 +398,12 @@ func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, req ctrl
 			ResourceVersion: crd.ResourceVersion,
 		},
 		Spec: boundlessv1alpha1.ManifestSpec{
-			Url:         crd.Spec.Url,
-			Checksum:    crd.Spec.Checksum,
-			NewChecksum: crd.Spec.NewChecksum,
-			Objects:     manifestObjs,
+			Url:           crd.Spec.Url,
+			Checksum:      crd.Spec.Checksum,
+			NewChecksum:   crd.Spec.NewChecksum,
+			FailurePolicy: crd.Spec.FailurePolicy,
+			Timeout:       crd.Spec.Timeout,
+			Objects:       manifestObjs,
 		},
 	}
 
@@ -366,7 +443,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	logger := log.FromContext(ctx)
 
 	// Read the URL contents
-	bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
+	bodyBytes, err := r.ReadManifest(existing.Spec.Url, logger)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return err
@@ -414,10 +491,12 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 			ResourceVersion: crd.ResourceVersion,
 		},
 		Spec: boundlessv1alpha1.ManifestSpec{
-			Url:         crd.Spec.Url,
-			Checksum:    crd.Spec.NewChecksum,
-			NewChecksum: crd.Spec.NewChecksum,
-			Objects:     newManifestObjs,
+			Url:           crd.Spec.Url,
+			Checksum:      crd.Spec.NewChecksum,
+			NewChecksum:   crd.Spec.NewChecksum,
+			FailurePolicy: crd.Spec.FailurePolicy,
+			Timeout:       crd.Spec.Timeout,
+			Objects:       newManifestObjs,
 		},
 	}
 
@@ -464,7 +543,7 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 }
 
 // ReadManifest reads the manifest from the url and returns a byte string containing the entire manifest content
-func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger logr.Logger) ([]byte, error) {
+func (r *ManifestReconciler) ReadManifest(url string, logger logr.Logger) ([]byte, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -503,7 +582,7 @@ func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger l
 }
 
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
-	mc := manifest.NewManifestController(r.Client, logger)
+	mc := pkgmanifest.NewManifestController(r.Client, logger)
 	manifestStatus, err := mc.CheckManifestStatus(ctx, logger, namespacedName, objects)
 	if err != nil {
 		return err
