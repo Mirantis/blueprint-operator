@@ -6,3 +6,6 @@ images:
 - name: controller
   newName: ghcr.io/mirantiscontainers/boundless-operator
   newTag: validate
+- name: ghcr.io/mirantis/boundless-operator
+  newName: ghcr.io/mirantis/boundless-operator
+  newTag: cm
