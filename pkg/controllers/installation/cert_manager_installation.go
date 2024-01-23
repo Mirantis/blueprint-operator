@@ -234,7 +234,7 @@ func patchControllerManagerWebhook(ctx context.Context, runtimeClient client.Cli
 		if d.Spec.Template.Spec.Containers[i].Name == "manager" {
 			d.Spec.Template.Spec.Containers[i].Ports = append(d.Spec.Template.Spec.Containers[i].Ports, port)
 			d.Spec.Template.Spec.Containers[i].VolumeMounts = append(d.Spec.Template.Spec.Containers[i].VolumeMounts, vm)
-			d.Spec.Template.Spec.Containers[i].Env = append(d.Spec.Template.Spec.Containers[i].Env, env)
+			d.Spec.Template.Spec.Containers[i].Env = []coreV1.EnvVar{env}
 		}
 	}
 
