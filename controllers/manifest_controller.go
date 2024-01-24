@@ -198,7 +198,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// Run http get request to fetch the contents of the manifest file.
-		bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
+		_, err := r.ReadManifest(req, existing.Spec.Url, logger)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -207,8 +207,13 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		logger.Info("received new crd request. Creating manifest objects..")
 
-		_, _ = generateKustomization(logger)
-		err = r.CreateManifestObjects(ctx, req, logger, bodyBytes)
+		objects, err := generateKustomization(logger, existing.Spec.Url)
+		if err != nil {
+			logger.Error(err, "failed to build kustomize for url: %s", "Manifest Url", existing.Spec.Url)
+			//r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			return ctrl.Result{}, err
+		}
+		err = r.CreateManifestObjects(ctx, req, logger, objects)
 		if err != nil {
 			logger.Error(err, "failed to create objects for the manifest", "Name", req.Name)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to create objects for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())

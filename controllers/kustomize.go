@@ -6,8 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
+	//"github.com/fluxcd/flux2/v2/pkg/manifestgen/kustomization"
 	"github.com/go-logr/logr"
+
 	"sigs.k8s.io/kustomize/api/konfig"
+	"sigs.k8s.io/kustomize/api/krusty"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/yaml"
 
@@ -18,7 +21,7 @@ const (
 	dirPath = "/tmp/"
 )
 
-func generateKustomization(logger logr.Logger) ([]byte, error) {
+func generateKustomization(logger logr.Logger, url string) ([]byte, error) {
 
 	fs := filesys.MakeFsOnDisk()
 	abs, err := filepath.Abs(dirPath)
@@ -44,7 +47,7 @@ func generateKustomization(logger logr.Logger) ([]byte, error) {
 	}
 
 	var resources []string
-	resources = append(resources, "https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml")
+	resources = append(resources, url)
 
 	kus.Resources = resources
 	kd, err := yaml.Marshal(kus)
@@ -73,6 +76,32 @@ func generateKustomization(logger logr.Logger) ([]byte, error) {
 		logger.Info("Sakshi: FILES", "FILENAME", file.Name())
 	}
 
-	return nil, nil
+	// Kustomize Build
+	/*objects, err := kustomization.BuildWithRoot(root, filepath.Dir(dirPath))
+	if err != nil {
+		logger.Info("Sakshi: Failed to build with Kustomize", "FILENAME", file.Name())
+		return nil, fmt.Errorf("%v", err)
+	}
+
+	logger.Info("Sakshi: KUSTOMIZE OBJECTS", "Objects", objects)
+	*/
+	buildOptions := &krusty.Options{
+		LoadRestrictions: kustypes.LoadRestrictionsNone,
+		PluginConfig:     kustypes.DisabledPluginConfig(),
+	}
+
+	k := krusty.MakeKustomizer(buildOptions)
+	m, err := k.Run(fs, abs)
+	if err != nil {
+		return nil, err
+	}
+
+	objects, err := m.AsYaml()
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Info("Sakshi: KUSTOMIZE OBJECTS", "Objects", string(objects))
+	return objects, nil
 
 }
