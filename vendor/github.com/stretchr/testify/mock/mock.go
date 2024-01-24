@@ -3,10 +3,7 @@ package mock
 import (
 	"errors"
 	"fmt"
-<<<<<<< HEAD
 	"path"
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 	"reflect"
 	"regexp"
 	"runtime"
@@ -17,10 +14,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/pmezard/go-difflib/difflib"
 	"github.com/stretchr/objx"
-<<<<<<< HEAD
 
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 	"github.com/stretchr/testify/assert"
 )
 
@@ -107,11 +101,7 @@ func (c *Call) unlock() {
 
 // Return specifies the return arguments for the expectation.
 //
-<<<<<<< HEAD
 //	Mock.On("DoSomething").Return(errors.New("failed"))
-=======
-//    Mock.On("DoSomething").Return(errors.New("failed"))
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) Return(returnArguments ...interface{}) *Call {
 	c.lock()
 	defer c.unlock()
@@ -123,11 +113,7 @@ func (c *Call) Return(returnArguments ...interface{}) *Call {
 
 // Panic specifies if the functon call should fail and the panic message
 //
-<<<<<<< HEAD
 //	Mock.On("DoSomething").Panic("test panic")
-=======
-//    Mock.On("DoSomething").Panic("test panic")
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) Panic(msg string) *Call {
 	c.lock()
 	defer c.unlock()
@@ -139,22 +125,14 @@ func (c *Call) Panic(msg string) *Call {
 
 // Once indicates that that the mock should only return the value once.
 //
-<<<<<<< HEAD
 //	Mock.On("MyMethod", arg1, arg2).Return(returnArg1, returnArg2).Once()
-=======
-//    Mock.On("MyMethod", arg1, arg2).Return(returnArg1, returnArg2).Once()
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) Once() *Call {
 	return c.Times(1)
 }
 
 // Twice indicates that that the mock should only return the value twice.
 //
-<<<<<<< HEAD
 //	Mock.On("MyMethod", arg1, arg2).Return(returnArg1, returnArg2).Twice()
-=======
-//    Mock.On("MyMethod", arg1, arg2).Return(returnArg1, returnArg2).Twice()
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) Twice() *Call {
 	return c.Times(2)
 }
@@ -162,11 +140,7 @@ func (c *Call) Twice() *Call {
 // Times indicates that that the mock should only return the indicated number
 // of times.
 //
-<<<<<<< HEAD
 //	Mock.On("MyMethod", arg1, arg2).Return(returnArg1, returnArg2).Times(5)
-=======
-//    Mock.On("MyMethod", arg1, arg2).Return(returnArg1, returnArg2).Times(5)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) Times(i int) *Call {
 	c.lock()
 	defer c.unlock()
@@ -177,11 +151,7 @@ func (c *Call) Times(i int) *Call {
 // WaitUntil sets the channel that will block the mock's return until its closed
 // or a message is received.
 //
-<<<<<<< HEAD
 //	Mock.On("MyMethod", arg1, arg2).WaitUntil(time.After(time.Second))
-=======
-//    Mock.On("MyMethod", arg1, arg2).WaitUntil(time.After(time.Second))
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) WaitUntil(w <-chan time.Time) *Call {
 	c.lock()
 	defer c.unlock()
@@ -191,11 +161,7 @@ func (c *Call) WaitUntil(w <-chan time.Time) *Call {
 
 // After sets how long to block until the call returns
 //
-<<<<<<< HEAD
 //	Mock.On("MyMethod", arg1, arg2).After(time.Second)
-=======
-//    Mock.On("MyMethod", arg1, arg2).After(time.Second)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) After(d time.Duration) *Call {
 	c.lock()
 	defer c.unlock()
@@ -207,17 +173,10 @@ func (c *Call) After(d time.Duration) *Call {
 // mocking a method (such as an unmarshaler) that takes a pointer to a struct and
 // sets properties in such struct
 //
-<<<<<<< HEAD
 //	Mock.On("Unmarshal", AnythingOfType("*map[string]interface{}")).Return().Run(func(args Arguments) {
 //		arg := args.Get(0).(*map[string]interface{})
 //		arg["foo"] = "bar"
 //	})
-=======
-//    Mock.On("Unmarshal", AnythingOfType("*map[string]interface{}")).Return().Run(func(args Arguments) {
-//    	arg := args.Get(0).(*map[string]interface{})
-//    	arg["foo"] = "bar"
-//    })
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) Run(fn func(args Arguments)) *Call {
 	c.lock()
 	defer c.unlock()
@@ -237,28 +196,18 @@ func (c *Call) Maybe() *Call {
 // On chains a new expectation description onto the mocked interface. This
 // allows syntax like.
 //
-<<<<<<< HEAD
 //	Mock.
 //	   On("MyMethod", 1).Return(nil).
 //	   On("MyOtherMethod", 'a', 'b', 'c').Return(errors.New("Some Error"))
 //
-=======
-//    Mock.
-//       On("MyMethod", 1).Return(nil).
-//       On("MyOtherMethod", 'a', 'b', 'c').Return(errors.New("Some Error"))
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //go:noinline
 func (c *Call) On(methodName string, arguments ...interface{}) *Call {
 	return c.Parent.On(methodName, arguments...)
 }
 
 // Unset removes a mock handler from being called.
-<<<<<<< HEAD
 //
 //	test.On("func", mock.Anything).Unset()
-=======
-//    test.On("func", mock.Anything).Unset()
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) Unset() *Call {
 	var unlockOnce sync.Once
 
@@ -304,15 +253,9 @@ func (c *Call) Unset() *Call {
 // calls have been called as expected. The referenced calls may be from the
 // same mock instance and/or other mock instances.
 //
-<<<<<<< HEAD
 //	Mock.On("Do").Return(nil).Notbefore(
 //	    Mock.On("Init").Return(nil)
 //	)
-=======
-//     Mock.On("Do").Return(nil).Notbefore(
-//         Mock.On("Init").Return(nil)
-//     )
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (c *Call) NotBefore(calls ...*Call) *Call {
 	c.lock()
 	defer c.unlock()
@@ -395,11 +338,7 @@ func (m *Mock) fail(format string, args ...interface{}) {
 // On starts a description of an expectation of the specified method
 // being called.
 //
-<<<<<<< HEAD
 //	Mock.On("MyMethod", arg1, arg2)
-=======
-//     Mock.On("MyMethod", arg1, arg2)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func (m *Mock) On(methodName string, arguments ...interface{}) *Call {
 	for _, arg := range arguments {
 		if v := reflect.ValueOf(arg); v.Kind() == reflect.Func {
@@ -489,13 +428,10 @@ func callString(method string, arguments Arguments, includeArgumentValues bool) 
 	if includeArgumentValues {
 		var argVals []string
 		for argIndex, arg := range arguments {
-<<<<<<< HEAD
 			if _, ok := arg.(*FunctionalOptionsArgument); ok {
 				argVals = append(argVals, fmt.Sprintf("%d: %s", argIndex, arg))
 				continue
 			}
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 			argVals = append(argVals, fmt.Sprintf("%d: %#v", argIndex, arg))
 		}
 		argValsString = fmt.Sprintf("\n\t\t%s", strings.Join(argVals, "\n\t\t"))
@@ -830,10 +766,7 @@ type AnythingOfTypeArgument string
 // name of the type to check for.  Used in Diff and Assert.
 //
 // For example:
-<<<<<<< HEAD
 //
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //	Assert(t, AnythingOfType("string"), AnythingOfType("int"))
 func AnythingOfType(t string) AnythingOfTypeArgument {
 	return AnythingOfTypeArgument(t)
@@ -856,7 +789,6 @@ func IsType(t interface{}) *IsTypeArgument {
 	return &IsTypeArgument{t: t}
 }
 
-<<<<<<< HEAD
 // FunctionalOptionsArgument is a struct that contains the type and value of an functional option argument
 // for use when type checking.
 type FunctionalOptionsArgument struct {
@@ -885,8 +817,6 @@ func FunctionalOptions(value ...interface{}) *FunctionalOptionsArgument {
 	}
 }
 
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 // argumentMatcher performs custom argument matching, returning whether or
 // not the argument is matched by the expectation fixture function.
 type argumentMatcher struct {
@@ -1033,7 +963,6 @@ func (args Arguments) Diff(objects []interface{}) (string, int) {
 				differences++
 				output = fmt.Sprintf("%s\t%d: FAIL:  type %s != type %s - %s\n", output, i, reflect.TypeOf(t).Name(), reflect.TypeOf(actual).Name(), actualFmt)
 			}
-<<<<<<< HEAD
 		} else if reflect.TypeOf(expected) == reflect.TypeOf((*FunctionalOptionsArgument)(nil)) {
 			t := expected.(*FunctionalOptionsArgument).value
 
@@ -1057,8 +986,6 @@ func (args Arguments) Diff(objects []interface{}) (string, int) {
 					output = fmt.Sprintf("%s\t%d: FAIL:  %s != %s\n", output, i, af, ef)
 				}
 			}
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 		} else {
 			// normal checking
 
@@ -1235,7 +1162,6 @@ var spewConfig = spew.ConfigState{
 type tHelper interface {
 	Helper()
 }
-<<<<<<< HEAD
 
 func assertOpts(expected, actual interface{}) (expectedFmt, actualFmt string) {
 	expectedOpts := reflect.ValueOf(expected)
@@ -1298,5 +1224,3 @@ func funcName(opt interface{}) string {
 	n := runtime.FuncForPC(reflect.ValueOf(opt).Pointer()).Name()
 	return strings.TrimSuffix(path.Base(n), path.Ext(n))
 }
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)

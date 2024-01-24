@@ -75,7 +75,6 @@ func ObjectsAreEqual(expected, actual interface{}) bool {
 	return bytes.Equal(exp, act)
 }
 
-<<<<<<< HEAD
 // copyExportedFields iterates downward through nested data structures and creates a copy
 // that only contains the exported struct fields.
 func copyExportedFields(expected interface{}) interface{} {
@@ -147,8 +146,6 @@ func ObjectsExportedFieldsAreEqual(expected, actual interface{}) bool {
 	return ObjectsAreEqualValues(expectedCleaned, actualCleaned)
 }
 
-=======
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 // ObjectsAreEqualValues gets whether two objects are equal, or if their
 // values are equal.
 func ObjectsAreEqualValues(expected, actual interface{}) bool {
@@ -345,11 +342,7 @@ type labeledContent struct {
 
 // labeledOutput returns a string consisting of the provided labeledContent. Each labeled output is appended in the following manner:
 //
-<<<<<<< HEAD
 //	\t{{label}}:{{align_spaces}}\t{{content}}\n
-=======
-//   \t{{label}}:{{align_spaces}}\t{{content}}\n
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // The initial carriage return is required to undo/erase any padding added by testing.T.Errorf. The "\t{{label}}:" is for the label.
 // If a label is shorter than the longest label provided, padding spaces are added to make all the labels match in length. Once this
@@ -372,11 +365,7 @@ func labeledOutput(content ...labeledContent) string {
 
 // Implements asserts that an object is implemented by the specified interface.
 //
-<<<<<<< HEAD
 //	assert.Implements(t, (*MyInterface)(nil), new(MyObject))
-=======
-//    assert.Implements(t, (*MyInterface)(nil), new(MyObject))
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Implements(t TestingT, interfaceObject interface{}, object interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -408,11 +397,7 @@ func IsType(t TestingT, expectedType interface{}, object interface{}, msgAndArgs
 
 // Equal asserts that two objects are equal.
 //
-<<<<<<< HEAD
 //	assert.Equal(t, 123, 123)
-=======
-//    assert.Equal(t, 123, 123)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Pointer variable equality is determined based on the equality of the
 // referenced values (as opposed to the memory addresses). Function equality
@@ -453,11 +438,7 @@ func validateEqualArgs(expected, actual interface{}) error {
 
 // Same asserts that two pointers reference the same object.
 //
-<<<<<<< HEAD
 //	assert.Same(t, ptr1, ptr2)
-=======
-//    assert.Same(t, ptr1, ptr2)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Both arguments must be pointer variables. Pointer variable sameness is
 // determined based on the equality of both type and value.
@@ -477,11 +458,7 @@ func Same(t TestingT, expected, actual interface{}, msgAndArgs ...interface{}) b
 
 // NotSame asserts that two pointers do not reference the same object.
 //
-<<<<<<< HEAD
 //	assert.NotSame(t, ptr1, ptr2)
-=======
-//    assert.NotSame(t, ptr1, ptr2)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Both arguments must be pointer variables. Pointer variable sameness is
 // determined based on the equality of both type and value.
@@ -549,11 +526,7 @@ func truncatingFormat(data interface{}) string {
 // EqualValues asserts that two objects are equal or convertable to the same types
 // and equal.
 //
-<<<<<<< HEAD
 //	assert.EqualValues(t, uint32(123), int32(123))
-=======
-//    assert.EqualValues(t, uint32(123), int32(123))
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func EqualValues(t TestingT, expected, actual interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -571,7 +544,6 @@ func EqualValues(t TestingT, expected, actual interface{}, msgAndArgs ...interfa
 
 }
 
-<<<<<<< HEAD
 // EqualExportedValues asserts that the types of two objects are equal and their public
 // fields are also equal. This is useful for comparing structs that have private fields
 // that could potentially differ.
@@ -619,11 +591,6 @@ func EqualExportedValues(t TestingT, expected, actual interface{}, msgAndArgs ..
 // Exactly asserts that two objects are equal in value and type.
 //
 //	assert.Exactly(t, int32(123), int64(123))
-=======
-// Exactly asserts that two objects are equal in value and type.
-//
-//    assert.Exactly(t, int32(123), int64(123))
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Exactly(t TestingT, expected, actual interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -642,11 +609,7 @@ func Exactly(t TestingT, expected, actual interface{}, msgAndArgs ...interface{}
 
 // NotNil asserts that the specified object is not nil.
 //
-<<<<<<< HEAD
 //	assert.NotNil(t, err)
-=======
-//    assert.NotNil(t, err)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NotNil(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
 	if !isNil(object) {
 		return true
@@ -692,11 +655,7 @@ func isNil(object interface{}) bool {
 
 // Nil asserts that the specified object is nil.
 //
-<<<<<<< HEAD
 //	assert.Nil(t, err)
-=======
-//    assert.Nil(t, err)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Nil(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
 	if isNil(object) {
 		return true
@@ -739,11 +698,7 @@ func isEmpty(object interface{}) bool {
 // Empty asserts that the specified object is empty.  I.e. nil, "", false, 0 or either
 // a slice or a channel with len == 0.
 //
-<<<<<<< HEAD
 //	assert.Empty(t, obj)
-=======
-//  assert.Empty(t, obj)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Empty(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
 	pass := isEmpty(object)
 	if !pass {
@@ -760,15 +715,9 @@ func Empty(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
 // NotEmpty asserts that the specified object is NOT empty.  I.e. not nil, "", false, 0 or either
 // a slice or a channel with len == 0.
 //
-<<<<<<< HEAD
 //	if assert.NotEmpty(t, obj) {
 //	  assert.Equal(t, "two", obj[1])
 //	}
-=======
-//  if assert.NotEmpty(t, obj) {
-//    assert.Equal(t, "two", obj[1])
-//  }
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NotEmpty(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
 	pass := !isEmpty(object)
 	if !pass {
@@ -797,11 +746,7 @@ func getLen(x interface{}) (ok bool, length int) {
 // Len asserts that the specified object has specific length.
 // Len also fails if the object has a type that len() not accept.
 //
-<<<<<<< HEAD
 //	assert.Len(t, mySlice, 3)
-=======
-//    assert.Len(t, mySlice, 3)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Len(t TestingT, object interface{}, length int, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -819,11 +764,7 @@ func Len(t TestingT, object interface{}, length int, msgAndArgs ...interface{}) 
 
 // True asserts that the specified value is true.
 //
-<<<<<<< HEAD
 //	assert.True(t, myBool)
-=======
-//    assert.True(t, myBool)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func True(t TestingT, value bool, msgAndArgs ...interface{}) bool {
 	if !value {
 		if h, ok := t.(tHelper); ok {
@@ -838,11 +779,7 @@ func True(t TestingT, value bool, msgAndArgs ...interface{}) bool {
 
 // False asserts that the specified value is false.
 //
-<<<<<<< HEAD
 //	assert.False(t, myBool)
-=======
-//    assert.False(t, myBool)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func False(t TestingT, value bool, msgAndArgs ...interface{}) bool {
 	if value {
 		if h, ok := t.(tHelper); ok {
@@ -857,11 +794,7 @@ func False(t TestingT, value bool, msgAndArgs ...interface{}) bool {
 
 // NotEqual asserts that the specified values are NOT equal.
 //
-<<<<<<< HEAD
 //	assert.NotEqual(t, obj1, obj2)
-=======
-//    assert.NotEqual(t, obj1, obj2)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Pointer variable equality is determined based on the equality of the
 // referenced values (as opposed to the memory addresses).
@@ -884,11 +817,7 @@ func NotEqual(t TestingT, expected, actual interface{}, msgAndArgs ...interface{
 
 // NotEqualValues asserts that two objects are not equal even when converted to the same type
 //
-<<<<<<< HEAD
 //	assert.NotEqualValues(t, obj1, obj2)
-=======
-//    assert.NotEqualValues(t, obj1, obj2)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NotEqualValues(t TestingT, expected, actual interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -947,15 +876,9 @@ func containsElement(list interface{}, element interface{}) (ok, found bool) {
 // Contains asserts that the specified string, list(array, slice...) or map contains the
 // specified substring or element.
 //
-<<<<<<< HEAD
 //	assert.Contains(t, "Hello World", "World")
 //	assert.Contains(t, ["Hello", "World"], "World")
 //	assert.Contains(t, {"Hello": "World"}, "Hello")
-=======
-//    assert.Contains(t, "Hello World", "World")
-//    assert.Contains(t, ["Hello", "World"], "World")
-//    assert.Contains(t, {"Hello": "World"}, "Hello")
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Contains(t TestingT, s, contains interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -976,15 +899,9 @@ func Contains(t TestingT, s, contains interface{}, msgAndArgs ...interface{}) bo
 // NotContains asserts that the specified string, list(array, slice...) or map does NOT contain the
 // specified substring or element.
 //
-<<<<<<< HEAD
 //	assert.NotContains(t, "Hello World", "Earth")
 //	assert.NotContains(t, ["Hello", "World"], "Earth")
 //	assert.NotContains(t, {"Hello": "World"}, "Earth")
-=======
-//    assert.NotContains(t, "Hello World", "Earth")
-//    assert.NotContains(t, ["Hello", "World"], "Earth")
-//    assert.NotContains(t, {"Hello": "World"}, "Earth")
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NotContains(t TestingT, s, contains interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -992,17 +909,10 @@ func NotContains(t TestingT, s, contains interface{}, msgAndArgs ...interface{})
 
 	ok, found := containsElement(s, contains)
 	if !ok {
-<<<<<<< HEAD
 		return Fail(t, fmt.Sprintf("%#v could not be applied builtin len()", s), msgAndArgs...)
 	}
 	if found {
 		return Fail(t, fmt.Sprintf("%#v should not contain %#v", s, contains), msgAndArgs...)
-=======
-		return Fail(t, fmt.Sprintf("\"%s\" could not be applied builtin len()", s), msgAndArgs...)
-	}
-	if found {
-		return Fail(t, fmt.Sprintf("\"%s\" should not contain \"%s\"", s, contains), msgAndArgs...)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 	}
 
 	return true
@@ -1012,11 +922,7 @@ func NotContains(t TestingT, s, contains interface{}, msgAndArgs ...interface{})
 // Subset asserts that the specified list(array, slice...) contains all
 // elements given in the specified subset(array, slice...).
 //
-<<<<<<< HEAD
 //	assert.Subset(t, [1, 2, 3], [1, 2], "But [1, 2, 3] does contain [1, 2]")
-=======
-//    assert.Subset(t, [1, 2, 3], [1, 2], "But [1, 2, 3] does contain [1, 2]")
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Subset(t TestingT, list, subset interface{}, msgAndArgs ...interface{}) (ok bool) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1072,11 +978,7 @@ func Subset(t TestingT, list, subset interface{}, msgAndArgs ...interface{}) (ok
 // NotSubset asserts that the specified list(array, slice...) contains not all
 // elements given in the specified subset(array, slice...).
 //
-<<<<<<< HEAD
 //	assert.NotSubset(t, [1, 3, 4], [1, 2], "But [1, 3, 4] does not contain [1, 2]")
-=======
-//    assert.NotSubset(t, [1, 3, 4], [1, 2], "But [1, 3, 4] does not contain [1, 2]")
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NotSubset(t TestingT, list, subset interface{}, msgAndArgs ...interface{}) (ok bool) {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1261,11 +1163,7 @@ func didPanic(f PanicTestFunc) (didPanic bool, message interface{}, stack string
 
 // Panics asserts that the code inside the specified PanicTestFunc panics.
 //
-<<<<<<< HEAD
 //	assert.Panics(t, func(){ GoCrazy() })
-=======
-//   assert.Panics(t, func(){ GoCrazy() })
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Panics(t TestingT, f PanicTestFunc, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1281,11 +1179,7 @@ func Panics(t TestingT, f PanicTestFunc, msgAndArgs ...interface{}) bool {
 // PanicsWithValue asserts that the code inside the specified PanicTestFunc panics, and that
 // the recovered panic value equals the expected panic value.
 //
-<<<<<<< HEAD
 //	assert.PanicsWithValue(t, "crazy error", func(){ GoCrazy() })
-=======
-//   assert.PanicsWithValue(t, "crazy error", func(){ GoCrazy() })
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func PanicsWithValue(t TestingT, expected interface{}, f PanicTestFunc, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1306,11 +1200,7 @@ func PanicsWithValue(t TestingT, expected interface{}, f PanicTestFunc, msgAndAr
 // panics, and that the recovered panic value is an error that satisfies the
 // EqualError comparison.
 //
-<<<<<<< HEAD
 //	assert.PanicsWithError(t, "crazy error", func(){ GoCrazy() })
-=======
-//   assert.PanicsWithError(t, "crazy error", func(){ GoCrazy() })
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func PanicsWithError(t TestingT, errString string, f PanicTestFunc, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1330,11 +1220,7 @@ func PanicsWithError(t TestingT, errString string, f PanicTestFunc, msgAndArgs .
 
 // NotPanics asserts that the code inside the specified PanicTestFunc does NOT panic.
 //
-<<<<<<< HEAD
 //	assert.NotPanics(t, func(){ RemainCalm() })
-=======
-//   assert.NotPanics(t, func(){ RemainCalm() })
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NotPanics(t TestingT, f PanicTestFunc, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1349,11 +1235,7 @@ func NotPanics(t TestingT, f PanicTestFunc, msgAndArgs ...interface{}) bool {
 
 // WithinDuration asserts that the two times are within duration delta of each other.
 //
-<<<<<<< HEAD
 //	assert.WithinDuration(t, time.Now(), time.Now(), 10*time.Second)
-=======
-//   assert.WithinDuration(t, time.Now(), time.Now(), 10*time.Second)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func WithinDuration(t TestingT, expected, actual time.Time, delta time.Duration, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1369,11 +1251,7 @@ func WithinDuration(t TestingT, expected, actual time.Time, delta time.Duration,
 
 // WithinRange asserts that a time is within a time range (inclusive).
 //
-<<<<<<< HEAD
 //	assert.WithinRange(t, time.Now(), time.Now().Add(-time.Second), time.Now().Add(time.Second))
-=======
-//   assert.WithinRange(t, time.Now(), time.Now().Add(-time.Second), time.Now().Add(time.Second))
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func WithinRange(t TestingT, actual, start, end time.Time, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1432,11 +1310,7 @@ func toFloat(x interface{}) (float64, bool) {
 
 // InDelta asserts that the two numerals are within delta of each other.
 //
-<<<<<<< HEAD
 //	assert.InDelta(t, math.Pi, 22/7.0, 0.01)
-=======
-// 	 assert.InDelta(t, math.Pi, 22/7.0, 0.01)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func InDelta(t TestingT, expected, actual interface{}, delta float64, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1609,17 +1483,10 @@ func InEpsilonSlice(t TestingT, expected, actual interface{}, epsilon float64, m
 
 // NoError asserts that a function returned no error (i.e. `nil`).
 //
-<<<<<<< HEAD
 //	  actualObj, err := SomeFunction()
 //	  if assert.NoError(t, err) {
 //		   assert.Equal(t, expectedObj, actualObj)
 //	  }
-=======
-//   actualObj, err := SomeFunction()
-//   if assert.NoError(t, err) {
-//	   assert.Equal(t, expectedObj, actualObj)
-//   }
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NoError(t TestingT, err error, msgAndArgs ...interface{}) bool {
 	if err != nil {
 		if h, ok := t.(tHelper); ok {
@@ -1633,17 +1500,10 @@ func NoError(t TestingT, err error, msgAndArgs ...interface{}) bool {
 
 // Error asserts that a function returned an error (i.e. not `nil`).
 //
-<<<<<<< HEAD
 //	  actualObj, err := SomeFunction()
 //	  if assert.Error(t, err) {
 //		   assert.Equal(t, expectedError, err)
 //	  }
-=======
-//   actualObj, err := SomeFunction()
-//   if assert.Error(t, err) {
-//	   assert.Equal(t, expectedError, err)
-//   }
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Error(t TestingT, err error, msgAndArgs ...interface{}) bool {
 	if err == nil {
 		if h, ok := t.(tHelper); ok {
@@ -1658,13 +1518,8 @@ func Error(t TestingT, err error, msgAndArgs ...interface{}) bool {
 // EqualError asserts that a function returned an error (i.e. not `nil`)
 // and that it is equal to the provided error.
 //
-<<<<<<< HEAD
 //	actualObj, err := SomeFunction()
 //	assert.EqualError(t, err,  expectedErrorString)
-=======
-//   actualObj, err := SomeFunction()
-//   assert.EqualError(t, err,  expectedErrorString)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func EqualError(t TestingT, theError error, errString string, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1686,13 +1541,8 @@ func EqualError(t TestingT, theError error, errString string, msgAndArgs ...inte
 // ErrorContains asserts that a function returned an error (i.e. not `nil`)
 // and that the error contains the specified substring.
 //
-<<<<<<< HEAD
 //	actualObj, err := SomeFunction()
 //	assert.ErrorContains(t, err,  expectedErrorSubString)
-=======
-//   actualObj, err := SomeFunction()
-//   assert.ErrorContains(t, err,  expectedErrorSubString)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func ErrorContains(t TestingT, theError error, contains string, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1725,13 +1575,8 @@ func matchRegexp(rx interface{}, str interface{}) bool {
 
 // Regexp asserts that a specified regexp matches a string.
 //
-<<<<<<< HEAD
 //	assert.Regexp(t, regexp.MustCompile("start"), "it's starting")
 //	assert.Regexp(t, "start...$", "it's not starting")
-=======
-//  assert.Regexp(t, regexp.MustCompile("start"), "it's starting")
-//  assert.Regexp(t, "start...$", "it's not starting")
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Regexp(t TestingT, rx interface{}, str interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1748,13 +1593,8 @@ func Regexp(t TestingT, rx interface{}, str interface{}, msgAndArgs ...interface
 
 // NotRegexp asserts that a specified regexp does not match a string.
 //
-<<<<<<< HEAD
 //	assert.NotRegexp(t, regexp.MustCompile("starts"), "it's starting")
 //	assert.NotRegexp(t, "^start", "it's not starting")
-=======
-//  assert.NotRegexp(t, regexp.MustCompile("starts"), "it's starting")
-//  assert.NotRegexp(t, "^start", "it's not starting")
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func NotRegexp(t TestingT, rx interface{}, str interface{}, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1866,11 +1706,7 @@ func NoDirExists(t TestingT, path string, msgAndArgs ...interface{}) bool {
 
 // JSONEq asserts that two JSON strings are equivalent.
 //
-<<<<<<< HEAD
 //	assert.JSONEq(t, `{"hello": "world", "foo": "bar"}`, `{"foo": "bar", "hello": "world"}`)
-=======
-//  assert.JSONEq(t, `{"hello": "world", "foo": "bar"}`, `{"foo": "bar", "hello": "world"}`)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func JSONEq(t TestingT, expected string, actual string, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -1993,11 +1829,7 @@ type tHelper interface {
 // Eventually asserts that given condition will be met in waitFor time,
 // periodically checking target function each tick.
 //
-<<<<<<< HEAD
 //	assert.Eventually(t, func() bool { return true; }, time.Second, 10*time.Millisecond)
-=======
-//    assert.Eventually(t, func() bool { return true; }, time.Second, 10*time.Millisecond)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Eventually(t TestingT, condition func() bool, waitFor time.Duration, tick time.Duration, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()
@@ -2027,7 +1859,6 @@ func Eventually(t TestingT, condition func() bool, waitFor time.Duration, tick t
 	}
 }
 
-<<<<<<< HEAD
 // CollectT implements the TestingT interface and collects all errors.
 type CollectT struct {
 	errors []error
@@ -2115,12 +1946,6 @@ func EventuallyWithT(t TestingT, condition func(collect *CollectT), waitFor time
 // periodically checking the target function each tick.
 //
 //	assert.Never(t, func() bool { return false; }, time.Second, 10*time.Millisecond)
-=======
-// Never asserts that the given condition doesn't satisfy in waitFor time,
-// periodically checking the target function each tick.
-//
-//    assert.Never(t, func() bool { return false; }, time.Second, 10*time.Millisecond)
->>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 func Never(t TestingT, condition func() bool, waitFor time.Duration, tick time.Duration, msgAndArgs ...interface{}) bool {
 	if h, ok := t.(tHelper); ok {
 		h.Helper()

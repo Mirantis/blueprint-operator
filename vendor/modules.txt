@@ -188,9 +188,7 @@ github.com/spf13/pflag
 github.com/stretchr/objx
 # github.com/stretchr/testify v1.8.4
 ## explicit; go 1.20
-github.com/stretchr/testify
 github.com/stretchr/testify/assert
-github.com/stretchr/testify/http
 github.com/stretchr/testify/mock
 # github.com/vladimirvivien/gexe v0.2.0
 ## explicit; go 1.16

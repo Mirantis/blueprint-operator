@@ -7,7 +7,7 @@ require (
 	github.com/k3s-io/helm-controller v0.15.4
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.8.2
 	k8s.io/api v0.28.4
 	k8s.io/apiextensions-apiserver v0.28.4
 	k8s.io/apimachinery v0.28.4
