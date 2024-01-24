@@ -1,0 +1,37 @@
+apiVersion: boundless.mirantis.com/v1alpha1
+kind: Blueprint
+metadata:
+  name: boundless-cluster
+  namespace: boundless-system
+spec:
+  components:
+    addons:
+      - name: test-addon-1
+        kind: chart
+        enabled: true
+        namespace: test-ns-1
+        chart:
+          name: nginx
+          repo: https://charts.bitnami.com/bitnami
+          version: 15.9.1 # updated version
+      - name: test-addon-2
+        kind: manifest
+        enabled: true
+        namespace: test-ns-1
+        manifest:
+          url: "https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml" # updated version
+      - name: test-addon-3
+        kind: chart
+        enabled: true
+        namespace: default
+        chart:
+          name: redis
+          repo: https://charts.bitnami.com/bitnami
+          version: 18.8.0
+      - name: test-addon-4
+        kind: manifest
+        enabled: true
+        namespace: default
+        manifest:
+          url: "https://github.com/kubernetes/ingress-nginx/blob/controller-v1.9.5/deploy/static/provider/kind/deploy.yaml"
+

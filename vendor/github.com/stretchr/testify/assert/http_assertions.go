@@ -23,7 +23,11 @@ func httpCode(handler http.HandlerFunc, method, url string, values url.Values) (
 
 // HTTPSuccess asserts that a specified handler returns a success status code.
 //
+<<<<<<< HEAD
 //	assert.HTTPSuccess(t, myHandler, "POST", "http://www.google.com", nil)
+=======
+//  assert.HTTPSuccess(t, myHandler, "POST", "http://www.google.com", nil)
+>>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Returns whether the assertion was successful (true) or not (false).
 func HTTPSuccess(t TestingT, handler http.HandlerFunc, method, url string, values url.Values, msgAndArgs ...interface{}) bool {
@@ -45,7 +49,11 @@ func HTTPSuccess(t TestingT, handler http.HandlerFunc, method, url string, value
 
 // HTTPRedirect asserts that a specified handler returns a redirect status code.
 //
+<<<<<<< HEAD
 //	assert.HTTPRedirect(t, myHandler, "GET", "/a/b/c", url.Values{"a": []string{"b", "c"}}
+=======
+//  assert.HTTPRedirect(t, myHandler, "GET", "/a/b/c", url.Values{"a": []string{"b", "c"}}
+>>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Returns whether the assertion was successful (true) or not (false).
 func HTTPRedirect(t TestingT, handler http.HandlerFunc, method, url string, values url.Values, msgAndArgs ...interface{}) bool {
@@ -67,7 +75,11 @@ func HTTPRedirect(t TestingT, handler http.HandlerFunc, method, url string, valu
 
 // HTTPError asserts that a specified handler returns an error status code.
 //
+<<<<<<< HEAD
 //	assert.HTTPError(t, myHandler, "POST", "/a/b/c", url.Values{"a": []string{"b", "c"}}
+=======
+//  assert.HTTPError(t, myHandler, "POST", "/a/b/c", url.Values{"a": []string{"b", "c"}}
+>>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Returns whether the assertion was successful (true) or not (false).
 func HTTPError(t TestingT, handler http.HandlerFunc, method, url string, values url.Values, msgAndArgs ...interface{}) bool {
@@ -89,7 +101,11 @@ func HTTPError(t TestingT, handler http.HandlerFunc, method, url string, values 
 
 // HTTPStatusCode asserts that a specified handler returns a specified status code.
 //
+<<<<<<< HEAD
 //	assert.HTTPStatusCode(t, myHandler, "GET", "/notImplemented", nil, 501)
+=======
+//  assert.HTTPStatusCode(t, myHandler, "GET", "/notImplemented", nil, 501)
+>>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Returns whether the assertion was successful (true) or not (false).
 func HTTPStatusCode(t TestingT, handler http.HandlerFunc, method, url string, values url.Values, statuscode int, msgAndArgs ...interface{}) bool {
@@ -124,7 +140,11 @@ func HTTPBody(handler http.HandlerFunc, method, url string, values url.Values) s
 // HTTPBodyContains asserts that a specified handler returns a
 // body that contains a string.
 //
+<<<<<<< HEAD
 //	assert.HTTPBodyContains(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
+=======
+//  assert.HTTPBodyContains(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
+>>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Returns whether the assertion was successful (true) or not (false).
 func HTTPBodyContains(t TestingT, handler http.HandlerFunc, method, url string, values url.Values, str interface{}, msgAndArgs ...interface{}) bool {
@@ -144,7 +164,11 @@ func HTTPBodyContains(t TestingT, handler http.HandlerFunc, method, url string, 
 // HTTPBodyNotContains asserts that a specified handler returns a
 // body that does not contain a string.
 //
+<<<<<<< HEAD
 //	assert.HTTPBodyNotContains(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
+=======
+//  assert.HTTPBodyNotContains(t, myHandler, "GET", "www.google.com", nil, "I'm Feeling Lucky")
+>>>>>>> a959e8b (Add end-to-end happy path tests for instaling/updating/deleting addons)
 //
 // Returns whether the assertion was successful (true) or not (false).
 func HTTPBodyNotContains(t TestingT, handler http.HandlerFunc, method, url string, values url.Values, str interface{}, msgAndArgs ...interface{}) bool {
