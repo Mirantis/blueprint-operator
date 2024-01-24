@@ -3,6 +3,8 @@ package installation
 import (
 	"context"
 	"fmt"
+	coreV1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -16,10 +18,15 @@ import (
 )
 
 const (
-	NamespaceCertManager  = "cert-manager"
-	DeploymentCAInjector  = "cert-manager-cainjector"
-	DeploymentCertManager = "cert-manager"
-	DeploymentWebhook     = "cert-manager-webhook"
+	NamespaceCertManager        = "cert-manager"
+	DeploymentCAInjector        = "cert-manager-cainjector"
+	DeploymentCertManager       = "cert-manager"
+	DeploymentWebhook           = "cert-manager-webhook"
+	CRDAddon                    = "addons.boundless.mirantis.com"
+	CRDBlueprint                = "blueprints.boundless.mirantis.com"
+	CRDIngress                  = "ingresses.boundless.mirantis.com"
+	CRDManifest                 = "manifests.boundless.mirantis.com"
+	DeploymentControllerManager = "boundless-operator-controller-manager"
 )
 
 func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {
@@ -52,6 +59,46 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 	}
 
 	logger.Info("finished installing cert manager")
+
+	// Now, make changes in the configuration
+	/*if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDAddon); err != nil {
+		logger.Info("failed to patch existing CRD")
+		return err
+	}
+	if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDBlueprint); err != nil {
+		logger.Info("failed to patch existing CRD")
+		return err
+	}
+	if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDIngress); err != nil {
+		logger.Info("failed to patch existing CRD")
+		return err
+	}
+	if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDManifest); err != nil {
+		logger.Info("failed to patch existing CRD")
+		return err
+	}*/
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.CRDPatchTemplate))); err != nil {
+		logger.Info("failed to patch crds")
+		return err
+	}
+
+	// Enable webhook
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.WebhookConfigTemplate))); err != nil {
+		logger.Info("failed to create webhook")
+		return err
+	}
+
+	// Enable cert-manager
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.CertManagerConfigTemplate))); err != nil {
+		logger.Info("failed to enable cert manager")
+		return err
+	}
+
+	// Patch controller-manager deployment
+	if err = patchControllerManagerWebhook(ctx, runtimeClient, logger); err != nil {
+		logger.Info("failed to patch existing CRDs ")
+		return err
+	}
 
 	return nil
 }
@@ -98,4 +145,104 @@ func checkIfExternalCertManagerExists(ctx context.Context, runtimeClient client.
 	}
 
 	return true, nil
+}
+
+func patchExistingCRDs(ctx context.Context, runtimeClient client.Client, logger logr.Logger, crd string) error {
+	key := client.ObjectKey{
+		Namespace: NamespaceBoundlessSystem,
+		Name:      crd,
+	}
+
+	d := &apiextensions.CustomResourceDefinition{}
+	if err := runtimeClient.Get(ctx, key, d); err != nil {
+		logger.Info("Failed to get crd")
+		return err
+	}
+	annotations := map[string]string{
+		"cert-manager.io/inject-ca-from":        "boundless-system/boundless-operator-serving-cert",
+		"controller-gen.kubebuilder.io/version": "v0.11.1",
+	}
+
+	path := "/convert"
+	webhookClientConfig := &apiextensions.WebhookClientConfig{
+		Service: &apiextensions.ServiceReference{
+			Name:      "boundless-operator-webhook-service",
+			Namespace: "boundless-system",
+			Path:      &path,
+		},
+	}
+
+	conversionResource := &apiextensions.CustomResourceConversion{
+		Strategy:                 "Webhook",
+		WebhookClientConfig:      webhookClientConfig,
+		ConversionReviewVersions: []string{"v1"},
+	}
+
+	d.ObjectMeta.Annotations = annotations
+	d.Spec.Conversion = conversionResource
+
+	if err := runtimeClient.Update(ctx, d); err != nil {
+		logger.Info("Failed to update crd")
+		return err
+	}
+
+	return nil
+}
+
+func patchControllerManagerWebhook(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {
+	key := client.ObjectKey{
+		Namespace: NamespaceBoundlessSystem,
+		Name:      DeploymentControllerManager,
+	}
+
+	d := &v1.Deployment{}
+	if err := runtimeClient.Get(ctx, key, d); err != nil {
+		logger.Info("Failed to get deployment:%s, namespace: %s", DeploymentControllerManager, NamespaceBoundlessSystem)
+		return err
+	}
+
+	port := coreV1.ContainerPort{
+		ContainerPort: 9443,
+		Name:          "webhook-server",
+		Protocol:      "TCP",
+	}
+
+	vm := coreV1.VolumeMount{
+		MountPath: "/tmp/k8s-webhook-server/serving-certs",
+		Name:      "cert",
+		ReadOnly:  true,
+	}
+	var mode int32 = 420
+	secret := &coreV1.SecretVolumeSource{
+		DefaultMode: &mode,
+		SecretName:  "webhook-server-cert",
+	}
+
+	v := coreV1.Volume{
+		Name: "cert",
+		VolumeSource: coreV1.VolumeSource{
+			Secret: secret,
+		},
+	}
+
+	env := coreV1.EnvVar{
+		Name:  "ENABLE_WEBHOOKS",
+		Value: "true",
+	}
+
+	for i, _ := range d.Spec.Template.Spec.Containers {
+		if d.Spec.Template.Spec.Containers[i].Name == "manager" {
+			d.Spec.Template.Spec.Containers[i].Ports = append(d.Spec.Template.Spec.Containers[i].Ports, port)
+			d.Spec.Template.Spec.Containers[i].VolumeMounts = append(d.Spec.Template.Spec.Containers[i].VolumeMounts, vm)
+			d.Spec.Template.Spec.Containers[i].Env = []coreV1.EnvVar{env}
+		}
+	}
+
+	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, v)
+	if err := runtimeClient.Update(ctx, d); err != nil {
+		logger.Info("Failed to update deployment:%s, namespace: %s", DeploymentControllerManager, NamespaceBoundlessSystem)
+		return err
+	}
+
+	return nil
 }
