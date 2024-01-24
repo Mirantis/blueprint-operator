@@ -819,7 +819,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/mirantiscontainers/boundless-operator:0.2.1
+        image: ghcr.io/mirantiscontainers/boundless-operator:0.2.2
         livenessProbe:
           httpGet:
             path: /healthz
