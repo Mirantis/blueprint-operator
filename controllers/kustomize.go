@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	//"github.com/fluxcd/flux2/v2/pkg/manifestgen/kustomization"
 	"github.com/go-logr/logr"
 
 	"sigs.k8s.io/kustomize/api/konfig"
@@ -22,12 +23,40 @@ const (
 )
 
 func generateKustomization(logger logr.Logger, url string) ([]byte, error) {
-
 	fs := filesys.MakeFsOnDisk()
-	abs, err := filepath.Abs(dirPath)
+
+	s, err := RandDirName(10)
+	if err != nil {
+		logger.Info("Sakshi::ERROR generating random name", "Error", err)
+		return nil, err
+	}
+
+	if err := os.Mkdir(dirPath+s, os.ModePerm); err != nil {
+		logger.Info("Sakshi::Failed to create directory", "DIR", dirPath+s)
+		return nil, err
+	}
+
+	defer func() {
+		if err := os.RemoveAll(dirPath + s); err != nil {
+			logger.Info("Sakshi::Failed to delete directory", "DIR", dirPath+s, "Error", err)
+		}
+
+		// Check if the directory is deleted
+		files, err := os.ReadDir(dirPath + s)
+		if err != nil {
+			logger.Info("Sakshi::Failed to read directory", "DIR", dirPath+s, "Error", err)
+		}
+		for _, file := range files {
+			logger.Info("Sakshi::Files in directory", "DIR", dirPath+s, "File", file.Name())
+		}
+	}()
+
+	abs, err := filepath.Abs(dirPath + s)
 	if err != nil {
 		return nil, err
 	}
+	logger.Info("Sakshi::Absolute path name", "Path", abs)
+
 	kfile := filepath.Join(abs, konfig.DefaultKustomizationFileName())
 
 	logger.Info("Sakshi::", "KFILE", kfile)
@@ -76,15 +105,6 @@ func generateKustomization(logger logr.Logger, url string) ([]byte, error) {
 		logger.Info("Sakshi: FILES", "FILENAME", file.Name())
 	}
 
-	// Kustomize Build
-	/*objects, err := kustomization.BuildWithRoot(root, filepath.Dir(dirPath))
-	if err != nil {
-		logger.Info("Sakshi: Failed to build with Kustomize", "FILENAME", file.Name())
-		return nil, fmt.Errorf("%v", err)
-	}
-
-	logger.Info("Sakshi: KUSTOMIZE OBJECTS", "Objects", objects)
-	*/
 	buildOptions := &krusty.Options{
 		LoadRestrictions: kustypes.LoadRestrictionsNone,
 		PluginConfig:     kustypes.DisabledPluginConfig(),
@@ -104,4 +124,13 @@ func generateKustomization(logger logr.Logger, url string) ([]byte, error) {
 	logger.Info("Sakshi: KUSTOMIZE OBJECTS", "Objects", string(objects))
 	return objects, nil
 
+}
+
+func RandDirName(n int) (string, error) {
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(b)[:n], nil
 }
