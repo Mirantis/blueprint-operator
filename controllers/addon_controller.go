@@ -335,13 +335,14 @@ func (r *AddonReconciler) findAddonForJob(ctx context.Context, job client.Object
 // updateHelmchartAddonStatus checks the status of the associated helm chart job and updates the status of the Addon CR accordingly
 func (r *AddonReconciler) updateHelmchartAddonStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, job *batch.Job, addon *boundlessv1alpha1.Addon) error {
 	logger.Info("Updating Helm Chart Addon Status")
-	if job.Status.CompletionTime != nil && job.Status.Succeeded > 0 {
+	jobStatus := helm.DetermineJobStatus(job)
+	if jobStatus == helm.JobStatusSuccess {
 		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Chart Addon %s/%s", addon.Spec.Namespace, addon.Name)
 		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, fmt.Sprintf("Helm Chart %s successfully installed", job.Name))
 		if err != nil {
 			return err
 		}
-	} else if job.Status.StartTime != nil && job.Status.Failed > 0 {
+	} else if jobStatus == helm.JobStatusFailed {
 		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedCreate, "Helm Chart Addon %s/%s has failed to install", addon.Spec.Namespace, addon.Name)
 		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Helm Chart %s install has failed", job.Name))
 		if err != nil {
