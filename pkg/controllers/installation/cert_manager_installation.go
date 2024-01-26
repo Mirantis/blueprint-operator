@@ -44,17 +44,17 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 
 	// Wait for all the deployments to be ready
 	logger.Info("waiting for ca injector deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCAInjector, NamespaceBoundlessSystem); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCAInjector, NamespaceCertManager); err != nil {
 		return err
 	}
 
 	logger.Info("waiting for cert manager deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCertManager, NamespaceBoundlessSystem); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCertManager, NamespaceCertManager); err != nil {
 		return err
 	}
 
 	logger.Info("waiting for webhook deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentWebhook, NamespaceBoundlessSystem); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentWebhook, NamespaceCertManager); err != nil {
 		return err
 	}
 
@@ -77,10 +77,13 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 		logger.Info("failed to patch existing CRD")
 		return err
 	}*/
+
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.CRDPatchTemplate))); err != nil {
 		logger.Info("failed to patch crds")
 		return err
 	}
+
+	time.Sleep(time.Second * 30)
 
 	// Enable webhook
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.WebhookConfigTemplate))); err != nil {
