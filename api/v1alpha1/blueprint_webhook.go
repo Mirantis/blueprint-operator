@@ -78,7 +78,31 @@ func (r *Blueprint) ValidateCreate() (admission.Warnings, error) {
 func (r *Blueprint) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	blueprintlog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
+	for _, val := range r.Spec.Components.Addons {
+		if strings.EqualFold(kindChart, val.Kind) {
+			if val.Manifest != nil {
+				blueprintlog.Info("received manifest object.", "Kind", kindChart)
+				return nil, fmt.Errorf("manifest object is not allowed for addon kind %s", kindChart)
+			}
+			if val.Chart == nil {
+				blueprintlog.Info("received empty chart object.", "Kind", kindChart)
+				return nil, fmt.Errorf("chart object can't be empty for addon kind %s", kindChart)
+			}
+		}
+
+		if strings.EqualFold(kindManifest, val.Kind) {
+			if val.Chart != nil {
+				blueprintlog.Info("received chart object.", "Kind", kindManifest)
+				return nil, fmt.Errorf("chart object is not allowed for addon kind %s", kindManifest)
+			}
+			if val.Manifest == nil {
+				blueprintlog.Info("received empty manifest object.", "Kind", kindManifest)
+				return nil, fmt.Errorf("manifest object can't be empty for addon kind %s", kindManifest)
+			}
+		}
+
+	}
+
 	return nil, nil
 }
 
