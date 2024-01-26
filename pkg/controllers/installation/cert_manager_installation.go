@@ -44,47 +44,26 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 
 	// Wait for all the deployments to be ready
 	logger.Info("waiting for ca injector deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCAInjector, NamespaceCertManager); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCAInjector, NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
 	logger.Info("waiting for cert manager deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCertManager, NamespaceCertManager); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentCertManager, NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
 	logger.Info("waiting for webhook deployment to be ready")
-	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentWebhook, NamespaceCertManager); err != nil {
+	if err = waitForDeploymentReady(ctx, runtimeClient, logger, DeploymentWebhook, NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
 	logger.Info("finished installing cert manager")
 
-	// Now, make changes in the configuration
-	/*if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDAddon); err != nil {
-		logger.Info("failed to patch existing CRD")
-		return err
-	}
-	if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDBlueprint); err != nil {
-		logger.Info("failed to patch existing CRD")
-		return err
-	}
-	if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDIngress); err != nil {
-		logger.Info("failed to patch existing CRD")
-		return err
-	}
-	if err = patchExistingCRDs(ctx, runtimeClient, logger, CRDManifest); err != nil {
-		logger.Info("failed to patch existing CRD")
-		return err
-	}*/
-
-	/*if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.CRDPatchTemplate))); err != nil {
-		logger.Info("failed to patch crds")
-		return err
-	}*/
-
+	// Wait for 30s
 	time.Sleep(time.Second * 30)
 
+	// Now, make changes in the configuration
 	// Enable webhook
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.WebhookConfigTemplate))); err != nil {
 		logger.Info("failed to create webhook")
@@ -99,7 +78,7 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 
 	// Patch controller-manager deployment
 	if err = patchControllerManagerWebhook(ctx, runtimeClient, logger); err != nil {
-		logger.Info("failed to patch existing CRDs ")
+		logger.Info("failed to patch existing controller-manager deployment ")
 		return err
 	}
 
