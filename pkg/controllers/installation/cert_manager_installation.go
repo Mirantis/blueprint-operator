@@ -78,10 +78,10 @@ func InstallCertManager(ctx context.Context, runtimeClient client.Client, logger
 		return err
 	}*/
 
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.CRDPatchTemplate))); err != nil {
+	/*if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(manifests.CRDPatchTemplate))); err != nil {
 		logger.Info("failed to patch crds")
 		return err
-	}
+	}*/
 
 	time.Sleep(time.Second * 30)
 
