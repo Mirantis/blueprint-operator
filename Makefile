@@ -79,7 +79,7 @@ integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
 	$(GINKGO) -trace -r -focus="$(GINKGO_FOCUS)" $(GINKGO_ARGS) "$(INT_DIR)"
 
 .PHONY: e2e
-e2e: manifests generate fmt ## Run e2e tests.
+e2e: fmt ## Run e2e tests.
 	go test -v $(E2E_DIR) -coverprofile cover.out
 
 ##@ Build
