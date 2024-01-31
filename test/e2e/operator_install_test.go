@@ -15,7 +15,7 @@ func TestOperatorInstall(t *testing.T) {
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, BoundlessNamespace, BoundlessOperatorName),
 			)).
 			Assess("HelmControllerDeploymentIsSuccessfullyInstalled", funcs.AllOf(
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, BoundlessNamespace, BoundlessOperatorName),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, BoundlessNamespace, "helm-controller"),
 			)).
 			Feature(),
 	)

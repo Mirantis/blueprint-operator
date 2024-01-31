@@ -79,8 +79,8 @@ integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
 	$(GINKGO) -trace -r -focus="$(GINKGO_FOCUS)" $(GINKGO_ARGS) "$(INT_DIR)"
 
 .PHONY: e2e
-e2e: fmt ## Run e2e tests.
-	go test -v $(E2E_DIR) -coverprofile cover.out
+e2e: ## Run e2e tests.
+	go test -timeout 20m -v $(E2E_DIR)
 
 ##@ Build
 

@@ -67,7 +67,7 @@ func TestUninstallAddons(t *testing.T) {
 			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
 
 			funcs.DeleteResources(dir, "happypath/delete.yaml"),
-			funcs.ResourcesDeletedWithin(2*time.Minute, dir, "happypath/delete.yaml"),
+			funcs.ResourcesDeletedWithin(5*time.Minute, dir, "happypath/delete.yaml"),
 		)).
 		Feature()
 

@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	testenv.BeforeEachFeature()
 
 	testenv.Finish(
-	//envfuncs.DestroyCluster(kindClusterName),
+		envfuncs.DestroyCluster(kindClusterName),
 	)
 
 	// launch package tests
