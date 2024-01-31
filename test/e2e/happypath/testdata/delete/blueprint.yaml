@@ -1,8 +1,0 @@
-apiVersion: boundless.mirantis.com/v1alpha1
-kind: Blueprint
-metadata:
-  name: boundless-cluster
-  namespace: boundless-system
-spec:
-  components:
-    addons: []

@@ -1,0 +1,65 @@
+package e2e
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/e2e-framework/pkg/features"
+
+	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+)
+
+var curDir, _ = os.Getwd()
+
+// TestInstallAddons tests the installation of two addons, one Helm addon and one Manifest addon.
+// It checks if the addons are created, installed and their objects are created
+// All resources (including Blueprint) are deleted at the end of the test.
+func TestInstallAddons(t *testing.T) {
+	dir := filepath.Join(curDir, "manifests")
+
+	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: BoundlessNamespace}
+	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: BoundlessNamespace}
+
+	a1dep := metav1.ObjectMeta{Name: "nginx", Namespace: "test-ns-1"}
+	a2dep := metav1.ObjectMeta{Name: "controller", Namespace: "metallb-system"}
+
+	f := features.New("Install Addons").
+		WithSetup("CreateBlueprint", funcs.AllOf(
+			funcs.ApplyResources(FieldManager, dir, "happypath/create.yaml"),
+			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
+		)).
+		Assess("TwoAddonsAreCreated", funcs.AllOf(
+			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a1)),
+			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a2)),
+		)).
+		Assess("HelmAddonsIsSuccessfullyInstalled", funcs.AllOf(
+			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a1), v1alpha1.TypeComponentAvailable),
+		)).
+		Assess("ManifestAddonIsSuccessfullyInstalled", funcs.AllOf(
+			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, makeAddon(a2), v1alpha1.TypeComponentAvailable),
+		)).
+		Assess("HelmAddonObjectsAreSuccessfullyCreated", funcs.AllOf(
+			// @TODO: check for more/all objects
+			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a1dep.Namespace, a1dep.Name),
+		)).
+		Assess("ManifestAddonObjectsAreSuccessfullyCreated", funcs.AllOf(
+			// @TODO: check for more/all objects
+			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a2dep.Namespace, a2dep.Name),
+		)).
+		WithTeardown("Cleanup", funcs.AllOf(
+			funcs.DeleteResource(makeAddon(a1)),
+			funcs.DeleteResource(makeAddon(a2)),
+			funcs.DeleteResources(dir, "happypath/create.yaml"),
+
+			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
+			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a2)),
+			funcs.ResourcesDeletedWithin(2*time.Minute, dir, "happypath/create.yaml"),
+		)).
+		Feature()
+
+	testenv.Test(t, f)
+}
