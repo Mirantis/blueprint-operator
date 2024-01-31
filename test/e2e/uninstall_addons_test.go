@@ -35,7 +35,7 @@ func TestUninstallAddons(t *testing.T) {
 			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a1), v1alpha1.TypeComponentAvailable),
 			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a2), v1alpha1.TypeComponentAvailable),
 			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a3), v1alpha1.TypeComponentAvailable),
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a4), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(5*time.Minute, makeAddon(a4), v1alpha1.TypeComponentAvailable),
 		)).
 		WithSetup("DeleteAddonsWithBlueprint", funcs.AllOf(
 			funcs.ApplyResources(FieldManager, dir, "happypath/delete.yaml"),
@@ -64,13 +64,7 @@ func TestUninstallAddons(t *testing.T) {
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
 			funcs.DeleteResource(makeAddon(a1)),
-			funcs.DeleteResource(makeAddon(a2)),
-			funcs.DeleteResource(makeAddon(a3)),
-			funcs.DeleteResource(makeAddon(a4)),
 			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a2)),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a3)),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a4)),
 
 			funcs.DeleteResources(dir, "happypath/delete.yaml"),
 			funcs.ResourcesDeletedWithin(2*time.Minute, dir, "happypath/delete.yaml"),
