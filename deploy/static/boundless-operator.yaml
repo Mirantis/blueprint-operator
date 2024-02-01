@@ -86,6 +86,7 @@ spec:
                       images:
                         description: Images is a list of (image name, new name, new tag or digest) for changing image names, tags or digests. This can also be achieved with a patch, but this operator is simpler to specify.
                         items:
+                          description: Image contains an image name, a new name, a new tag or digest, which will replace the original name and tag.
                           properties:
                             digest:
                               description: Digest is the value used to replace the original image tag. If digest is present NewTag value is ignored.
@@ -99,16 +100,26 @@ spec:
                             newTag:
                               description: NewTag is the value used to replace the original tag.
                               type: string
-                          required:
-                          - name
+                            tagSuffix:
+                              description: TagSuffix is the value used to suffix the original tag If Digest and NewTag is present an error is thrown
+                              type: string
                           type: object
                         type: array
                       patches:
                         description: Patches is a list of patches, where each one can be either a Strategic Merge Patch or a JSON patch. Each patch can be applied to multiple target objects.
                         items:
+                          description: Patch contains an inline StrategicMerge or JSON6902 patch, and the target the patch should be applied to. This is in coherence with https://github.com/kubernetes-sigs/kustomize/blob/api/v0.16.0/api/types/patch.go#L12
                           properties:
+                            options:
+                              additionalProperties:
+                                type: boolean
+                              description: Options is a list of options for the patch
+                              type: object
                             patch:
                               description: Patch contains an inline StrategicMerge patch or an inline JSON6902 patch with an array of operation objects.
+                              type: string
+                            path:
+                              description: Path is a relative file path to the patch file.
                               type: string
                             target:
                               description: Target points to the resources that the patch document should be applied to.
@@ -117,22 +128,19 @@ spec:
                                   description: AnnotationSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource annotations.
                                   type: string
                                 group:
-                                  description: Group is the API group to select resources from. Together with Version and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                   type: string
                                 kind:
-                                  description: Kind of the API Group to select resources from. Together with Group and Version it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                   type: string
                                 labelSelector:
                                   description: LabelSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource labels.
                                   type: string
                                 name:
-                                  description: Name to match resources with.
+                                  description: Name of the resource.
                                   type: string
                                 namespace:
-                                  description: Namespace to select resources from.
+                                  description: Namespace the resource belongs to, if it can belong to a namespace.
                                   type: string
                                 version:
-                                  description: Version of the API Group to select resources from. Together with Group and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                   type: string
                               type: object
                           required:
@@ -258,6 +266,7 @@ spec:
                                 images:
                                   description: Images is a list of (image name, new name, new tag or digest) for changing image names, tags or digests. This can also be achieved with a patch, but this operator is simpler to specify.
                                   items:
+                                    description: Image contains an image name, a new name, a new tag or digest, which will replace the original name and tag.
                                     properties:
                                       digest:
                                         description: Digest is the value used to replace the original image tag. If digest is present NewTag value is ignored.
@@ -271,16 +280,26 @@ spec:
                                       newTag:
                                         description: NewTag is the value used to replace the original tag.
                                         type: string
-                                    required:
-                                    - name
+                                      tagSuffix:
+                                        description: TagSuffix is the value used to suffix the original tag If Digest and NewTag is present an error is thrown
+                                        type: string
                                     type: object
                                   type: array
                                 patches:
                                   description: Patches is a list of patches, where each one can be either a Strategic Merge Patch or a JSON patch. Each patch can be applied to multiple target objects.
                                   items:
+                                    description: Patch contains an inline StrategicMerge or JSON6902 patch, and the target the patch should be applied to. This is in coherence with https://github.com/kubernetes-sigs/kustomize/blob/api/v0.16.0/api/types/patch.go#L12
                                     properties:
+                                      options:
+                                        additionalProperties:
+                                          type: boolean
+                                        description: Options is a list of options for the patch
+                                        type: object
                                       patch:
                                         description: Patch contains an inline StrategicMerge patch or an inline JSON6902 patch with an array of operation objects.
+                                        type: string
+                                      path:
+                                        description: Path is a relative file path to the patch file.
                                         type: string
                                       target:
                                         description: Target points to the resources that the patch document should be applied to.
@@ -289,22 +308,19 @@ spec:
                                             description: AnnotationSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource annotations.
                                             type: string
                                           group:
-                                            description: Group is the API group to select resources from. Together with Version and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                             type: string
                                           kind:
-                                            description: Kind of the API Group to select resources from. Together with Group and Version it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                             type: string
                                           labelSelector:
                                             description: LabelSelector is a string that follows the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api It matches with the resource labels.
                                             type: string
                                           name:
-                                            description: Name to match resources with.
+                                            description: Name of the resource.
                                             type: string
                                           namespace:
-                                            description: Namespace to select resources from.
+                                            description: Namespace the resource belongs to, if it can belong to a namespace.
                                             type: string
                                           version:
-                                            description: Version of the API Group to select resources from. Together with Group and Kind it is capable of unambiguously identifying and/or selecting resources. https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                             type: string
                                         type: object
                                     required:
@@ -943,7 +959,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/mirantis/boundless-operator:0.2.2
+        image: ghcr.io/mirantis/boundless-operator:cm
         livenessProbe:
           httpGet:
             path: /healthz

@@ -104,8 +104,11 @@ spec:
                                         description: NewTag is the value used to replace
                                           the original tag.
                                         type: string
-                                    required:
-                                    - name
+                                      tagSuffix:
+                                        description: TagSuffix is the value used to
+                                          suffix the original tag If Digest and NewTag
+                                          is present an error is thrown
+                                        type: string
                                     type: object
                                   type: array
                                 patches:
@@ -146,18 +149,8 @@ spec:
                                               It matches with the resource annotations.
                                             type: string
                                           group:
-                                            description: Group is the API group to
-                                              select resources from. Together with
-                                              Version and Kind it is capable of unambiguously
-                                              identifying and/or selecting resources.
-                                              https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                             type: string
                                           kind:
-                                            description: Kind of the API Group to
-                                              select resources from. Together with
-                                              Group and Version it is capable of unambiguously
-                                              identifying and/or selecting resources.
-                                              https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                             type: string
                                           labelSelector:
                                             description: LabelSelector is a string
@@ -166,18 +159,13 @@ spec:
                                               It matches with the resource labels.
                                             type: string
                                           name:
-                                            description: Name to match resources with.
+                                            description: Name of the resource.
                                             type: string
                                           namespace:
-                                            description: Namespace to select resources
-                                              from.
+                                            description: Namespace the resource belongs
+                                              to, if it can belong to a namespace.
                                             type: string
                                           version:
-                                            description: Version of the API Group
-                                              to select resources from. Together with
-                                              Group and Kind it is capable of unambiguously
-                                              identifying and/or selecting resources.
-                                              https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
                                             type: string
                                         type: object
                                     required:
