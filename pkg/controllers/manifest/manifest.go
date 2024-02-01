@@ -32,11 +32,16 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 	}
 }
 
-func (mc *ManifestController) CreateManifest(namespace, name, url string) error {
-	sum, err := mc.getCheckSumUrl(url)
+func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
+	sum, err := mc.getCheckSumUrl(manifestSpec.URL)
 	if err != nil {
 		mc.logger.Error(err, "Failed to get checksum for url")
 		return err
+	}
+
+	if manifestSpec.Config != nil {
+		mc.logger.Info("Received Config", "Patches", manifestSpec.Config.Patches, "Images", manifestSpec.Config.Images)
+		// TODO: Generate kustomization.yaml with all inline patches
 	}
 
 	m := boundlessv1alpha1.Manifest{
@@ -45,7 +50,7 @@ func (mc *ManifestController) CreateManifest(namespace, name, url string) error 
 			Namespace: namespace,
 		},
 		Spec: boundlessv1alpha1.ManifestSpec{
-			Url:      url,
+			Url:      manifestSpec.URL,
 			Checksum: sum,
 		},
 	}
