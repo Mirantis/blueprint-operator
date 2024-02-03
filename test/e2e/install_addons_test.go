@@ -17,7 +17,6 @@ var curDir, _ = os.Getwd()
 
 // TestInstallAddons tests the installation of two addons, one Helm addon and one Manifest addon.
 // It checks if the addons are created, installed and their objects are created
-// All resources (including Blueprint) are deleted at the end of the test.
 func TestInstallAddons(t *testing.T) {
 	dir := filepath.Join(curDir, "manifests")
 
@@ -51,13 +50,9 @@ func TestInstallAddons(t *testing.T) {
 			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a2dep.Namespace, a2dep.Name),
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
-			funcs.DeleteResource(makeAddon(a1)),
-			funcs.DeleteResource(makeAddon(a2)),
-			funcs.DeleteResources(dir, "happypath/create.yaml"),
-
+			ApplyCleanupBlueprint(),
 			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
 			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a2)),
-			funcs.ResourcesDeletedWithin(2*time.Minute, dir, "happypath/create.yaml"),
 		)).
 		Feature()
 

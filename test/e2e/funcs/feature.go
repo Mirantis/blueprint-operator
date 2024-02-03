@@ -200,7 +200,7 @@ func AddonHaveStatusWithin(d time.Duration, addon *v1alpha1.Addon, desired v1alp
 
 		start := time.Now()
 		if err := wait.For(conditions.New(c.Client().Resources()).ResourceMatch(addon, statusMatcherFunc), wait.WithTimeout(d), wait.WithInterval(DefaultPollInterval)); err != nil {
-			t.Errorf("addon %s did not have desired status type '%s' in %s: %v", identifier(addon), desired, since(start), err)
+			t.Fatalf("addon %s did not have desired status type '%s' in %s: %v", identifier(addon), desired, since(start), err)
 			return ctx
 		}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"testing"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,6 +17,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
+	"sigs.k8s.io/e2e-framework/pkg/features"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
@@ -55,6 +57,15 @@ func InstallBoundlessOperator() env.Func {
 		if err = waitForDeploymentReady(c, BoundlessNamespace, BoundlessOperatorName, 5*time.Minute); err != nil {
 			return ctx, fmt.Errorf("failed to wait for boundless operator to be ready: %v", err)
 		}
+		return ctx, nil
+	}
+}
+
+// SleepFor is a feature function that sleeps for a given duration after running a feature
+func SleepFor(d time.Duration) env.FeatureFunc {
+	return func(ctx context.Context, c *envconf.Config, t *testing.T, f features.Feature) (context.Context, error) {
+		t.Logf("Sleeping for %s after running feature %s", d.String(), f.Name())
+		time.Sleep(d)
 		return ctx, nil
 	}
 }

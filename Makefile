@@ -80,7 +80,7 @@ integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
 
 .PHONY: e2e
 e2e: ## Run e2e tests.
-	go test -timeout 20m -v $(E2E_DIR)
+	go test -timeout 20m -v $(E2E_DIR) -test.failfast
 
 ##@ Build
 
