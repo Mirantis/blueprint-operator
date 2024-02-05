@@ -44,10 +44,10 @@ type ChartInfo struct {
 type ManifestInfo struct {
 	// +kubebuilder:validation:MinLength:=1
 	URL    string  `json:"url"`
-	Config *Config `json:"config,omitempty"`
+	Values *Values `json:"values,omitempty"`
 }
 
-type Config struct {
+type Values struct {
 	// Patches is a list of patches, where each one can be either a
 	// Strategic Merge Patch or a JSON patch.
 	// Each patch can be applied to multiple target objects.

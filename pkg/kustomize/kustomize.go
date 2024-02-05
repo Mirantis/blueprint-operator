@@ -22,18 +22,18 @@ const (
 	dirPath = "/tmp/"
 )
 
-func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.ManifestInfo) (string, error) {
+func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.ManifestInfo) (string, string, error) {
 	fs := filesys.MakeFsOnDisk()
 
 	s, err := RandDirName(10)
 	if err != nil {
 		logger.Error(err, "error generating random name", "Error", err)
-		return "", err
+		return "", "", err
 	}
 
 	if err := os.Mkdir(dirPath+s, os.ModePerm); err != nil {
 		logger.Error(err, "failed to create directory", "DIR", dirPath+s)
-		return "", err
+		return "", "", err
 	}
 
 	// This function is temporary and will eventually be added in Manifest controller as part of BOP-277.
@@ -45,15 +45,14 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 
 	abs, err := filepath.Abs(dirPath + s)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	kfile := filepath.Join(abs, konfig.DefaultKustomizationFileName())
-	//logger.Info("The name of the kustomization file", "FileName", kfile)
 	f, err := fs.Create(kfile)
 	if err != nil {
 		logger.Error(err, "error while creating file", "Error", err)
-		return "", err
+		return "", "", err
 	}
 	f.Close()
 
@@ -70,32 +69,32 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 
 	resources = append(resources, manifestSpec.URL)
 
-	if manifestSpec.Config != nil {
-		if len(manifestSpec.Config.Images) > 0 {
-			for i := range manifestSpec.Config.Images {
+	if manifestSpec.Values != nil {
+		if len(manifestSpec.Values.Images) > 0 {
+			for i := range manifestSpec.Values.Images {
 				image := kustypes.Image{
-					Name:      manifestSpec.Config.Images[i].Name,
-					NewName:   manifestSpec.Config.Images[i].NewName,
-					TagSuffix: manifestSpec.Config.Images[i].TagSuffix,
-					NewTag:    manifestSpec.Config.Images[i].NewTag,
-					Digest:    manifestSpec.Config.Images[i].Digest,
+					Name:      manifestSpec.Values.Images[i].Name,
+					NewName:   manifestSpec.Values.Images[i].NewName,
+					TagSuffix: manifestSpec.Values.Images[i].TagSuffix,
+					NewTag:    manifestSpec.Values.Images[i].NewTag,
+					Digest:    manifestSpec.Values.Images[i].Digest,
 				}
 				images = append(images, image)
 			}
 		}
 
-		if len(manifestSpec.Config.Patches) > 0 {
-			for i := range manifestSpec.Config.Patches {
+		if len(manifestSpec.Values.Patches) > 0 {
+			for i := range manifestSpec.Values.Patches {
 				patch := kustypes.Patch{
-					Path:    manifestSpec.Config.Patches[i].Path,
-					Patch:   manifestSpec.Config.Patches[i].Patch,
-					Options: manifestSpec.Config.Patches[i].Options,
+					Path:    manifestSpec.Values.Patches[i].Path,
+					Patch:   manifestSpec.Values.Patches[i].Patch,
+					Options: manifestSpec.Values.Patches[i].Options,
 				}
-				if manifestSpec.Config.Patches[i].Target != nil {
+				if manifestSpec.Values.Patches[i].Target != nil {
 					target := &kustypes.Selector{
-						ResId:              manifestSpec.Config.Patches[i].Target.ResId,
-						AnnotationSelector: manifestSpec.Config.Patches[i].Target.AnnotationSelector,
-						LabelSelector:      manifestSpec.Config.Patches[i].Target.LabelSelector,
+						ResId:              manifestSpec.Values.Patches[i].Target.ResId,
+						AnnotationSelector: manifestSpec.Values.Patches[i].Target.AnnotationSelector,
+						LabelSelector:      manifestSpec.Values.Patches[i].Target.LabelSelector,
 					}
 					patch.Target = target
 				}
@@ -109,16 +108,14 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 
 	kd, err := yaml.Marshal(kus)
 	if err != nil {
-		return "", fmt.Errorf("%v", err)
+		return "", "", fmt.Errorf("%v", err)
 	}
-
-	//logger.Info("kustomize file contents", "KustomizeFile", string(kd))
 
 	err = os.WriteFile(kfile, kd, os.ModePerm)
 	if err != nil {
 		logger.Error(err, "error while writing file", "File", kfile, "Error", err)
 		//TODO: delete the directory
-		return "", fmt.Errorf("%v", err)
+		return "", "", fmt.Errorf("%v", err)
 	}
 
 	buildOptions := &krusty.Options{
@@ -129,16 +126,16 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 	k := krusty.MakeKustomizer(buildOptions)
 	m, err := k.Run(fs, abs)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	objects, err := m.AsYaml()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	logger.Info("kustomize build objects", "Objects", string(objects))
-	return kfile, nil
+	return kfile, string(objects), nil
 
 }
 
