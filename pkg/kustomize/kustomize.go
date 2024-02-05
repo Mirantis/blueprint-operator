@@ -134,7 +134,6 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 		return "", "", err
 	}
 
-	logger.Info("kustomize build objects", "Objects", string(objects))
 	return kfile, string(objects), nil
 
 }
