@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/types"
 
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -39,9 +40,14 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 		return err
 	}
 
-	if manifestSpec.Config != nil {
-		mc.logger.Info("Received Config", "Patches", manifestSpec.Config.Patches, "Images", manifestSpec.Config.Images)
-		// TODO: Generate kustomization.yaml with all inline patches
+	if manifestSpec.Values != nil {
+		mc.logger.Info("Received Values", "Patches", manifestSpec.Values.Patches, "Images", manifestSpec.Values.Images)
+		// TODO: Use the second parameter to generate new checksum - BOP-277.
+		_, _, err := kustomize.GenerateKustomization(mc.logger, manifestSpec)
+		if err != nil {
+			mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
+			return err
+		}
 	}
 
 	m := boundlessv1alpha1.Manifest{

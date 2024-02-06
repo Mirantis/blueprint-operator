@@ -73,7 +73,10 @@ spec:
                 type: string
               manifest:
                 properties:
-                  config:
+                  url:
+                    minLength: 1
+                    type: string
+                  values:
                     properties:
                       images:
                         description: Images is a list of (image name, new name, new
@@ -164,9 +167,6 @@ spec:
                           type: object
                         type: array
                     type: object
-                  url:
-                    minLength: 1
-                    type: string
                 required:
                 - url
                 type: object
