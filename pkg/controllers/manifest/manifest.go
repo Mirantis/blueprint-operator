@@ -43,12 +43,11 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 	if manifestSpec.Values != nil {
 		mc.logger.Info("Received Values", "Patches", manifestSpec.Values.Patches, "Images", manifestSpec.Values.Images)
 		// TODO: Use the second parameter to generate new checksum - BOP-277.
-		kustomizeFile, _, err := kustomize.GenerateKustomization(mc.logger, manifestSpec)
+		_, _, err := kustomize.GenerateKustomization(mc.logger, manifestSpec)
 		if err != nil {
 			mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
 			return err
 		}
-		mc.logger.Info("name of the kustomization file", "Name", kustomizeFile)
 	}
 
 	m := boundlessv1alpha1.Manifest{

@@ -1,8 +1,6 @@
 package kustomize
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +13,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
+
 	kustypes "sigs.k8s.io/kustomize/api/types"
 )
 
@@ -22,10 +22,12 @@ const (
 	dirPath = "/tmp/"
 )
 
+// GenerateKustomization uses the manifest url and values from the blueprint and generates kustomization.yaml.
+// It also generates kustomize build output and returns it along with the name of the kustomization file.
 func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.ManifestInfo) (string, string, error) {
 	fs := filesys.MakeFsOnDisk()
 
-	s, err := RandDirName(10)
+	s, err := utils.RandDirName(10)
 	if err != nil {
 		logger.Error(err, "error generating random name", "Error", err)
 		return "", "", err
@@ -114,7 +116,6 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 	err = os.WriteFile(kfile, kd, os.ModePerm)
 	if err != nil {
 		logger.Error(err, "error while writing file", "File", kfile, "Error", err)
-		//TODO: delete the directory
 		return "", "", fmt.Errorf("%v", err)
 	}
 
@@ -136,13 +137,4 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 
 	return kfile, string(objects), nil
 
-}
-
-func RandDirName(n int) (string, error) {
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(b)[:n], nil
 }
