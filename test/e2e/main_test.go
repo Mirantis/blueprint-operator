@@ -34,7 +34,8 @@ func TestMain(m *testing.M) {
 	testenv.AfterEachFeature(
 		// When we run cleanup after a test feature that applies empty Blueprint,
 		// we need to wait for the kube controller to reconcile the deletion of the addons.
-		// The check that we do in the test does not guarantee that the controller has finished
+		// The checks that we do in the test does not guarantee that the controller has finished
+		// deleting addons
 		funcs.SleepFor(10 * time.Second),
 	)
 

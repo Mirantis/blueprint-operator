@@ -79,7 +79,7 @@ integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
 	$(GINKGO) -trace -r -focus="$(GINKGO_FOCUS)" $(GINKGO_ARGS) "$(INT_DIR)"
 
 .PHONY: e2e
-e2e: ## Run e2e tests.
+e2e: build-operator-manifest ## Run e2e tests.
 	go test -timeout 20m -v $(E2E_DIR) -test.failfast
 
 ##@ Build
@@ -145,7 +145,8 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 .PHONY: build-operator-manifest
 build-operator-manifest: kustomize manifests ## builds mke operator manifest file
-	@$(LOCALBIN)/kustomize build config/default > ./deploy/static/boundless-operator.yaml
+	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/boundless-operator=${IMG}
+	@$(KUSTOMIZE) build config/default > ./deploy/static/boundless-operator.yaml
 
 ##@ Build Dependencies
 
