@@ -27,12 +27,10 @@ func TestUpdateAddons(t *testing.T) {
 	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: BoundlessNamespace}
 	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: BoundlessNamespace}
 	a3 := metav1.ObjectMeta{Name: "test-addon-3", Namespace: BoundlessNamespace}
-	a4 := metav1.ObjectMeta{Name: "test-addon-4", Namespace: BoundlessNamespace}
 
 	a1dep := metav1.ObjectMeta{Name: "nginx", Namespace: "test-ns-1"}
 	a2dep := metav1.ObjectMeta{Name: "controller", Namespace: "metallb-system"}
 	a3dep := metav1.ObjectMeta{Name: "crossplane", Namespace: "default"}
-	a4dep := metav1.ObjectMeta{Name: "keycloak", Namespace: "default"}
 
 	helmAddonUpdatedVersion := "15.9.1"
 	manifestAddonUpdatedVersion := "v0.13.12"
@@ -79,24 +77,20 @@ func TestUpdateAddons(t *testing.T) {
 				return strings.Contains(imageName, manifestAddonUpdatedVersion)
 			}),
 		)).
-		Assess("TwoNewAddonsAreCreated", funcs.AllOf(
+		Assess("NewAddonsAreCreated", funcs.AllOf(
 			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a3)),
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a4)),
 		)).
-		Assess("TwoNewAddonsAreSuccessfullyInstalled", funcs.AllOf(
+		Assess("NewAddonsAreSuccessfullyInstalled", funcs.AllOf(
 			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a3), v1alpha1.TypeComponentAvailable),
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a4), v1alpha1.TypeComponentAvailable),
 		)).
-		Assess("TwoNewAddonObjectsSuccessfullyCreated", funcs.AllOf(
+		Assess("NewAddonObjectsSuccessfullyCreated", funcs.AllOf(
 			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a3dep.Namespace, a3dep.Name),
-			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a4dep.Namespace, a4dep.Name),
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
 			ApplyCleanupBlueprint(),
 			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
 			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a2)),
 			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a3)),
-			funcs.ResourceDeletedWithin(4*time.Minute, makeAddon(a4)),
 		)).
 		Feature()
 

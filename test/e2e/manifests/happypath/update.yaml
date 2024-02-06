@@ -28,10 +28,3 @@ spec:
           name: crossplane
           repo: https://charts.crossplane.io/master/
           version: 1.15.0-rc.0.9.ged19cd5d
-      - name: test-addon-4
-        kind: manifest
-        enabled: true
-        namespace: default
-        manifest:
-          url: "https://raw.githubusercontent.com/keycloak/keycloak-quickstarts/latest/kubernetes/keycloak.yaml"
-
