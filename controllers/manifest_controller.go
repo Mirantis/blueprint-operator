@@ -5,12 +5,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,8 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	"sigs.k8s.io/kustomize/api/krusty"
+	kustypes "sigs.k8s.io/kustomize/api/types"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
@@ -152,9 +154,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-				Url:         existing.Spec.Url,
-				Checksum:    existing.Spec.NewChecksum,
-				NewChecksum: existing.Spec.NewChecksum,
+				Url:           existing.Spec.Url,
+				Checksum:      existing.Spec.NewChecksum,
+				NewChecksum:   existing.Spec.NewChecksum,
+				KustomizeFile: existing.Spec.KustomizeFile,
 			},
 		}
 
@@ -185,9 +188,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-				Url:         existing.Spec.Url,
-				Checksum:    existing.Spec.Checksum,
-				NewChecksum: existing.Spec.Checksum,
+				Url:           existing.Spec.Url,
+				Checksum:      existing.Spec.Checksum,
+				NewChecksum:   existing.Spec.Checksum,
+				KustomizeFile: existing.Spec.KustomizeFile,
 			},
 		}
 
@@ -197,13 +201,14 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 
-		// Run http get request to fetch the contents of the manifest file.
-		bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
+		// Read the kustomize file, get kustomize build output and create objects thereby.
+		bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.KustomizeFile, logger)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
+		logger.Info("Sakshi::::reading Kustomize objects.", "OBJECTS", string(bodyBytes))
 
 		logger.Info("received new crd request. Creating manifest objects..")
 		err = r.CreateManifestObjects(ctx, req, logger, bodyBytes)
@@ -366,7 +371,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	logger := log.FromContext(ctx)
 
 	// Read the URL contents
-	bodyBytes, err := r.ReadManifest(req, existing.Spec.Url, logger)
+	bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.KustomizeFile, logger)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return err
@@ -463,43 +468,33 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 
 }
 
-// ReadManifest reads the manifest from the url and returns a byte string containing the entire manifest content
-func (r *ManifestReconciler) ReadManifest(req ctrl.Request, url string, logger logr.Logger) ([]byte, error) {
+// ReadKustomizeManifest reads the Kustomization.yaml and returns a byte string, the output of kustomize build,
+// containing the entire manifest content. This will also include patches and images in case they are
+// specified by the user.
+func (r *ManifestReconciler) ReadKustomizeManifest(kustomizeFile string, logger logr.Logger) ([]byte, error) {
+	fs := filesys.MakeFsOnDisk()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
+	defer os.RemoveAll(kustomizeFile)
 
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	buildOptions := &krusty.Options{
+		LoadRestrictions: kustypes.LoadRestrictionsNone,
+		PluginConfig:     kustypes.DisabledPluginConfig(),
+	}
+
+	k := krusty.MakeKustomizer(buildOptions)
+	m, err := k.Run(fs, kustomizeFile)
 	if err != nil {
-		logger.Error(err, "failed to create http request for url: %s", url)
+		logger.Error(err, "failed to run kustomization on the file", "File", kustomizeFile)
 		return nil, err
 	}
 
-	httpClient := http.DefaultClient
-
-	resp, err := httpClient.Do(httpReq)
+	objects, err := m.AsYaml()
 	if err != nil {
-		logger.Error(err, "failed to fetch manifest file content for url: %s", url)
+		logger.Error(err, "failed to return YAML form of kustomize resources", "File", kustomizeFile)
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	var bodyBytes []byte
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err = io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error(err, "failed to read http response body")
-			return nil, err
-		}
-
-	} else {
-		logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
-		return nil, fmt.Errorf("failure in http get request ResponseCode: %d, %s", resp.StatusCode, err)
-	}
-
-	return bodyBytes, nil
-
+	return objects, nil
 }
 
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {

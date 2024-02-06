@@ -13,8 +13,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
-
 	kustypes "sigs.k8s.io/kustomize/api/types"
 )
 
@@ -24,39 +22,31 @@ const (
 
 // GenerateKustomization uses the manifest url and values from the blueprint and generates kustomization.yaml.
 // It also generates kustomize build output and returns it along with the name of the kustomization file.
-func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.ManifestInfo) (string, string, error) {
+func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.ManifestInfo) (string, []byte, error) {
 	fs := filesys.MakeFsOnDisk()
 
-	s, err := utils.RandDirName(10)
+	tempdir, err := os.MkdirTemp(dirPath, "addon-")
 	if err != nil {
-		logger.Error(err, "error generating random name", "Error", err)
-		return "", "", err
+		logger.Error(err, "error generating temporary directory", "Error", err)
+		return "", nil, err
 	}
 
-	if err := os.Mkdir(dirPath+s, os.ModePerm); err != nil {
-		logger.Error(err, "failed to create directory", "DIR", dirPath+s)
-		return "", "", err
-	}
+	logger.Info("Sakshi:: new temporary directory", "DIR", tempdir)
 
-	// This function is temporary and will eventually be added in Manifest controller as part of BOP-277.
-	defer func() {
-		if err := os.RemoveAll(dirPath + s); err != nil {
-			logger.Error(err, "failed to delete directory", "DIR", dirPath+s, "Error", err)
-		}
-	}()
-
-	abs, err := filepath.Abs(dirPath + s)
+	abs, err := filepath.Abs(tempdir)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	kfile := filepath.Join(abs, konfig.DefaultKustomizationFileName())
 	f, err := fs.Create(kfile)
 	if err != nil {
 		logger.Error(err, "error while creating file", "Error", err)
-		return "", "", err
+		return "", nil, err
 	}
 	f.Close()
+
+	logger.Info("Sakshi:::The name of the kustomization file", "FileName", kfile)
 
 	kus := kustypes.Kustomization{
 		TypeMeta: kustypes.TypeMeta{
@@ -110,14 +100,16 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 
 	kd, err := yaml.Marshal(kus)
 	if err != nil {
-		return "", "", fmt.Errorf("%v", err)
+		return "", nil, fmt.Errorf("%v", err)
 	}
 
 	err = os.WriteFile(kfile, kd, os.ModePerm)
 	if err != nil {
 		logger.Error(err, "error while writing file", "File", kfile, "Error", err)
-		return "", "", fmt.Errorf("%v", err)
+		return "", nil, fmt.Errorf("%v", err)
 	}
+
+	logger.Info("Sakshi:::kustomize file contents", "KustomizeFile", string(kd))
 
 	buildOptions := &krusty.Options{
 		LoadRestrictions: kustypes.LoadRestrictionsNone,
@@ -127,14 +119,14 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 	k := krusty.MakeKustomizer(buildOptions)
 	m, err := k.Run(fs, abs)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	objects, err := m.AsYaml()
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
-	return kfile, string(objects), nil
+	return abs, objects, nil
 
 }

@@ -468,6 +468,8 @@ spec:
             properties:
               checksum:
                 type: string
+              kustomizeFile:
+                type: string
               newChecksum:
                 type: string
               objects:
