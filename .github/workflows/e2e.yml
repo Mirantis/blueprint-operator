@@ -23,7 +23,21 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.IMAGE }}
+          path: /tmp
+
+      - name: Load docker image
+        working-directory: .
+        run: docker load --input /tmp/${{ env.IMAGE }}.tar
+
+#      - name: Tag the image with the commit sha
+#        run:
+#          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+#          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
+
       - name: Run E2E tests
         run: |
-          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
-          VERSION=$COMMIT_SHA make e2e
+          make e2e

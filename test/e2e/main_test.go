@@ -17,12 +17,20 @@ var (
 	testenv env.Environment
 )
 
+// The caller (e.g. make e2e) must ensure these exist.
+const (
+	boundlessImage = "mirantiscontainers/boundless-operator:latest"
+)
+
 func TestMain(m *testing.M) {
 	testenv = env.New()
 	kindClusterName := envconf.RandomName("test-cluster", 16)
 
 	testenv.Setup(
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
+
+		// load images into kind cluster
+		envfuncs.LoadDockerImageToCluster(kindClusterName, "crossplane/crossplane:latest"),
 
 		// add boundless types to scheme
 		funcs.AddBoundlessTypeToScheme(),
