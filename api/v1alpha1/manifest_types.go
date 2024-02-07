@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -11,11 +12,11 @@ import (
 type ManifestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Url           string           `json:"url"`
-	NewChecksum   string           `json:"newChecksum,omitempty"`
-	Checksum      string           `json:"checksum"`
-	KustomizeFile string           `json:"kustomizeFile,omitempty"`
-	Objects       []ManifestObject `json:"objects,omitempty"`
+	Url         string           `json:"url"`
+	NewChecksum string           `json:"newChecksum,omitempty"`
+	Checksum    string           `json:"checksum"`
+	Values      *Values          `json:"values,omitempty"`
+	Objects     []ManifestObject `json:"objects,omitempty"`
 }
 
 // ManifestStatus defines the observed state of Manifest

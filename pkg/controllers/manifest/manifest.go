@@ -33,13 +33,13 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 
 func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
 	mc.logger.Info("Sakshi:: Received Values", "Patches", manifestSpec.Values.Patches, "Images", manifestSpec.Values.Images)
-	kustomizeFile, dataBytes, err := kustomize.GenerateKustomization(mc.logger, manifestSpec)
+	dataBytes, err := kustomize.GenerateKustomization(mc.logger, manifestSpec.URL, manifestSpec.Values)
 	if err != nil {
 		mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
 		return err
 	}
 
-	mc.logger.Info("Sakshi:: name of the kustomization file folder", "Name", kustomizeFile)
+	//mc.logger.Info("Sakshi:: name of the kustomization file folder", "Name", kustomizeFile)
 
 	sum, err := mc.getCheckSumUrl(dataBytes)
 	if err != nil {
@@ -53,10 +53,13 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 			Namespace: namespace,
 		},
 		Spec: boundlessv1alpha1.ManifestSpec{
-			Url:           manifestSpec.URL,
-			Checksum:      sum,
-			KustomizeFile: kustomizeFile,
+			Url:      manifestSpec.URL,
+			Checksum: sum,
 		},
+	}
+
+	if manifestSpec.Values != nil {
+		m.Spec.Values = manifestSpec.Values
 	}
 
 	return mc.createOrUpdateManifest(m)
@@ -89,14 +92,13 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 					ResourceVersion: existing.ResourceVersion,
 				},
 				Spec: boundlessv1alpha1.ManifestSpec{
-					Url:           m.Spec.Url,
-					Checksum:      existing.Spec.Checksum,
-					NewChecksum:   m.Spec.Checksum,
-					Objects:       existing.Spec.Objects,
-					KustomizeFile: m.Spec.KustomizeFile,
+					Url:         m.Spec.Url,
+					Checksum:    existing.Spec.Checksum,
+					NewChecksum: m.Spec.Checksum,
+					Objects:     existing.Spec.Objects,
+					Values:      m.Spec.Values,
 				},
 			}
-
 			newManifest.SetFinalizers(existing.GetFinalizers())
 			err := mc.client.Update(ctx, &newManifest)
 			if err != nil {

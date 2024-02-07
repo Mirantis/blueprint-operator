@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
 	"io"
 	"os"
 	"reflect"
@@ -154,10 +155,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-				Url:           existing.Spec.Url,
-				Checksum:      existing.Spec.NewChecksum,
-				NewChecksum:   existing.Spec.NewChecksum,
-				KustomizeFile: existing.Spec.KustomizeFile,
+				Url:         existing.Spec.Url,
+				Checksum:    existing.Spec.NewChecksum,
+				NewChecksum: existing.Spec.NewChecksum,
+				Values:      existing.Spec.Values,
 			},
 		}
 
@@ -188,10 +189,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-				Url:           existing.Spec.Url,
-				Checksum:      existing.Spec.Checksum,
-				NewChecksum:   existing.Spec.Checksum,
-				KustomizeFile: existing.Spec.KustomizeFile,
+				Url:         existing.Spec.Url,
+				Checksum:    existing.Spec.Checksum,
+				NewChecksum: existing.Spec.Checksum,
+				Values:      existing.Spec.Values,
 			},
 		}
 
@@ -202,7 +203,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// Read the kustomize file, get kustomize build output and create objects thereby.
-		bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.KustomizeFile, logger)
+		bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Values)
+		//bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.Values, logger)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -371,7 +373,8 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	logger := log.FromContext(ctx)
 
 	// Read the URL contents
-	bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.KustomizeFile, logger)
+	bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Values)
+	//bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.Values, logger)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return err

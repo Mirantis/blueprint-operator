@@ -2,11 +2,7 @@ package kustomize
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/go-logr/logr"
-
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/api/krusty"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
@@ -22,32 +18,35 @@ const (
 
 // GenerateKustomization uses the manifest url and values from the blueprint and generates kustomization.yaml.
 // It also generates kustomize build output and returns it along with the name of the kustomization file.
-func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.ManifestInfo) (string, []byte, error) {
-	fs := filesys.MakeFsOnDisk()
+func GenerateKustomization(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([]byte, error) {
+	fs := filesys.MakeFsInMemory()
 
-	tempdir, err := os.MkdirTemp(dirPath, "addon-")
+	/*tempdir, err := os.MkdirTemp(dirPath, "addon-")
 	if err != nil {
 		logger.Error(err, "error generating temporary directory", "Error", err)
-		return "", nil, err
+		return nil, err
 	}
+
+	defer os.RemoveAll(tempdir)
 
 	logger.Info("Sakshi:: new temporary directory", "DIR", tempdir)
 
 	abs, err := filepath.Abs(tempdir)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	kfile := filepath.Join(abs, konfig.DefaultKustomizationFileName())
+
 	f, err := fs.Create(kfile)
 	if err != nil {
 		logger.Error(err, "error while creating file", "Error", err)
-		return "", nil, err
+		return nil, err
 	}
 	f.Close()
 
 	logger.Info("Sakshi:::The name of the kustomization file", "FileName", kfile)
-
+	*/
 	kus := kustypes.Kustomization{
 		TypeMeta: kustypes.TypeMeta{
 			APIVersion: kustypes.KustomizationVersion,
@@ -59,34 +58,34 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 	var images []kustypes.Image
 	var patches []kustypes.Patch
 
-	resources = append(resources, manifestSpec.URL)
+	resources = append(resources, url)
 
-	if manifestSpec.Values != nil {
-		if len(manifestSpec.Values.Images) > 0 {
-			for i := range manifestSpec.Values.Images {
+	if values != nil {
+		if len(values.Images) > 0 {
+			for i := range values.Images {
 				image := kustypes.Image{
-					Name:      manifestSpec.Values.Images[i].Name,
-					NewName:   manifestSpec.Values.Images[i].NewName,
-					TagSuffix: manifestSpec.Values.Images[i].TagSuffix,
-					NewTag:    manifestSpec.Values.Images[i].NewTag,
-					Digest:    manifestSpec.Values.Images[i].Digest,
+					Name:      values.Images[i].Name,
+					NewName:   values.Images[i].NewName,
+					TagSuffix: values.Images[i].TagSuffix,
+					NewTag:    values.Images[i].NewTag,
+					Digest:    values.Images[i].Digest,
 				}
 				images = append(images, image)
 			}
 		}
 
-		if len(manifestSpec.Values.Patches) > 0 {
-			for i := range manifestSpec.Values.Patches {
+		if len(values.Patches) > 0 {
+			for i := range values.Patches {
 				patch := kustypes.Patch{
-					Path:    manifestSpec.Values.Patches[i].Path,
-					Patch:   manifestSpec.Values.Patches[i].Patch,
-					Options: manifestSpec.Values.Patches[i].Options,
+					Path:    values.Patches[i].Path,
+					Patch:   values.Patches[i].Patch,
+					Options: values.Patches[i].Options,
 				}
-				if manifestSpec.Values.Patches[i].Target != nil {
+				if values.Patches[i].Target != nil {
 					target := &kustypes.Selector{
-						ResId:              manifestSpec.Values.Patches[i].Target.ResId,
-						AnnotationSelector: manifestSpec.Values.Patches[i].Target.AnnotationSelector,
-						LabelSelector:      manifestSpec.Values.Patches[i].Target.LabelSelector,
+						ResId:              values.Patches[i].Target.ResId,
+						AnnotationSelector: values.Patches[i].Target.AnnotationSelector,
+						LabelSelector:      values.Patches[i].Target.LabelSelector,
 					}
 					patch.Target = target
 				}
@@ -100,13 +99,14 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 
 	kd, err := yaml.Marshal(kus)
 	if err != nil {
-		return "", nil, fmt.Errorf("%v", err)
+		return nil, fmt.Errorf("%v", err)
 	}
 
-	err = os.WriteFile(kfile, kd, os.ModePerm)
+	err = fs.WriteFile(konfig.DefaultKustomizationFileName(), kd)
+	//err = os.WriteFile(kfile, kd, os.ModePerm)
 	if err != nil {
-		logger.Error(err, "error while writing file", "File", kfile, "Error", err)
-		return "", nil, fmt.Errorf("%v", err)
+		logger.Error(err, "error while writing file", "File", konfig.DefaultKustomizationFileName(), "Error", err)
+		return nil, fmt.Errorf("%v", err)
 	}
 
 	logger.Info("Sakshi:::kustomize file contents", "KustomizeFile", string(kd))
@@ -117,16 +117,16 @@ func GenerateKustomization(logger logr.Logger, manifestSpec *boundlessv1alpha1.M
 	}
 
 	k := krusty.MakeKustomizer(buildOptions)
-	m, err := k.Run(fs, abs)
+	m, err := k.Run(fs, ".")
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	objects, err := m.AsYaml()
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	return abs, objects, nil
+	return objects, nil
 
 }
