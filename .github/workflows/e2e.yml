@@ -24,4 +24,6 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Run E2E tests
-        run: VERSION=$COMMIT_SHA make e2e
+        run: |
+          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          VERSION=$COMMIT_SHA make e2e
