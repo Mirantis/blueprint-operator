@@ -1,12 +1,10 @@
 package controllers
 
 import (
-	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -65,14 +63,6 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 			key := types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
 			Eventually(getObject(ctx, key, blueprint), timeout, interval).Should(BeTrue())
-		})
-
-		It("Should install Helm Controller", func() {
-			// @todo (Ranyodh): This test should be moved to "Installing" CRD when we have that
-			ctx := context.Background()
-			helmDeploy := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
-			Eventually(getObject(ctx, lookupKey, helmDeploy), timeout, interval).Should(BeTrue())
 		})
 	})
 

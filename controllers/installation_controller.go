@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	DefaultInstanceKey = client.ObjectKey{Name: "default"}
+	DefaultInstanceKey = client.ObjectKey{Name: "default", Namespace: "default"}
 )
 
 // InstallationReconciler reconciles a Installation object
@@ -75,6 +75,7 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		logger.Info("cert manager is already installed.")
 	}
 
+	logger.V(1).Info("Finished reconciling Installation")
 	return ctrl.Result{}, nil
 }
 
