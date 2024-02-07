@@ -14,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/installation"
 )
 
 const (
@@ -42,8 +41,6 @@ type BlueprintReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile request on Blueprint instance", "Name", req.Name)
 	instance := &boundlessv1alpha1.Blueprint{}
@@ -52,32 +49,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	exists, err := installation.CheckHelmControllerExists(ctx, r.Client)
-	if err != nil {
-		logger.Error(err, "failed to check if helm controller already exists")
-		return ctrl.Result{}, fmt.Errorf("failed to check if helm controller already exists")
-	}
-	if !exists {
-		logger.Info("Helm controller is not installed. Installing...")
-		if err = installation.InstallHelmController(ctx, r.Client, logger); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	exist, err := installation.CheckIfCertManagerAlreadyExists(ctx, r.Client, logger)
-	if err != nil {
-		logger.Error(err, "failed to check if cert manager already exists")
-		return ctrl.Result{}, fmt.Errorf("failed to check if cert manager already exists")
-	}
-	if !exist {
-		logger.Info("cert manager is not installed. Installing...")
-		if err = installation.InstallCertManager(ctx, r.Client, logger); err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		logger.Info("cert manager is already installed.")
-	}
-
+	var err error
 	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil && instance.Spec.Components.Core.Ingress.Provider != "" {
 		logger.Info("Reconciling ingress")
 		err = r.createOrUpdateIngress(ctx, logger, ingressResource(instance.Spec.Components.Core.Ingress))

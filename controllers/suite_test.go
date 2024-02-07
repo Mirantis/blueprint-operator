@@ -58,8 +58,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	Expect(boundlessv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
-	Expect(helmv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	err = boundlessv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = helmv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 

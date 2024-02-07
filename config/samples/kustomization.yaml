@@ -5,4 +5,5 @@ resources:
 - boundless_v1alpha1_ingress.yaml
 - boundless_v1alpha1_blueprint.yaml
 - boundless_v1alpha1_manifest.yaml
+- boundless_v1alpha1_installation.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
