@@ -101,7 +101,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", addonFinalizerName)
 				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest object with finalizer %s/%s", existing.Namespace, existing.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest object with finalizer", fmt.Sprintf("failed to update manifest object with finalizer : %s", err))
-				return ctrl.Result{Requeue: true}, err
+				return ctrl.Result{}, err
 			}
 			logger.Info("finalizer added successfully", "Name", req.Name, "Finalizer", addonFinalizerName)
 			return ctrl.Result{}, err
@@ -114,7 +114,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				logger.Error(err, "failed to delete manifest objects")
 				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedDelete, "failed to delete manifest objects %s/%s", existing.Namespace, existing.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to delete manifest objects", fmt.Sprintf("failed to delete manifest objects : %s", err))
-				return ctrl.Result{Requeue: true}, err
+				return ctrl.Result{}, err
 			}
 
 			// Remove the finalizer from the list and update it.
@@ -123,7 +123,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				logger.Error(err, "failed to remove finalizer")
 				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonSuccessfulCreate, "failed to remove finalizer %s/%s", existing.Namespace, existing.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to remove finalizer", fmt.Sprintf("failed to remove finalizer : %s", err))
-				return ctrl.Result{Requeue: true}, err
+				return ctrl.Result{}, err
 			}
 		}
 
@@ -230,7 +230,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
-			return ctrl.Result{RequeueAfter: time.Minute}, err
+			return ctrl.Result{}, err
 		}
 
 		logger.Info("received new crd request. Creating manifest objects..")

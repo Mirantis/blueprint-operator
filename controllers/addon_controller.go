@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/go-logr/logr"
 	batch "k8s.io/api/batch/v1"
@@ -97,7 +96,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	case kindChart:
 		if instance.Spec.Chart == nil {
 			logger.Info("Chart info is missing")
-			return ctrl.Result{Requeue: false}, fmt.Errorf("chart info is missing: %w", err)
+			return ctrl.Result{}, fmt.Errorf("chart info is missing: %w", err)
 		}
 		chart := helm.Chart{
 			Name:    instance.Spec.Chart.Name,
@@ -147,7 +146,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err = hc.CreateHelmChart(chart, instance.Spec.Namespace); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		// unfortunately the HelmChart CR doesn't have any useful events or status we can monitor
@@ -157,17 +156,17 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		err = r.Get(ctx, types.NamespacedName{Namespace: instance.Spec.Namespace, Name: jobName}, job)
 		if err != nil {
 			// might need some time for helmchart CR to create job
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+			return ctrl.Result{}, err
 		}
 
 		if err := r.updateHelmchartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+			return ctrl.Result{}, err
 		}
 
 	case kindManifest:
 		if instance.Spec.Manifest == nil {
 			logger.Info("Manifest info is missing")
-			return ctrl.Result{Requeue: false}, fmt.Errorf("manifest info is missing: %w", err)
+			return ctrl.Result{}, fmt.Errorf("manifest info is missing: %w", err)
 		}
 		mc := manifest.NewManifestController(r.Client, logger)
 
@@ -208,7 +207,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		m := &boundlessv1alpha1.Manifest{}
@@ -217,7 +216,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			if errors.IsNotFound(err) {
 				// might need some time for CR to  be created
 				r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
-				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, err
 		}
@@ -234,11 +233,11 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	default:
 		logger.Info("Unknown AddOn kind", "Kind", instance.Spec.Kind)
-		return ctrl.Result{Requeue: false}, fmt.Errorf("Unknown AddOn Kind: %w", err)
+		return ctrl.Result{}, fmt.Errorf("Unknown AddOn Kind: %w", err)
 	}
 
 	logger.Info("Finished reconcile request on Addon instance", "Name", req.Name)
-	return ctrl.Result{Requeue: false}, nil
+	return ctrl.Result{}, nil
 }
 
 // updateManifestAddonStatus checks if the manifest associated with the addon has a status to bubble up to addon and updates addon if so

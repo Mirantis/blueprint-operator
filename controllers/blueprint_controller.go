@@ -55,7 +55,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		err = r.createOrUpdateIngress(ctx, logger, ingressResource(instance.Spec.Components.Core.Ingress))
 		if err != nil {
 			logger.Error(err, "Failed to reconcile ingress", "Name", instance.Spec.Components.Core.Ingress)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -74,7 +74,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		err = r.createOrUpdateAddon(ctx, logger, addon)
 		if err != nil {
 			logger.Error(err, "Failed to reconcile addonSpec", "Name", addonSpec.Name, "Spec.Namespace", addonSpec.Namespace)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		// if the addon is in the spec , we shouldn't uninstall it
