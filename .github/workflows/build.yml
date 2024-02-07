@@ -23,8 +23,7 @@ jobs:
         working-directory: .
         run: docker save ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest -o /tmp/${{ env.IMAGE }}.tar
 
-      - name: Upload docker image
-        if: ${{ github.event_name == 'release' || github.event_name == 'push'}} # release or push to main
+      - name: Upload image artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.IMAGE }}
