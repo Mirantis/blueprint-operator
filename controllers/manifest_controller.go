@@ -278,20 +278,14 @@ func (r *ManifestReconciler) retryUpgradeInstallAfterTimeout(ctx context.Context
 				logger.Error(err, "Failed to delete manifest objects")
 				return
 			}
+
 		}
 
 		// wipe the manifest checksum to get reconcile to run an Update
 		manifest.Spec.Checksum = ""
 		if err = r.Update(ctx, &manifest); err != nil {
 			logger.Error(err, "failed to wipe checksum for manifest")
-			return
 		}
-
-		// set up another potential retry if manifest still not available after next timeout
-		if failurePolicy == pkgmanifest.FailurePolicyRetry {
-			go r.retryUpgradeInstallAfterTimeout(ctx, logger, manifestName, timeout, failurePolicy, isInstall)
-		}
-
 		return
 	}
 
