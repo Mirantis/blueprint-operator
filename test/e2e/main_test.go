@@ -24,13 +24,13 @@ const (
 
 func TestMain(m *testing.M) {
 	testenv = env.New()
-	kindClusterName := envconf.RandomName("test-cluster", 16)
+	kindClusterName := envconf.RandomName("test-cluster", 32)
 
 	testenv.Setup(
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
 
-		// load images into kind cluster
-		envfuncs.LoadDockerImageToCluster(kindClusterName, "crossplane/crossplane:latest"),
+		// load image into kind cluster
+		envfuncs.LoadDockerImageToCluster(kindClusterName, boundlessImage),
 
 		// add boundless types to scheme
 		funcs.AddBoundlessTypeToScheme(),
