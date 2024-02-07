@@ -20,7 +20,6 @@ jobs:
         run: make docker-build
 
       - name: Save docker image
-        if: ${{ github.event_name == 'release' || github.event_name == 'push'}} # release or push to main
         working-directory: .
         run: docker save ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest -o /tmp/${{ env.IMAGE }}.tar
 
