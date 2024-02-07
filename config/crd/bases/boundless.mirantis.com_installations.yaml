@@ -34,11 +34,6 @@ spec:
             type: object
           spec:
             description: InstallationSpec defines the desired state of Installation
-            properties:
-              foo:
-                description: Foo is an example field of Installation. Edit installation_types.go
-                  to remove/update
-                type: string
             type: object
           status:
             description: InstallationStatus defines the observed state of Installation
