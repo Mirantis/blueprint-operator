@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -44,6 +45,28 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 		interval = time.Millisecond * 250
 	)
 
+	BeforeAll(func() {
+		// Start component installation by creating Installation CRD
+		// This is needed for delete addon tests to work
+		By("Creating Installation CRD")
+		installation := &v1alpha1.Installation{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "boundless.mirantis.com/v1alpha1",
+				Kind:       "Installation",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "default",
+				Namespace: "default",
+			},
+		}
+		Expect(k8sClient.Create(ctx, installation)).Should(Succeed())
+
+		By("Waiting for helm-controller to be created")
+		dep := &appsv1.Deployment{}
+		lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
+		Eventually(getObject(ctx, lookupKey, dep), timeout, interval).Should(BeTrue())
+	})
+
 	BeforeEach(func() {
 		// Reset the state by creating empty blueprint
 		blueprint := newBlueprint()
@@ -69,6 +92,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 	Context("A blueprint is updated", func() {
 		var addonName, addonNamespace string
 		var helmAddon v1alpha1.AddonSpec
+		var addonKey types.NamespacedName
 
 		BeforeEach(func() {
 			addonName = randomName("addon")
@@ -84,9 +108,11 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 					Version: "15.1.1",
 				},
 			}
+
+			addonKey = types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
+
 		})
 		Context("Helm chart addon is added to the blueprint", func() {
-
 			BeforeEach(func() {
 				By("Creating a blueprint with one addon")
 				blueprint := newBlueprint(helmAddon)
@@ -100,28 +126,30 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			})
 
 			It("Should create the correct addon resource", func() {
-				lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
 				actual := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, lookupKey, actual), timeout, interval).Should(BeTrue())
+				Eventually(getObject(ctx, addonKey, actual), timeout, interval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 			})
 		})
 
 		Context("Helm chart addon is removed from blueprint", func() {
-
 			It("Should delete addon resource", func() {
 				By("Creating a blueprint with one addon")
 				blueprint := newBlueprint(helmAddon)
 				Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
+				By("Waiting for addon to be created")
+				actual := &v1alpha1.Addon{}
+				Eventually(getObject(ctx, addonKey, actual), timeout, interval).Should(BeTrue())
+				assertAddon(helmAddon, actual.Spec)
+
 				By("Removing addon from blueprints")
-				blueprint2 := newBlueprint()
-				Expect(createOrUpdateBlueprint(ctx, blueprint2)).Should(Succeed())
+				empty := newBlueprint()
+				Expect(createOrUpdateBlueprint(ctx, empty)).Should(Succeed())
 
 				By("Checking if addon is removed")
-				lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
 				createdAddon := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, lookupKey, createdAddon), timeout, interval).Should(BeFalse())
+				Eventually(getObject(ctx, addonKey, createdAddon), timeout, interval).Should(BeFalse())
 			})
 		})
 	})
