@@ -61,7 +61,6 @@ vet: ## Run go vet against code.
 
 UNIT_DIR?=./pkg/...
 INT_DIR?=./controllers/...
-E2E_DIR?=./test/e2e/...
 
 GINKGO_ARGS?= --keep-going
 GINKGO_FOCUS?=.*
@@ -78,9 +77,12 @@ integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	$(GINKGO) -trace -r -focus="$(GINKGO_FOCUS)" $(GINKGO_ARGS) "$(INT_DIR)"
 
+E2E_PATH?=./test/e2e/...
+E2E_TEST_FLAGS ?=
+
 .PHONY: e2e
-e2e: build-operator-manifest ## Run e2e tests.
-	go test -timeout 20m -v $(E2E_DIR) -test.failfast
+e2e: ## Run e2e tests.
+	go test $(E2E_PATH) $(E2E_TEST_FLAGS)
 
 ##@ Build
 

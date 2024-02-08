@@ -14,23 +14,29 @@ import (
 )
 
 var (
-	testenv env.Environment
+	testenv Environment
 )
 
 // The caller (e.g. make e2e) must ensure these exist.
 const (
-	boundlessImage = "mirantiscontainers/boundless-operator:latest"
+	DefaultOperatorImage = "ghcr.io/mirantiscontainers/boundless-operator:latest"
 )
 
 func TestMain(m *testing.M) {
-	testenv = env.New()
+	testenv = NewEnvironmentFromFlags()
 	kindClusterName := envconf.RandomName("test-cluster", 32)
+
+	cfg, err := envconf.NewFromFlags()
+	if err != nil {
+		panic(err)
+	}
+	testenv.SetEnvironment(env.NewWithConfig(cfg))
 
 	testenv.Setup(
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
 
 		// load image into kind cluster
-		envfuncs.LoadDockerImageToCluster(kindClusterName, boundlessImage),
+		envfuncs.LoadDockerImageToCluster(kindClusterName, testenv.GetOperatorImage()),
 
 		// add boundless types to scheme
 		funcs.AddBoundlessTypeToScheme(),

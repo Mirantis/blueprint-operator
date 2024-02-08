@@ -18,6 +18,11 @@ jobs:
         with:
           env-file: .github/development.env
 
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
@@ -28,17 +33,15 @@ jobs:
         working-directory: .
         run: docker load --input /tmp/${{ env.IMAGE }}.tar
 
+      - name: Tag the image with the commit sha
+        run:
+          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
 
-#      - name: Tag the image with the commit sha
-#        run:
-#          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
-#          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
-
-      - name: Setup Go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
+      - name: Generate the operator manifest
+        run: IMG="${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA" make build-operator-manifest
 
       - name: Run E2E tests
         run: |
-          make e2e
+          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          make e2e E2E_TEST_FLAG="-test.v -test.failfast -test.timeout 20m --img ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA"
