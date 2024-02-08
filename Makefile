@@ -82,7 +82,7 @@ E2E_TEST_FLAGS ?=
 
 .PHONY: e2e
 e2e: ## Run e2e tests.
-	go test $(E2E_PATH) $(E2E_TEST_FLAGS)
+	go test $(E2E_TEST_FLAGS) $(E2E_PATH)
 
 ##@ Build
 
