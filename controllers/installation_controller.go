@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,7 +24,8 @@ var (
 // InstallationReconciler reconciles a Installation object
 type InstallationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme      *runtime.Scheme
+	SetupLogger logr.Logger
 }
 
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=installations,verbs=get;list;watch;create;update;patch;delete
@@ -86,28 +88,20 @@ func (r *InstallationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	// try to create installation object if it does not exist
-	_ = CreateInstallationResourceIfNotExists(r.Client)
+	// try to create installation object
+	TryCreateInstallationResource(r.SetupLogger, r.Client)
 	return nil
 }
 
-// CreateInstallationResourceIfNotExists creates the Installation resource if it does not exist
-func CreateInstallationResourceIfNotExists(client client.Client) error {
-	err := client.Get(context.Background(), DefaultInstanceKey, &operator.Installation{})
-	if err == nil {
-		// installation resource already exists
-		return nil
-	}
-
-	if apierrors.IsNotFound(err) {
-		i := &operator.Installation{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      DefaultInstanceKey.Name,
-				Namespace: DefaultInstanceKey.Namespace,
-			},
+// TryCreateInstallationResource creates the Installation resource if it does not exist
+func TryCreateInstallationResource(log logr.Logger, client client.Client) {
+	obj := &operator.Installation{ObjectMeta: metav1.ObjectMeta{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}}
+	if err := client.Create(context.Background(), obj); err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			log.Info("Installation resource already exists")
+			return
 		}
-		return client.Create(context.Background(), i)
+		log.Error(err, "An error occurred when creating the Installation resource")
+		return
 	}
-
-	return nil
 }
