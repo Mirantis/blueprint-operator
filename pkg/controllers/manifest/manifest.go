@@ -39,8 +39,6 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 		return err
 	}
 
-	//mc.logger.Info("Sakshi:: name of the kustomization file folder", "Name", kustomizeFile)
-
 	sum, err := mc.getCheckSumUrl(dataBytes)
 	if err != nil {
 		mc.logger.Error(err, "Failed to get checksum for url")
@@ -151,7 +149,7 @@ func (mc *ManifestController) getExistingManifest(namespace, name string) (*boun
 
 func (mc *ManifestController) getCheckSumUrl(kustomizeBytes []byte) (string, error) {
 	sum := sha256.Sum256(kustomizeBytes)
-	mc.logger.Info("computed checksum on kfile:", "Checksum", hex.EncodeToString(sum[:]))
+	mc.logger.Info("computed checksum on kustomize build output", "Checksum", hex.EncodeToString(sum[:]))
 	return hex.EncodeToString(sum[:]), nil
 }
 

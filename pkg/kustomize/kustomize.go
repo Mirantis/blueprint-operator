@@ -12,41 +12,11 @@ import (
 	kustypes "sigs.k8s.io/kustomize/api/types"
 )
 
-const (
-	dirPath = "/tmp/"
-)
-
 // GenerateKustomization uses the manifest url and values from the blueprint and generates kustomization.yaml.
-// It also generates kustomize build output and returns it along with the name of the kustomization file.
+// It also generates kustomize build output and returns it.
 func GenerateKustomization(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([]byte, error) {
 	fs := filesys.MakeFsInMemory()
 
-	/*tempdir, err := os.MkdirTemp(dirPath, "addon-")
-	if err != nil {
-		logger.Error(err, "error generating temporary directory", "Error", err)
-		return nil, err
-	}
-
-	defer os.RemoveAll(tempdir)
-
-	logger.Info("Sakshi:: new temporary directory", "DIR", tempdir)
-
-	abs, err := filepath.Abs(tempdir)
-	if err != nil {
-		return nil, err
-	}
-
-	kfile := filepath.Join(abs, konfig.DefaultKustomizationFileName())
-
-	f, err := fs.Create(kfile)
-	if err != nil {
-		logger.Error(err, "error while creating file", "Error", err)
-		return nil, err
-	}
-	f.Close()
-
-	logger.Info("Sakshi:::The name of the kustomization file", "FileName", kfile)
-	*/
 	kus := kustypes.Kustomization{
 		TypeMeta: kustypes.TypeMeta{
 			APIVersion: kustypes.KustomizationVersion,
@@ -103,7 +73,6 @@ func GenerateKustomization(logger logr.Logger, url string, values *boundlessv1al
 	}
 
 	err = fs.WriteFile(konfig.DefaultKustomizationFileName(), kd)
-	//err = os.WriteFile(kfile, kd, os.ModePerm)
 	if err != nil {
 		logger.Error(err, "error while writing file", "File", konfig.DefaultKustomizationFileName(), "Error", err)
 		return nil, fmt.Errorf("%v", err)

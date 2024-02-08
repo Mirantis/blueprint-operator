@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
 	"io"
-	"os"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
+	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,13 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/kustomize/api/krusty"
-	kustypes "sigs.k8s.io/kustomize/api/types"
-	"sigs.k8s.io/kustomize/kyaml/filesys"
-
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
-	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 )
 
 const (
@@ -202,9 +197,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 
-		// Read the kustomize file, get kustomize build output and create objects thereby.
+		// Create the kustomize file, get kustomize build output and create objects thereby.
 		bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Values)
-		//bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.Values, logger)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -372,9 +366,8 @@ func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectLi
 func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context.Context, existing *boundlessv1alpha1.Manifest) error {
 	logger := log.FromContext(ctx)
 
-	// Read the URL contents
+	// Create kustomize file, generate kustomize build output and update the objects.
 	bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Values)
-	//bodyBytes, err := r.ReadKustomizeManifest(existing.Spec.Values, logger)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return err
@@ -468,36 +461,6 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 			logger.Error(err, "failed to delete obsolete objects")
 		}
 	}
-
-}
-
-// ReadKustomizeManifest reads the Kustomization.yaml and returns a byte string, the output of kustomize build,
-// containing the entire manifest content. This will also include patches and images in case they are
-// specified by the user.
-func (r *ManifestReconciler) ReadKustomizeManifest(kustomizeFile string, logger logr.Logger) ([]byte, error) {
-	fs := filesys.MakeFsOnDisk()
-
-	defer os.RemoveAll(kustomizeFile)
-
-	buildOptions := &krusty.Options{
-		LoadRestrictions: kustypes.LoadRestrictionsNone,
-		PluginConfig:     kustypes.DisabledPluginConfig(),
-	}
-
-	k := krusty.MakeKustomizer(buildOptions)
-	m, err := k.Run(fs, kustomizeFile)
-	if err != nil {
-		logger.Error(err, "failed to run kustomization on the file", "File", kustomizeFile)
-		return nil, err
-	}
-
-	objects, err := m.AsYaml()
-	if err != nil {
-		logger.Error(err, "failed to return YAML form of kustomize resources", "File", kustomizeFile)
-		return nil, err
-	}
-
-	return objects, nil
 }
 
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
