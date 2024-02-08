@@ -1,9 +1,8 @@
 resources:
 - manager.yaml
-- installation.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-- name: controller
-  newName: ghcr.io/mirantiscontainers/boundless-operator
-  newTag: validate
+- name: ghcr.io/mirantis/boundless-operator
+  newName: localhost:5001/boundless-operator
+  newTag: latest
