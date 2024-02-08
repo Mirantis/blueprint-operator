@@ -77,7 +77,7 @@ func GenerateKustomization(logger logr.Logger, url string, patches []boundlessv1
 		return nil, fmt.Errorf("%v", err)
 	}
 
-	logger.Info("Sakshi:::kustomize file contents", "KustomizeFile", string(kd))
+	logger.Info("kustomize file contents", "Contents", string(kd))
 
 	buildOptions := &krusty.Options{
 		LoadRestrictions: kustypes.LoadRestrictionsNone,

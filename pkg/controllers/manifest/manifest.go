@@ -32,8 +32,6 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 }
 
 func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
-	mc.logger.Info("Sakshi:: Received Values", "Patches", manifestSpec.Values.Patches, "Images", manifestSpec.Values.Images)
-
 	var images []boundlessv1alpha1.Image
 	var patches []boundlessv1alpha1.Patch
 

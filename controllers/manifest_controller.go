@@ -205,7 +205,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
 			return ctrl.Result{RequeueAfter: time.Minute}, err
 		}
-		logger.Info("Sakshi::::reading Kustomize objects.", "OBJECTS", string(bodyBytes))
 
 		logger.Info("received new crd request. Creating manifest objects..")
 		err = r.CreateManifestObjects(ctx, req, logger, bodyBytes)
