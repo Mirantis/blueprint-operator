@@ -46,6 +46,6 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          echo "Running E2E tests with image ${{ env.IMAGE }}:$COMMIT_SHA"
           COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
-          make e2e E2E_TEST_FLAG="-test.v -test.failfast -test.timeout 20m --img ${{ env.IMAGE }}:$COMMIT_SHA"
+          echo "Running E2E tests with image ${{ env.IMAGE }}:$COMMIT_SHA"
+          make e2e E2E_TEST_FLAGS="-test.v -test.failfast -test.timeout 20m --img ${{ env.IMAGE }}:$COMMIT_SHA"
