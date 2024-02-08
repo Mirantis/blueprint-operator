@@ -3,6 +3,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-- name: ghcr.io/mirantis/boundless-operator
-  newName: localhost:5001/boundless-operator
+- name: ghcr.io/mirantiscontainers/boundless-operator
+  newName: ghcr.io/mirantiscontainers/boundless-operator
   newTag: latest
