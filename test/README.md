@@ -66,23 +66,33 @@ More details here: https://book.kubebuilder.io/reference/envtest.html#testing-co
 * [gomega](https://onsi.github.io/gomega/).
 
 ## E2E Tests
-The E2E tests allow us to run a real deployment of Boundless-Operator
-and test the entire software system. It ensures the system performs all its 
+
+The E2E tests allow us to run a real deployment of Boundless Operator
+and test the entire system. It ensures the system performs all its 
 intended functions and meets the user's requirements.
 
+The e2e tests reside under [test/e2e/](e2e) directory.
 
 ### Running e2e tests
+To run all the tests, run `make e2e` command. 
 
-The e2e tests reside under boundless-operator/test/e2e directory and are organized 
-under different folders.
+> By default, the e2e tests will run against the latest released version of the operator. To run tests with a specific version of the operator, see the usage of `E2E_TEST_FLAGS` environment variable.
 
-To run all the tests, go to the root directory and run `make e2e` command . 
+Use the `E2E_TEST_FLAGS` to pass flags to the test binary. For example:
+```shell
+# Run tests with verbose output
+E2E_TEST_FLAGS="-test.v" make e2e
 
-If you want to run a specific test, for example `bopinstall`, you can use the following command.
+# To run specific test
+E2E_TEST_FLAGS="-test.run ^TestOperatorInstall" make e2e
 
-`go test -v ./test/e2e/bopinstall`
-
+# To run tests with a specific version of the operator.
+# Ensure that the image already exists in the registry.
+E2E_TEST_FLAGS="-img mirantiscontainers/boundless-operator:dev" make e2e
+```
 
 ### Running e2e in CI
-The workflow for e2e tests is automatically initiated whenever a PR is created.
+The workflow for e2e tests is automatically initiated when a PR is created and merged. 
+The e2e tests are run against the PR image build.
 
+See: [.github/workflows/e2e.yml](..%2F.github%2Fworkflows%2Fe2e.yml)
