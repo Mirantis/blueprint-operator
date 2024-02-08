@@ -33,9 +33,10 @@ jobs:
         working-directory: .
         run: docker load --input /tmp/${{ env.IMAGE }}.tar
 
-      - name: Tag the image with the commit sha
-        run:
+      - name: Tag the docker image
+        run: |
           COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          echo ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
           docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
 
       - name: Generate the operator manifest
