@@ -14,7 +14,7 @@ import (
 
 // GenerateKustomization uses the manifest url and values from the blueprint and generates kustomization.yaml.
 // It also generates kustomize build output and returns it.
-func GenerateKustomization(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([]byte, error) {
+func GenerateKustomization(logger logr.Logger, url string, patches []boundlessv1alpha1.Patch, images []boundlessv1alpha1.Image) ([]byte, error) {
 	fs := filesys.MakeFsInMemory()
 
 	kus := kustypes.Kustomization{
@@ -25,47 +25,46 @@ func GenerateKustomization(logger logr.Logger, url string, values *boundlessv1al
 	}
 
 	var resources []string
-	var images []kustypes.Image
-	var patches []kustypes.Patch
+	var kusImages []kustypes.Image
+	var kusPatches []kustypes.Patch
 
 	resources = append(resources, url)
 
-	if values != nil {
-		if len(values.Images) > 0 {
-			for i := range values.Images {
-				image := kustypes.Image{
-					Name:      values.Images[i].Name,
-					NewName:   values.Images[i].NewName,
-					TagSuffix: values.Images[i].TagSuffix,
-					NewTag:    values.Images[i].NewTag,
-					Digest:    values.Images[i].Digest,
-				}
-				images = append(images, image)
+	if len(images) > 0 {
+		for i := range images {
+			image := kustypes.Image{
+				Name:      images[i].Name,
+				NewName:   images[i].NewName,
+				TagSuffix: images[i].TagSuffix,
+				NewTag:    images[i].NewTag,
+				Digest:    images[i].Digest,
 			}
-		}
-
-		if len(values.Patches) > 0 {
-			for i := range values.Patches {
-				patch := kustypes.Patch{
-					Path:    values.Patches[i].Path,
-					Patch:   values.Patches[i].Patch,
-					Options: values.Patches[i].Options,
-				}
-				if values.Patches[i].Target != nil {
-					target := &kustypes.Selector{
-						ResId:              values.Patches[i].Target.ResId,
-						AnnotationSelector: values.Patches[i].Target.AnnotationSelector,
-						LabelSelector:      values.Patches[i].Target.LabelSelector,
-					}
-					patch.Target = target
-				}
-				patches = append(patches, patch)
-			}
+			kusImages = append(kusImages, image)
 		}
 	}
+
+	if len(patches) > 0 {
+		for i := range patches {
+			patch := kustypes.Patch{
+				Path:    patches[i].Path,
+				Patch:   patches[i].Patch,
+				Options: patches[i].Options,
+			}
+			if patches[i].Target != nil {
+				target := &kustypes.Selector{
+					ResId:              patches[i].Target.ResId,
+					AnnotationSelector: patches[i].Target.AnnotationSelector,
+					LabelSelector:      patches[i].Target.LabelSelector,
+				}
+				patch.Target = target
+			}
+			kusPatches = append(kusPatches, patch)
+		}
+	}
+
 	kus.Resources = resources
-	kus.Patches = patches
-	kus.Images = images
+	kus.Patches = kusPatches
+	kus.Images = kusImages
 
 	kd, err := yaml.Marshal(kus)
 	if err != nil {

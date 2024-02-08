@@ -33,7 +33,16 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 
 func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
 	mc.logger.Info("Sakshi:: Received Values", "Patches", manifestSpec.Values.Patches, "Images", manifestSpec.Values.Images)
-	dataBytes, err := kustomize.GenerateKustomization(mc.logger, manifestSpec.URL, manifestSpec.Values)
+
+	var images []boundlessv1alpha1.Image
+	var patches []boundlessv1alpha1.Patch
+
+	if manifestSpec.Values != nil {
+		images = manifestSpec.Values.Images
+		patches = manifestSpec.Values.Patches
+	}
+
+	dataBytes, err := kustomize.GenerateKustomization(mc.logger, manifestSpec.URL, patches, images)
 	if err != nil {
 		mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
 		return err
@@ -57,7 +66,8 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 	}
 
 	if manifestSpec.Values != nil {
-		m.Spec.Values = manifestSpec.Values
+		m.Spec.Patches = manifestSpec.Values.Patches
+		m.Spec.Images = manifestSpec.Values.Images
 	}
 
 	return mc.createOrUpdateManifest(m)
@@ -94,7 +104,8 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 					Checksum:    existing.Spec.Checksum,
 					NewChecksum: m.Spec.Checksum,
 					Objects:     existing.Spec.Objects,
-					Values:      m.Spec.Values,
+					Patches:     m.Spec.Patches,
+					Images:      m.Spec.Images,
 				},
 			}
 			newManifest.SetFinalizers(existing.GetFinalizers())

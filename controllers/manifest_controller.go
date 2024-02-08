@@ -4,17 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
-	"io"
-	"reflect"
-	"strings"
-	"time"
-
 	"github.com/go-logr/logr"
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
 	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -23,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/record"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
+	"time"
 )
 
 const (
@@ -153,7 +152,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Url:         existing.Spec.Url,
 				Checksum:    existing.Spec.NewChecksum,
 				NewChecksum: existing.Spec.NewChecksum,
-				Values:      existing.Spec.Values,
+				Patches:     existing.Spec.Patches,
+				Images:      existing.Spec.Images,
 			},
 		}
 
@@ -187,7 +187,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				Url:         existing.Spec.Url,
 				Checksum:    existing.Spec.Checksum,
 				NewChecksum: existing.Spec.Checksum,
-				Values:      existing.Spec.Values,
+				Patches:     existing.Spec.Patches,
+				Images:      existing.Spec.Images,
 			},
 		}
 
@@ -198,7 +199,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// Create the kustomize file, get kustomize build output and create objects thereby.
-		bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Values)
+		bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -367,7 +368,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	logger := log.FromContext(ctx)
 
 	// Create kustomize file, generate kustomize build output and update the objects.
-	bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Values)
+	bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return err
