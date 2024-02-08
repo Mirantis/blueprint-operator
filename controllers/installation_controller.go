@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,7 +82,32 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *InstallationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&operator.Installation{}).
-		Complete(r)
+	if err := ctrl.NewControllerManagedBy(mgr).For(&operator.Installation{}).Complete(r); err != nil {
+		return err
+	}
+
+	// try to create installation object if it does not exist
+	_ = CreateInstallationResourceIfNotExists(r.Client)
+	return nil
+}
+
+// CreateInstallationResourceIfNotExists creates the Installation resource if it does not exist
+func CreateInstallationResourceIfNotExists(client client.Client) error {
+	err := client.Get(context.Background(), DefaultInstanceKey, &operator.Installation{})
+	if err == nil {
+		// installation resource already exists
+		return nil
+	}
+
+	if apierrors.IsNotFound(err) {
+		i := &operator.Installation{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      DefaultInstanceKey.Name,
+				Namespace: DefaultInstanceKey.Namespace,
+			},
+		}
+		return client.Create(context.Background(), i)
+	}
+
+	return nil
 }

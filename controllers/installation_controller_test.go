@@ -7,10 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
-	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
 // These tests should run in the serial (not parallel) and in order specified
@@ -24,20 +21,6 @@ var _ = Describe("Testing installation", Ordered, Serial, func() {
 	)
 
 	Context("Reconcile tests", func() {
-		BeforeAll(func() {
-			i := &operator.Installation{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "boundless.mirantis.com/v1alpha1",
-					Kind:       "Installation",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "default",
-					Namespace: metav1.NamespaceDefault,
-				},
-			}
-
-			Expect(k8sClient.Create(ctx, i)).Should(Succeed())
-		})
 		It("Should install Helm Controller", func() {
 			ctx := context.Background()
 			dep := &appsv1.Deployment{}

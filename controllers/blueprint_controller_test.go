@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -44,28 +43,6 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 		timeout  = time.Second * 10
 		interval = time.Millisecond * 250
 	)
-
-	BeforeAll(func() {
-		// Start component installation by creating Installation CRD
-		// This is needed for delete addon tests to work
-		By("Creating Installation CRD")
-		installation := &v1alpha1.Installation{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "boundless.mirantis.com/v1alpha1",
-				Kind:       "Installation",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "default",
-				Namespace: "default",
-			},
-		}
-		Expect(k8sClient.Create(ctx, installation)).Should(Succeed())
-
-		By("Waiting for helm-controller to be created")
-		dep := &appsv1.Deployment{}
-		lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
-		Eventually(getObject(ctx, lookupKey, dep), timeout, interval).Should(BeTrue())
-	})
 
 	BeforeEach(func() {
 		// Reset the state by creating empty blueprint
