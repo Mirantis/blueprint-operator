@@ -27,6 +27,7 @@ type ManifestSpec struct {
 
 	NewChecksum string           `json:"newChecksum,omitempty"`
 	Checksum    string           `json:"checksum"`
+	Values      *Values          `json:"values,omitempty"`
 	Objects     []ManifestObject `json:"objects,omitempty"`
 }
 

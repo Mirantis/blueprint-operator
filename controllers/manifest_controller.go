@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"reflect"
-	"strings"
-	"time"
-
 	"github.com/go-logr/logr"
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/event"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -19,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/record"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,12 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
+	"time"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
-
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	pkgmanifest "github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
-	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 )
 
 const (
@@ -163,11 +161,13 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
+
 				Url:           existing.Spec.Url,
 				Checksum:      existing.Spec.NewChecksum,
 				NewChecksum:   existing.Spec.NewChecksum,
 				FailurePolicy: existing.Spec.FailurePolicy,
 				Timeout:       existing.Spec.Timeout,
+				Values:        existing.Spec.Values,
 			},
 		}
 
@@ -208,11 +208,13 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				ResourceVersion: existing.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
+
 				Url:           existing.Spec.Url,
 				Checksum:      existing.Spec.Checksum,
 				NewChecksum:   existing.Spec.Checksum,
 				Timeout:       existing.Spec.Timeout,
 				FailurePolicy: existing.Spec.FailurePolicy,
+				Values:        existing.Spec.Values,
 			},
 		}
 
@@ -222,8 +224,9 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			return ctrl.Result{}, err
 		}
 
-		// Run http get request to fetch the contents of the manifest file.
-		bodyBytes, err := r.ReadManifest(existing.Spec.Url, logger)
+		// Create the kustomize file, get kustomize build output and create objects thereby.
+		bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Values)
+
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -436,8 +439,9 @@ func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectLi
 func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context.Context, existing *boundlessv1alpha1.Manifest) error {
 	logger := log.FromContext(ctx)
 
-	// Read the URL contents
-	bodyBytes, err := r.ReadManifest(existing.Spec.Url, logger)
+	// Create kustomize file, generate kustomize build output and update the objects.
+	bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Values)
+
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return err
@@ -533,46 +537,6 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 			logger.Error(err, "failed to delete obsolete objects")
 		}
 	}
-
-}
-
-// ReadManifest reads the manifest from the url and returns a byte string containing the entire manifest content
-func (r *ManifestReconciler) ReadManifest(url string, logger logr.Logger) ([]byte, error) {
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-	defer cancel()
-
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logger.Error(err, "failed to create http request for url: %s", url)
-		return nil, err
-	}
-
-	httpClient := http.DefaultClient
-
-	resp, err := httpClient.Do(httpReq)
-	if err != nil {
-		logger.Error(err, "failed to fetch manifest file content for url: %s", url)
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	var bodyBytes []byte
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err = io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error(err, "failed to read http response body")
-			return nil, err
-		}
-
-	} else {
-		logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
-		return nil, fmt.Errorf("failure in http get request ResponseCode: %d, %s", resp.StatusCode, err)
-	}
-
-	return bodyBytes, nil
-
 }
 
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {

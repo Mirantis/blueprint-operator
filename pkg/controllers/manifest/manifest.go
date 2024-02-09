@@ -5,8 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"time"
 
@@ -39,20 +37,17 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 }
 
 func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
-	sum, err := mc.getCheckSumUrl(manifestSpec.URL)
+
+	dataBytes, err := kustomize.Render(mc.logger, manifestSpec.URL, manifestSpec.Values)
 	if err != nil {
-		mc.logger.Error(err, "Failed to get checksum for url")
+		mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
 		return err
 	}
 
-	if manifestSpec.Values != nil {
-		mc.logger.Info("Received Values", "Patches", manifestSpec.Values.Patches, "Images", manifestSpec.Values.Images)
-		// TODO: Use the second parameter to generate new checksum - BOP-277.
-		_, _, err := kustomize.GenerateKustomization(mc.logger, manifestSpec)
-		if err != nil {
-			mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
-			return err
-		}
+	sum, err := mc.getCheckSumUrl(dataBytes)
+	if err != nil {
+		mc.logger.Error(err, "Failed to get checksum for url")
+		return err
 	}
 
 	m := boundlessv1alpha1.Manifest{
@@ -73,6 +68,10 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 	}
 
 	m.Spec.FailurePolicy = failurePolicy
+
+	if manifestSpec.Values != nil {
+		m.Spec.Values = manifestSpec.Values
+	}
 
 	return mc.createOrUpdateManifest(m)
 
@@ -110,9 +109,9 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 					Objects:       existing.Spec.Objects,
 					FailurePolicy: m.Spec.FailurePolicy,
 					Timeout:       m.Spec.Timeout,
+					Values:        m.Spec.Values,
 				},
 			}
-
 			newManifest.SetFinalizers(existing.GetFinalizers())
 			err := mc.client.Update(ctx, &newManifest)
 			if err != nil {
@@ -167,34 +166,9 @@ func (mc *ManifestController) getExistingManifest(namespace, name string) (*boun
 	return existing, nil
 }
 
-func (mc *ManifestController) getCheckSumUrl(url string) (string, error) {
-	var Client http.Client
-
-	// Run http get request to fetch the contents of the manifest file
-	resp, err := Client.Get(url)
-	if err != nil {
-		mc.logger.Error(err, "failed to read response")
-		return "", err
-	}
-
-	defer resp.Body.Close()
-
-	var bodyBytes []byte
-	if resp.StatusCode == http.StatusOK {
-		bodyBytes, err = io.ReadAll(resp.Body)
-		if err != nil {
-			mc.logger.Error(err, "failed to read http response body")
-			return "", err
-		}
-
-	} else {
-		mc.logger.Error(err, "failure in http get request", "ResponseCode", resp.StatusCode)
-		return "", fmt.Errorf("failure in http get request ResponseCode: %d, %s", resp.StatusCode, err)
-	}
-
-	sum := sha256.Sum256(bodyBytes)
-	mc.logger.Info("computed checksum :", "Checksum", hex.EncodeToString(sum[:]))
-
+func (mc *ManifestController) getCheckSumUrl(kustomizeBytes []byte) (string, error) {
+	sum := sha256.Sum256(kustomizeBytes)
+	mc.logger.Info("computed checksum on kustomize build output", "Checksum", hex.EncodeToString(sum[:]))
 	return hex.EncodeToString(sum[:]), nil
 }
 
