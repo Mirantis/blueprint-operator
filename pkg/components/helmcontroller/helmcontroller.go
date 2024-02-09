@@ -44,7 +44,7 @@ func (c *component) Install(ctx context.Context) error {
 	defer cancel()
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(HelmControllerTemplate))); err != nil {
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(helmControllerTemplate))); err != nil {
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (c *component) Uninstall(ctx context.Context) error {
 	defer cancel()
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
-	reader := kubernetes.NewManifestReader([]byte(HelmControllerTemplate))
+	reader := kubernetes.NewManifestReader([]byte(helmControllerTemplate))
 	objs, err := reader.ReadManifest()
 	if err != nil {
 		return err

@@ -2,7 +2,7 @@ package certmanager
 
 // Source: https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
 
-const CertManagerTemplate = `
+const certManagerTemplate = `
 apiVersion: v1
 kind: Namespace
 metadata:

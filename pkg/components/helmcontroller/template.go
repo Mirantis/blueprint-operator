@@ -2,7 +2,7 @@ package helmcontroller
 
 // Source: https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
 
-const HelmControllerTemplate = `
+const helmControllerTemplate = `
 apiVersion: v1
 kind: Namespace
 metadata:

@@ -51,7 +51,7 @@ func (c *component) Install(ctx context.Context) error {
 	defer cancel()
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(CertManagerTemplate))); err != nil {
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certManagerTemplate))); err != nil {
 		return err
 	}
 
@@ -84,7 +84,7 @@ func (c *component) Uninstall(ctx context.Context) error {
 	defer cancel()
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
-	reader := kubernetes.NewManifestReader([]byte(CertManagerTemplate))
+	reader := kubernetes.NewManifestReader([]byte(certManagerTemplate))
 	objs, err := reader.ReadManifest()
 	if err != nil {
 		return err
