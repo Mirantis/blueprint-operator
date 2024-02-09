@@ -9,12 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 // These tests should run in the serial (not parallel) and in order specified
 // Otherwise, the results may not be predictable
 // This is because all these tests runs in a single environment
-var _ = FDescribe("Testing installation controller", Ordered, Serial, func() {
+var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 	Context("Reconcile tests", func() {
 		It("Finalizer should be added", func() {
 			obj := &operator.Installation{}
@@ -35,13 +36,13 @@ var _ = FDescribe("Testing installation controller", Ordered, Serial, func() {
 		})
 		It("Should install helm controller", func() {
 			dep := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
+			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), DefaultTimeout, DefaultInterval).Should(BeTrue())
 		})
 
 		It("Should install cert manager", func() {
 			dep := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: NamespaceBoundlessSystem}
+			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), DefaultTimeout, DefaultInterval).Should(BeTrue())
 		})
 	})
@@ -56,12 +57,12 @@ var _ = FDescribe("Testing installation controller", Ordered, Serial, func() {
 		})
 		It("Should delete Helm Controller", func() {
 			dep := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
+			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), DefaultTimeout, DefaultInterval).Should(BeFalse())
 		})
 		It("Should delete cert manager", func() {
 			dep := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: NamespaceBoundlessSystem}
+			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), DefaultTimeout, DefaultInterval).Should(BeFalse())
 		})
 	})

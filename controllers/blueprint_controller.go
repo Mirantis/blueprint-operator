@@ -15,11 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-)
-
-const (
-	// NamespaceBoundlessSystem is the namespace where all boundless components are installed
-	NamespaceBoundlessSystem = "boundless-system"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 // BlueprintReconciler reconciles a Blueprint object
@@ -206,7 +202,7 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 	return &boundlessv1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.IngressSpec{
 			Enabled:  spec.Enabled,
@@ -221,7 +217,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	addon := &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
-			Namespace: NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.AddonSpec{
 			Name:      spec.Name,

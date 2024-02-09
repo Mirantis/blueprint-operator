@@ -9,46 +9,64 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/mirantiscontainers/boundless-operator/pkg/components"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
 )
 
 const (
-	// NamespaceBoundlessSystem is the namespace where all boundless components are installed
-	NamespaceBoundlessSystem = "boundless-system"
-	DeploymentHelmController = "helm-controller"
+	deploymentHelmController = "helm-controller"
 )
 
-func Install(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {
+// CertManagerComponent is the manifest for installing cert manager.
+type component struct {
+	client client.Client
+	logger logr.Logger
+}
+
+// NewHelmControllerComponent creates a new helm controller component.
+func NewHelmControllerComponent(client client.Client, logger logr.Logger) components.Component {
+	return &component{
+		client: client,
+		logger: logger,
+	}
+}
+
+func (c *component) Name() string {
+	return "helm-controller"
+}
+
+func (c *component) Install(ctx context.Context) error {
 	var err error
-	logger.Info("Installing helm controller")
+	c.logger.Info("Installing helm controller")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	applier := kubernetes.NewApplier(logger, runtimeClient)
+	applier := kubernetes.NewApplier(c.logger, c.client)
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(HelmControllerTemplate))); err != nil {
 		return err
 	}
 
 	// wait for helm controller to be ready
-	logger.Info("Waiting for helm controller")
-	if err = utils.WaitForDeploymentReady(ctx, logger, runtimeClient, DeploymentHelmController, NamespaceBoundlessSystem); err != nil {
+	c.logger.Info("Waiting for helm controller")
+	if err = utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentHelmController, consts.NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
-	logger.Info("Finished installing helm controller")
+	c.logger.Info("Finished installing helm controller")
 
 	return nil
 }
 
 // Uninstall uninstalls cert manager from the cluster.
-func Uninstall(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {
-	logger.Info("Uninstalling helm controller")
+func (c *component) Uninstall(ctx context.Context) error {
+	c.logger.Info("Uninstalling helm controller")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	applier := kubernetes.NewApplier(logger, runtimeClient)
+	applier := kubernetes.NewApplier(c.logger, c.client)
 	reader := kubernetes.NewManifestReader([]byte(HelmControllerTemplate))
 	objs, err := reader.ReadManifest()
 	if err != nil {
@@ -59,17 +77,17 @@ func Uninstall(ctx context.Context, runtimeClient client.Client, logger logr.Log
 		return err
 	}
 
-	logger.Info("Finished uninstalling helm controller")
+	c.logger.Info("Finished uninstalling helm controller")
 	return nil
 }
 
 // CheckExists checks if the helm controller exists in the cluster
-func CheckExists(ctx context.Context, runtimeClient client.Client) (bool, error) {
+func (c *component) CheckExists(ctx context.Context) (bool, error) {
 	key := client.ObjectKey{
-		Namespace: NamespaceBoundlessSystem,
-		Name:      DeploymentHelmController,
+		Namespace: consts.NamespaceBoundlessSystem,
+		Name:      deploymentHelmController,
 	}
-	if err := runtimeClient.Get(ctx, key, &v1.Deployment{}); err != nil {
+	if err := c.client.Get(ctx, key, &v1.Deployment{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}

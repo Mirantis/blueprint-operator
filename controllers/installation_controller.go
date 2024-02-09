@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -15,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	components "github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/helmcontroller"
 )
@@ -54,6 +54,12 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return reconcile.Result{}, err
 	}
 
+	// list of components to install
+	componentList := []components.Component{
+		helmcontroller.NewHelmControllerComponent(r.Client, logger),
+		certmanager.NewCertManagerComponent(r.Client, logger),
+	}
+
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(instance, installationFinalizer) {
 			logger.Info("Adding Finalizer for Installation")
@@ -65,13 +71,12 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	} else {
 		// The object is being deleted
-		if err := helmcontroller.Uninstall(ctx, r.Client, logger); err != nil {
-			logger.Error(err, "Failed to uninstall helm controller")
-			return ctrl.Result{}, err
-		}
-		if err := certmanager.Uninstall(ctx, r.Client, logger); err != nil {
-			logger.Error(err, "Failed to uninstall cert manager")
-			return ctrl.Result{}, err
+		logger.Info("Uninstalling components")
+		for _, component := range componentList {
+			if err := component.Uninstall(ctx); err != nil {
+				logger.Error(err, "Failed to uninstall component", "Name", component.Name())
+				return ctrl.Result{}, err
+			}
 		}
 
 		// remove our finalizer from the list and update it.
@@ -84,32 +89,22 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, nil
 	}
 
-	// Install helm controller if it does not exist
-	exists, err := helmcontroller.CheckExists(ctx, r.Client)
-	if err != nil {
-		logger.Error(err, "failed to check if helm controller already exists")
-		return ctrl.Result{}, fmt.Errorf("failed to check if helm controller already exists")
-	}
-	if !exists {
-		logger.Info("Helm controller is not installed. Installing...")
-		if err = helmcontroller.Install(ctx, r.Client, logger); err != nil {
+	// Install components
+	for _, component := range componentList {
+		exists, err := component.CheckExists(ctx)
+		if err != nil {
+			logger.Error(err, "failed to check if component already exists", "Name", component.Name())
 			return ctrl.Result{}, err
 		}
-	}
 
-	// Install cert manager if it does not exist
-	exist, err := certmanager.CheckExists(ctx, r.Client, logger)
-	if err != nil {
-		logger.Error(err, "failed to check if cert manager already exists")
-		return ctrl.Result{}, fmt.Errorf("failed to check if cert manager already exists")
-	}
-	if !exist {
-		logger.Info("cert manager is not installed. Installing...")
-		if err = certmanager.Install(ctx, r.Client, logger); err != nil {
-			return ctrl.Result{}, err
+		if !exists {
+			logger.Info("Component is not installed. Installing...", "Name", component.Name())
+			if err = component.Install(ctx); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			logger.Info("Component is already installed", "Name", component.Name())
 		}
-	} else {
-		logger.Info("cert manager is already installed.")
 	}
 
 	logger.V(1).Info("Finished reconciling Installation")

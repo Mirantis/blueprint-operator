@@ -72,7 +72,7 @@ func (a *Applier) Delete(ctx context.Context, objs []*unstructured.Unstructured)
 			}
 			return fmt.Errorf("failed to delete object: %s/%s", o.GetNamespace(), o.GetName())
 		}
-		a.log.Info("Deleting object", "Kind", object.GetKind(), "Namespace", object.GetNamespace(), "Name", object.GetName())
+		a.log.V(1).Info("Deleting object", "Kind", object.GetKind(), "Namespace", object.GetNamespace(), "Name", object.GetName())
 		if err := a.client.Delete(ctx, object); err != nil {
 			return fmt.Errorf("failed to delete %s/%s/%s", object.GetKind(), object.GetNamespace(), object.GetName())
 		}

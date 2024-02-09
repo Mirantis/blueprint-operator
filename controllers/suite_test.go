@@ -20,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -130,7 +131,7 @@ func createBoundlessNamespace(ctx context.Context) {
 	GinkgoHelper()
 
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: NamespaceBoundlessSystem},
+		ObjectMeta: metav1.ObjectMeta{Name: consts.NamespaceBoundlessSystem},
 	}
 	Expect(k8sClient.Create(ctx, ns)).Should(Succeed(), "failed to create namespace")
 }

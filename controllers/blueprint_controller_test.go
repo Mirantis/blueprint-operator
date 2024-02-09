@@ -7,13 +7,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 const (
 	blueprintName = "test-blueprint"
 )
 
-var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
+var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBoundlessSystem}
 
 func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 	blueprint := &v1alpha1.Blueprint{
@@ -23,7 +24,7 @@ func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      blueprintName,
-			Namespace: NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 	}
 	for _, addon := range addons {
@@ -53,7 +54,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			blueprint := newBlueprint()
 			Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
-			key := types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
+			key := types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(ctx, key, blueprint), DefaultTimeout, DefaultInterval).Should(BeTrue())
 		})
 	})
@@ -78,7 +79,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 				},
 			}
 
-			addonKey = types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
+			addonKey = types.NamespacedName{Name: addonName, Namespace: consts.NamespaceBoundlessSystem}
 
 		})
 		Context("Helm chart addon is added to the blueprint", func() {
