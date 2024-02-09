@@ -78,7 +78,7 @@ func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([
 		return nil, fmt.Errorf("%v", err)
 	}
 
-	logger.Info("kustomize file contents", "Contents", string(kd))
+	logger.V(1).Info("kustomize file contents", "Contents", string(kd))
 
 	buildOptions := &krusty.Options{
 		LoadRestrictions: kustypes.LoadRestrictionsNone,
