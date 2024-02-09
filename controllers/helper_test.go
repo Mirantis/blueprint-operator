@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	// Default timeout for waiting for assertions
-	DefaultTimeout = time.Second * 10
+	// defaultTimeout is timeout for waiting for assertions
+	defaultTimeout = time.Second * 10
 
-	// Default interval for waiting for assertions
-	DefaultInterval = time.Millisecond * 250
+	// defaultInterval interval for waiting for assertions
+	defaultInterval = time.Millisecond * 250
 )
 
 func getObject(ctx context.Context, key runtimeclient.ObjectKey, obj runtimeclient.Object) func() bool {

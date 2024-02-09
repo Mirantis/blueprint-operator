@@ -33,6 +33,7 @@ func NewHelmControllerComponent(client client.Client, logger logr.Logger) compon
 	}
 }
 
+// Name returns the name of the component
 func (c *component) Name() string {
 	return "helm-controller"
 }

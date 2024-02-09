@@ -55,7 +55,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
 			key := types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBoundlessSystem}
-			Eventually(getObject(ctx, key, blueprint), DefaultTimeout, DefaultInterval).Should(BeTrue())
+			Eventually(getObject(ctx, key, blueprint), defaultTimeout, defaultInterval).Should(BeTrue())
 		})
 	})
 
@@ -97,7 +97,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 			It("Should create the correct addon resource", func() {
 				actual := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, actual), DefaultTimeout, DefaultInterval).Should(BeTrue())
+				Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 			})
 		})
@@ -110,7 +110,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 				By("Waiting for addon to be created")
 				actual := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, actual), DefaultTimeout, DefaultInterval).Should(BeTrue())
+				Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 
 				By("Removing addon from blueprints")
@@ -119,7 +119,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 				By("Checking if addon is removed")
 				createdAddon := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, createdAddon), DefaultTimeout, DefaultInterval).Should(BeFalse())
+				Eventually(getObject(ctx, addonKey, createdAddon), defaultTimeout, defaultInterval).Should(BeFalse())
 			})
 		})
 	})

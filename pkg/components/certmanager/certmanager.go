@@ -38,6 +38,7 @@ func NewCertManagerComponent(client client.Client, logger logr.Logger) component
 	}
 }
 
+// Name returns the name of the component.
 func (c *component) Name() string {
 	return "cert-manager"
 }
