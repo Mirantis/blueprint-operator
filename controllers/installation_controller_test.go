@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -16,27 +15,21 @@ import (
 // Otherwise, the results may not be predictable
 // This is because all these tests runs in a single "environment"
 var _ = Describe("Testing installation", Ordered, Serial, func() {
-
-	const (
-		timeout  = time.Second * 10
-		interval = time.Millisecond * 250
-	)
-
 	Context("Reconcile tests", func() {
 		It("Should install Installation", func() {
 			lookupKey := types.NamespacedName{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}
-			Eventually(getObject(context.TODO(), lookupKey, &operator.Installation{}), timeout, interval).Should(BeTrue())
+			Eventually(getObject(context.TODO(), lookupKey, &operator.Installation{}), DefaultTimeout, DefaultInterval).Should(BeTrue())
 		})
 		It("Should install Helm Controller", func() {
 			dep := &appsv1.Deployment{}
 			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
-			Eventually(getObject(context.TODO(), lookupKey, dep), timeout, interval).Should(BeTrue())
+			Eventually(getObject(context.TODO(), lookupKey, dep), DefaultTimeout, DefaultInterval).Should(BeTrue())
 		})
 
 		It("Should install cert manager", func() {
 			dep := &appsv1.Deployment{}
 			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: NamespaceBoundlessSystem}
-			Eventually(getObject(context.TODO(), lookupKey, dep), timeout, interval).Should(BeTrue())
+			Eventually(getObject(context.TODO(), lookupKey, dep), DefaultTimeout, DefaultInterval).Should(BeTrue())
 		})
 	})
 })

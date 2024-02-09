@@ -101,7 +101,8 @@ func TryCreateInstallationResource(log logr.Logger, client client.Client) {
 			log.Info("Installation resource already exists")
 			return
 		}
-		log.Error(err, "An error occurred when creating the Installation resource")
+		log.Error(err, "Installation resource has failed to create, boundless operator may not function properly. "+
+			"Please create the Installation resource manually.")
 		return
 	}
 }

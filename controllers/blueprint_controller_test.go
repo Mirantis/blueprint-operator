@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,12 +36,6 @@ func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 // Otherwise, the results may not be predictable
 // This is because all these tests runs in a single "environment"
 var _ = Describe("Blueprint controller", Ordered, Serial, func() {
-
-	const (
-		timeout  = time.Second * 10
-		interval = time.Millisecond * 250
-	)
-
 	BeforeEach(func() {
 		// Reset the state by creating empty blueprint
 		blueprint := newBlueprint()
@@ -62,7 +54,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
 			key := types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
-			Eventually(getObject(ctx, key, blueprint), timeout, interval).Should(BeTrue())
+			Eventually(getObject(ctx, key, blueprint), DefaultTimeout, DefaultInterval).Should(BeTrue())
 		})
 	})
 
@@ -104,7 +96,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 			It("Should create the correct addon resource", func() {
 				actual := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, actual), timeout, interval).Should(BeTrue())
+				Eventually(getObject(ctx, addonKey, actual), DefaultTimeout, DefaultInterval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 			})
 		})
@@ -117,7 +109,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 				By("Waiting for addon to be created")
 				actual := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, actual), timeout, interval).Should(BeTrue())
+				Eventually(getObject(ctx, addonKey, actual), DefaultTimeout, DefaultInterval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 
 				By("Removing addon from blueprints")
@@ -126,7 +118,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 				By("Checking if addon is removed")
 				createdAddon := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, createdAddon), timeout, interval).Should(BeFalse())
+				Eventually(getObject(ctx, addonKey, createdAddon), DefaultTimeout, DefaultInterval).Should(BeFalse())
 			})
 		})
 	})
