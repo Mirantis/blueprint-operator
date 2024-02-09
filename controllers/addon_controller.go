@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	batch "k8s.io/api/batch/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -71,13 +71,11 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	instance := &boundlessv1alpha1.Addon{}
 	err = r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
-		msg := "failed to get Addon instance"
-		if errors.IsNotFound(err) {
-			// Ignore request.
-			logger.Info(msg, "Name", req.Name, "Requeue", false)
+		if apierrors.IsNotFound(err) {
+			logger.Info("Addon instance not found. Ignoring since object must be deleted.", "Name", req.Name)
 			return ctrl.Result{}, nil
 		}
-		logger.Error(err, msg, "Name", req.Namespace, "Requeue", true)
+		logger.Error(err, "Failed to get addon instance", "Name", req.Name, "Requeue", true)
 		return ctrl.Result{}, err
 	}
 
@@ -213,7 +211,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		m := &boundlessv1alpha1.Manifest{}
 		err = r.Get(ctx, types.NamespacedName{Namespace: NamespaceBoundlessSystem, Name: instance.Spec.Name}, m)
 		if err != nil {
-			if errors.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				// might need some time for CR to  be created
 				r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
 				return ctrl.Result{}, err

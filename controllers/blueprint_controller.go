@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,7 +46,11 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	logger.Info("Reconcile request on Blueprint instance", "Name", req.Name)
 	instance := &boundlessv1alpha1.Blueprint{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-		logger.Error(err, "Failed to get Blueprint instance")
+		if apierrors.IsNotFound(err) {
+			logger.Info("Blueprint instance not found. Ignoring since object must be deleted.", "Name", req.Name)
+			return ctrl.Result{}, nil
+		}
+		logger.Error(err, "Failed to get Blueprint instance", "Name", req.Name, "Requeue", true)
 		return ctrl.Result{}, err
 	}
 
