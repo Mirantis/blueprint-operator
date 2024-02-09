@@ -19,6 +19,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	FailurePolicyNone  = "None"
+	FailurePolicyRetry = "Retry"
+)
+
 type ManifestController struct {
 	client client.Client
 	logger logr.Logger
@@ -59,9 +64,17 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 		},
 		Spec: boundlessv1alpha1.ManifestSpec{
 			Url:      manifestSpec.URL,
+			Timeout:  manifestSpec.Timeout,
 			Checksum: sum,
 		},
 	}
+
+	failurePolicy := manifestSpec.FailurePolicy
+	if failurePolicy == "" {
+		failurePolicy = FailurePolicyNone
+	}
+
+	m.Spec.FailurePolicy = failurePolicy
 
 	if manifestSpec.Values != nil {
 		m.Spec.Patches = manifestSpec.Values.Patches
@@ -84,7 +97,7 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 
 	if existing != nil {
 		// Use checksum to see if any updates are required.
-		if existing.Spec.Checksum != m.Spec.Checksum {
+		if mc.checkIfManifestNeedsUpdate(m, existing) {
 			mc.logger.Info("manifest crd exists, checksum differs", "Existing", existing.Spec.Checksum, "New", m.Spec.Checksum)
 
 			// This will differ both in case either the url has changed or the contents of the url has changed.
@@ -98,12 +111,14 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 					ResourceVersion: existing.ResourceVersion,
 				},
 				Spec: boundlessv1alpha1.ManifestSpec{
-					Url:         m.Spec.Url,
-					Checksum:    existing.Spec.Checksum,
-					NewChecksum: m.Spec.Checksum,
-					Objects:     existing.Spec.Objects,
-					Patches:     m.Spec.Patches,
-					Images:      m.Spec.Images,
+					Url:           m.Spec.Url,
+					Checksum:      existing.Spec.Checksum,
+					NewChecksum:   m.Spec.Checksum,
+					Objects:       existing.Spec.Objects,
+					FailurePolicy: m.Spec.FailurePolicy,
+					Timeout:       m.Spec.Timeout,
+					Patches:       m.Spec.Patches,
+					Images:        m.Spec.Images,
 				},
 			}
 			newManifest.SetFinalizers(existing.GetFinalizers())
@@ -132,6 +147,10 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 	}
 
 	return nil
+}
+
+func (mc *ManifestController) checkIfManifestNeedsUpdate(m boundlessv1alpha1.Manifest, existing *boundlessv1alpha1.Manifest) bool {
+	return existing.Spec.Checksum != m.Spec.Checksum || existing.Spec.FailurePolicy != m.Spec.FailurePolicy || existing.Spec.Timeout != m.Spec.Timeout
 }
 
 func (mc *ManifestController) getExistingManifest(namespace, name string) (*boundlessv1alpha1.Manifest, error) {

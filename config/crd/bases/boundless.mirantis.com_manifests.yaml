@@ -42,6 +42,14 @@ spec:
             properties:
               checksum:
                 type: string
+              failurePolicy:
+                description: 'This flag tells the controller how to handle the manifest
+                  in case of a failure. Valid values are: - None (default) : No-op;
+                  No action is triggered on manifest failure - Retry : Manifest is
+                  retried in case of failure. For install, the manifest resources
+                  are deleted and re-installed. For update, the new version of the
+                  manifest is applied on top of existing resources.'
+                type: string
               images:
                 items:
                   description: Image contains an image name, a new name, a new tag
@@ -143,12 +151,18 @@ spec:
                   - patch
                   type: object
                 type: array
+              timeout:
+                description: Timeout for manifest operations as duration string (300s,
+                  10m, 1h, etc) If manifest is not Available after timeout duration,
+                  it will be handled by specified FailurePolicy
+                type: string
               url:
                 description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                   Important: Run "make" to regenerate code after modifying this file'
                 type: string
             required:
             - checksum
+            - failurePolicy
             - url
             type: object
           status:

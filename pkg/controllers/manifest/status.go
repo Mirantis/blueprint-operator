@@ -3,10 +3,10 @@ package manifest
 import (
 	"context"
 	"fmt"
-
 	"github.com/go-logr/logr"
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	apps_v1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -58,7 +58,7 @@ func (mc *ManifestController) CheckManifestStatus(ctx context.Context, logger lo
 	}
 
 	if deploymentStatus.StatusType == boundlessv1alpha1.TypeComponentProgressing && daemonsetStatus.StatusType == boundlessv1alpha1.TypeComponentProgressing {
-		return Status{boundlessv1alpha1.TypeComponentAvailable, "Manifest Components Still Progressing", fmt.Sprintf("Deployments : %s, Daemonsets : %s", deploymentStatus.Reason, daemonsetStatus.Reason)}, nil
+		return Status{boundlessv1alpha1.TypeComponentProgressing, "Manifest Components Still Progressing", fmt.Sprintf("Deployments : %s, Daemonsets : %s", deploymentStatus.Reason, daemonsetStatus.Reason)}, nil
 	} else if deploymentStatus.StatusType == boundlessv1alpha1.TypeComponentProgressing {
 		return deploymentStatus, nil
 	} else if daemonsetStatus.StatusType == boundlessv1alpha1.TypeComponentProgressing {
@@ -84,25 +84,34 @@ func (mc *ManifestController) checkManifestDeployments(ctx context.Context, logg
 		err := mc.client.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, deployment)
 		if err != nil {
 			return Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get deployment from manifest", ""}, err
-
 		}
 		if deployment.Status.AvailableReplicas == deployment.Status.Replicas && (deployment.Status.Conditions == nil || len(deployment.Status.Conditions) == 0) {
 			// this deployment is ready
 			continue
 		}
-		latestCondition := deployment.Status.Conditions[0]
-		if deployment.Status.AvailableReplicas == deployment.Status.Replicas && latestCondition.Type == apps_v1.DeploymentAvailable {
+
+		progressCondition, err := getConditionOfType(apps_v1.DeploymentProgressing, deployment.Status.Conditions)
+		if err != nil {
+			return Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get deployment conditions from manifest", ""}, err
+		}
+
+		availableCondition, err := getConditionOfType(apps_v1.DeploymentAvailable, deployment.Status.Conditions)
+		if err != nil {
+			return Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get deployment conditions from manifest", ""}, err
+		}
+
+		if deployment.Status.AvailableReplicas == deployment.Status.Replicas && availableCondition.Status == v1.ConditionTrue {
 			// this deployment is ready
 			continue
 		}
 
-		if latestCondition.Type == apps_v1.DeploymentProgressing || latestCondition.Reason == "MinimumReplicasUnavailable" {
+		// if progress condition is not true, then progress deadline has not yet expired for the deployment
+		if progressCondition.Status == v1.ConditionTrue {
 			progressCount++
 		} else {
-			// deployment is in error state, so we can return error status for deployments
-			if err != nil {
-				return Status{boundlessv1alpha1.TypeComponentUnhealthy, latestCondition.Reason, latestCondition.Message}, err
-			}
+			// progress deadline has expired for deployment, so we can return error status for deployments
+			return Status{boundlessv1alpha1.TypeComponentUnhealthy, progressCondition.Reason, progressCondition.Message}, nil
+
 		}
 	}
 
@@ -112,6 +121,16 @@ func (mc *ManifestController) checkManifestDeployments(ctx context.Context, logg
 	}
 
 	return Status{boundlessv1alpha1.TypeComponentAvailable, "Manifest Deployments Available", ""}, nil
+}
+
+func getConditionOfType(desiredType apps_v1.DeploymentConditionType, conditions []apps_v1.DeploymentCondition) (apps_v1.DeploymentCondition, error) {
+	for _, condition := range conditions {
+		if condition.Type == desiredType {
+			return condition, nil
+		}
+	}
+
+	return apps_v1.DeploymentCondition{}, fmt.Errorf("condition type unavailable")
 }
 
 func (mc *ManifestController) checkManifestDaemonsets(ctx context.Context, logger logr.Logger, daemonsets []boundlessv1alpha1.ManifestObject) (Status, error) {

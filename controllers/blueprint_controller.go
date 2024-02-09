@@ -267,11 +267,15 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 
 		if spec.Manifest.Values == nil {
 			addon.Spec.Manifest = &boundlessv1alpha1.ManifestInfo{
-				URL: spec.Manifest.URL,
+				URL:           spec.Manifest.URL,
+				FailurePolicy: spec.Manifest.FailurePolicy,
+				Timeout:       spec.Manifest.Timeout,
 			}
 		} else {
 			addon.Spec.Manifest = &boundlessv1alpha1.ManifestInfo{
-				URL: spec.Manifest.URL,
+				URL:           spec.Manifest.URL,
+				FailurePolicy: spec.Manifest.FailurePolicy,
+				Timeout:       spec.Manifest.Timeout,
 				Values: &boundlessv1alpha1.Values{
 					Patches: spec.Manifest.Values.Patches,
 					Images:  spec.Manifest.Values.Images,

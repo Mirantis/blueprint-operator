@@ -11,7 +11,20 @@ import (
 type ManifestSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Url         string           `json:"url"`
+	Url string `json:"url"`
+
+	// This flag tells the controller how to handle the manifest in case of a failure.
+	// Valid values are:
+	// - None (default) : No-op; No action is triggered on manifest failure
+	// - Retry : Manifest is retried in case of failure. For install, the manifest resources are deleted and re-installed.
+	//			 For update, the new version of the manifest is applied on top of existing resources.
+	FailurePolicy string `json:"failurePolicy"`
+
+	// Timeout for manifest operations as duration string (300s, 10m, 1h, etc)
+	// If manifest is not Available after timeout duration, it will be handled by specified FailurePolicy
+	// +optional
+	Timeout string `json:"timeout"`
+
 	NewChecksum string           `json:"newChecksum,omitempty"`
 	Checksum    string           `json:"checksum"`
 	Patches     []Patch          `json:"patches,omitempty"`
