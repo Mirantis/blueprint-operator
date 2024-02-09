@@ -12,9 +12,9 @@ import (
 	kustypes "sigs.k8s.io/kustomize/api/types"
 )
 
-// GenerateKustomization uses the manifest url and values from the blueprint and generates kustomization.yaml.
+// Render uses the manifest url and values from the blueprint and generates kustomization.yaml.
 // It also generates kustomize build output and returns it.
-func GenerateKustomization(logger logr.Logger, url string, patches []boundlessv1alpha1.Patch, images []boundlessv1alpha1.Image) ([]byte, error) {
+func Render(logger logr.Logger, url string, patches []boundlessv1alpha1.Patch, images []boundlessv1alpha1.Image) ([]byte, error) {
 	fs := filesys.MakeFsInMemory()
 
 	kus := kustypes.Kustomization{

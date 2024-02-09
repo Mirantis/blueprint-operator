@@ -40,7 +40,7 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 		patches = manifestSpec.Values.Patches
 	}
 
-	dataBytes, err := kustomize.GenerateKustomization(mc.logger, manifestSpec.URL, patches, images)
+	dataBytes, err := kustomize.Render(mc.logger, manifestSpec.URL, patches, images)
 	if err != nil {
 		mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
 		return err

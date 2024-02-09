@@ -199,7 +199,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// Create the kustomize file, get kustomize build output and create objects thereby.
-		bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
+		bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
 			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
@@ -367,7 +367,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	logger := log.FromContext(ctx)
 
 	// Create kustomize file, generate kustomize build output and update the objects.
-	bodyBytes, err := kustomize.GenerateKustomization(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
+	bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)
 		return err
