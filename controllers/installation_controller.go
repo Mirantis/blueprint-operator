@@ -10,11 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/installation"
+	"github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
+	"github.com/mirantiscontainers/boundless-operator/pkg/components/helmcontroller"
 )
 
 var (
@@ -28,6 +30,8 @@ type InstallationReconciler struct {
 	SetupLogger logr.Logger
 }
 
+var installationFinalizer = "boundless.mirantis.com/installation-finalizer"
+
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=installations,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=installations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=installations/finalizers,verbs=update
@@ -35,7 +39,7 @@ type InstallationReconciler struct {
 // Reconcile reconciles the Installation resource and installs the necessary components
 // such as helm controller and cert manager.
 func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
+	logger := log.FromContext(ctx)
 	logger.Info("Reconciling Installation instance")
 
 	// Get the installation object if it exists so that we can save the original
@@ -43,35 +47,65 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	instance := &operator.Installation{}
 	if err := r.Client.Get(ctx, DefaultInstanceKey, instance); err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.Info("Installation config not found")
+			logger.Info("Installation instance not found")
 			return reconcile.Result{}, nil
 		}
-		logger.Error(err, "An error occurred when querying the Installation resource")
+		logger.Error(err, "An error occurred when querying the Installation resource", "Name", req.Name)
 		return reconcile.Result{}, err
 	}
 
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(instance, installationFinalizer) {
+			logger.Info("Adding Finalizer for Installation")
+			controllerutil.AddFinalizer(instance, installationFinalizer)
+			if err := r.Update(ctx, instance); err != nil {
+				logger.Error(err, "Failed to update Installation resource to add finalizer")
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		// The object is being deleted
+		if err := helmcontroller.Uninstall(ctx, r.Client, logger); err != nil {
+			logger.Error(err, "Failed to uninstall helm controller")
+			return ctrl.Result{}, err
+		}
+		if err := certmanager.Uninstall(ctx, r.Client, logger); err != nil {
+			logger.Error(err, "Failed to uninstall cert manager")
+			return ctrl.Result{}, err
+		}
+
+		// remove our finalizer from the list and update it.
+		controllerutil.RemoveFinalizer(instance, installationFinalizer)
+		if err := r.Update(ctx, instance); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, nil
+	}
+
 	// Install helm controller if it does not exist
-	exists, err := installation.CheckHelmControllerExists(ctx, r.Client)
+	exists, err := helmcontroller.CheckExists(ctx, r.Client)
 	if err != nil {
 		logger.Error(err, "failed to check if helm controller already exists")
 		return ctrl.Result{}, fmt.Errorf("failed to check if helm controller already exists")
 	}
 	if !exists {
 		logger.Info("Helm controller is not installed. Installing...")
-		if err = installation.InstallHelmController(ctx, r.Client, logger); err != nil {
+		if err = helmcontroller.Install(ctx, r.Client, logger); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 
 	// Install cert manager if it does not exist
-	exist, err := installation.CheckIfCertManagerAlreadyExists(ctx, r.Client, logger)
+	exist, err := certmanager.CheckExists(ctx, r.Client, logger)
 	if err != nil {
 		logger.Error(err, "failed to check if cert manager already exists")
 		return ctrl.Result{}, fmt.Errorf("failed to check if cert manager already exists")
 	}
 	if !exist {
 		logger.Info("cert manager is not installed. Installing...")
-		if err = installation.InstallCertManager(ctx, r.Client, logger); err != nil {
+		if err = certmanager.Install(ctx, r.Client, logger); err != nil {
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -94,6 +128,8 @@ func (r *InstallationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 // TryCreateInstallationResource creates the Installation resource if it does not exist
+// If the resource already exists, or if an error occurs, it logs the error and returns
+// without taking any action.
 func TryCreateInstallationResource(log logr.Logger, client client.Client) {
 	obj := &operator.Installation{ObjectMeta: metav1.ObjectMeta{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}}
 	if err := client.Create(context.Background(), obj); err != nil {

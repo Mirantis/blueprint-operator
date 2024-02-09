@@ -67,7 +67,7 @@ func (a *Applier) Delete(ctx context.Context, objs []*unstructured.Unstructured)
 		}
 		if err := a.client.Get(ctx, key, object); err != nil {
 			if apierrors.IsNotFound(err) {
-				a.log.Error(err, "Already deleted", "Namespace", o.GetNamespace(), "Name", o.GetName())
+				a.log.V(1).Info("Already deleted", "Namespace", o.GetNamespace(), "Name", o.GetName())
 				continue
 			}
 			return fmt.Errorf("failed to delete object: %s/%s", o.GetNamespace(), o.GetName())
