@@ -167,8 +167,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				NewChecksum:   existing.Spec.NewChecksum,
 				FailurePolicy: existing.Spec.FailurePolicy,
 				Timeout:       existing.Spec.Timeout,
-				Patches:       existing.Spec.Patches,
-				Images:        existing.Spec.Images,
+				Values:        existing.Spec.Values,
 			},
 		}
 
@@ -215,8 +214,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 				NewChecksum:   existing.Spec.Checksum,
 				Timeout:       existing.Spec.Timeout,
 				FailurePolicy: existing.Spec.FailurePolicy,
-				Patches:       existing.Spec.Patches,
-				Images:        existing.Spec.Images,
+				Values:        existing.Spec.Values,
 			},
 		}
 
@@ -227,7 +225,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// Create the kustomize file, get kustomize build output and create objects thereby.
-		bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
+		bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Values)
 
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
@@ -442,7 +440,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	logger := log.FromContext(ctx)
 
 	// Create kustomize file, generate kustomize build output and update the objects.
-	bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Patches, existing.Spec.Images)
+	bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Values)
 
 	if err != nil {
 		logger.Error(err, "failed to fetch manifest file content for url: %s", existing.Spec.Url)

@@ -37,15 +37,8 @@ func NewManifestController(client client.Client, logger logr.Logger) *ManifestCo
 }
 
 func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
-	var images []boundlessv1alpha1.Image
-	var patches []boundlessv1alpha1.Patch
 
-	if manifestSpec.Values != nil {
-		images = manifestSpec.Values.Images
-		patches = manifestSpec.Values.Patches
-	}
-
-	dataBytes, err := kustomize.Render(mc.logger, manifestSpec.URL, patches, images)
+	dataBytes, err := kustomize.Render(mc.logger, manifestSpec.URL, manifestSpec.Values)
 	if err != nil {
 		mc.logger.Error(err, "failed to build kustomize for url: %s", "URL", manifestSpec.URL)
 		return err
@@ -77,8 +70,7 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 	m.Spec.FailurePolicy = failurePolicy
 
 	if manifestSpec.Values != nil {
-		m.Spec.Patches = manifestSpec.Values.Patches
-		m.Spec.Images = manifestSpec.Values.Images
+		m.Spec.Values = manifestSpec.Values
 	}
 
 	return mc.createOrUpdateManifest(m)
@@ -117,8 +109,7 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 					Objects:       existing.Spec.Objects,
 					FailurePolicy: m.Spec.FailurePolicy,
 					Timeout:       m.Spec.Timeout,
-					Patches:       m.Spec.Patches,
-					Images:        m.Spec.Images,
+					Values:        m.Spec.Values,
 				},
 			}
 			newManifest.SetFinalizers(existing.GetFinalizers())
