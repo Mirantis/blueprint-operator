@@ -45,6 +45,19 @@ type ManifestInfo struct {
 	// +kubebuilder:validation:MinLength:=1
 	URL    string  `json:"url"`
 	Values *Values `json:"values,omitempty"`
+
+	// This flag tells the controller how to handle the manifest in case of a failure.
+	// Valid values are:
+	// - None (default) : No-op; No action is triggered on manifest failure
+	// - Retry : Manifest is retried in case of failure. For install, the manifest resources are deleted and re-installed.
+	//			 For update, the new version of the manifest is applied on top of existing resources.
+	// +optional
+	FailurePolicy string `json:"failurePolicy,omitempty"`
+
+	// Timeout for manifest operations as duration string (300s, 10m, 1h, etc)
+	// If manifest is not Available after timeout duration, it will be handled by specified FailurePolicy
+	// +optional
+	Timeout string `json:"timeout,omitempty"`
 }
 
 type Values struct {

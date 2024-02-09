@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/apps/v1"
+	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -87,7 +88,8 @@ var _ = Describe("Status", func() {
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
 					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionFalse})
 				})
 
 				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifest, manifestObjects)
@@ -119,7 +121,9 @@ var _ = Describe("Status", func() {
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
 					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionFalse})
+
 				})
 
 				// Mock out Daemonset still Progressing
@@ -164,7 +168,9 @@ var _ = Describe("Status", func() {
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
 					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionFalse})
+
 				})
 
 				// Mock out Daemonset still Available
@@ -211,7 +217,8 @@ var _ = Describe("Status", func() {
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
 					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionFalse})
 				})
 
 				// Mock out Daemonset is Done
