@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/event"
-	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
-	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
 	"io"
+	"reflect"
+	"time"
+
+	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/tools/record"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,16 +26,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
-	"time"
 
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	pkgmanifest "github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
+	"github.com/mirantiscontainers/boundless-operator/pkg/event"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
 )
 
 const (
-	actionUpdate        = "update"
-	actionCreate        = "create"
-	actionDelete        = "delete"
 	manifestUpdateIndex = "manifestupdateindex"
 )
 
@@ -75,55 +73,50 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Name:      req.Name,
 	}
 
-	existing := &boundlessv1alpha1.Manifest{}
-
-	err := r.Client.Get(ctx, key, existing)
-
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			logger.Info("manifest does not exist", "Namespace", req.Namespace, "Name", req.Name)
+	instance := &boundlessv1alpha1.Manifest{}
+	if err := r.Client.Get(ctx, key, instance); err != nil {
+		if apierrors.IsNotFound(err) {
+			logger.Info("Manifest instance not found. Ignoring since object must be deleted.", "Name", req.Name)
 			return ctrl.Result{}, nil
-		} else {
-			logger.Error(err, "failed to get manifest object")
-			return ctrl.Result{}, err
 		}
+		logger.Error(err, "Failed to get Manifest instance", "Name", req.Name, "Requeue", true)
+		return ctrl.Result{}, err
 	}
 
-	addonFinalizerName := "manifest/finalizer"
-
-	if existing.ObjectMeta.DeletionTimestamp.IsZero() {
+	finalizerName := "manifest/finalizer"
+	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		// The object is not being deleted, so if it does not have our finalizer,
 		// then lets add the finalizer and update the object. This is equivalent
 		// registering our finalizer.
-		if !controllerutil.ContainsFinalizer(existing, addonFinalizerName) {
-			controllerutil.AddFinalizer(existing, addonFinalizerName)
-			if err := r.Update(ctx, existing); err != nil {
-				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", addonFinalizerName)
-				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest object with finalizer %s/%s", existing.Namespace, existing.Name)
+		if !controllerutil.ContainsFinalizer(instance, finalizerName) {
+			controllerutil.AddFinalizer(instance, finalizerName)
+			if err := r.Update(ctx, instance); err != nil {
+				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", finalizerName)
+				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest object with finalizer %s/%s", instance.Namespace, instance.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest object with finalizer", fmt.Sprintf("failed to update manifest object with finalizer : %s", err))
-				return ctrl.Result{Requeue: true}, err
+				return ctrl.Result{}, err
 			}
-			logger.Info("finalizer added successfully", "Name", req.Name, "Finalizer", addonFinalizerName)
-			return ctrl.Result{}, err
+			logger.Info("finalizer added successfully", "Name", req.Name, "Finalizer", finalizerName)
+			return ctrl.Result{}, nil
 		}
 	} else {
 		// The object is being deleted
-		if controllerutil.ContainsFinalizer(existing, addonFinalizerName) {
+		if controllerutil.ContainsFinalizer(instance, finalizerName) {
 			// The finalizer is present, so let's delete the objects for this manifest
-			if err := r.DeleteManifestObjects(ctx, existing.Spec.Objects); err != nil {
+			if err := r.DeleteManifestObjects(ctx, instance.Spec.Objects); err != nil {
 				logger.Error(err, "failed to delete manifest objects")
-				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedDelete, "failed to delete manifest objects %s/%s", existing.Namespace, existing.Name)
+				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "failed to delete manifest objects %s/%s", instance.Namespace, instance.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to delete manifest objects", fmt.Sprintf("failed to delete manifest objects : %s", err))
-				return ctrl.Result{Requeue: true}, err
+				return ctrl.Result{}, err
 			}
 
 			// Remove the finalizer from the list and update it.
-			controllerutil.RemoveFinalizer(existing, addonFinalizerName)
-			if err := r.Update(ctx, existing); err != nil {
+			controllerutil.RemoveFinalizer(instance, finalizerName)
+			if err := r.Update(ctx, instance); err != nil {
 				logger.Error(err, "failed to remove finalizer")
-				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonSuccessfulCreate, "failed to remove finalizer %s/%s", existing.Namespace, existing.Name)
+				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonSuccessfulCreate, "failed to remove finalizer %s/%s", instance.Namespace, instance.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to remove finalizer", fmt.Sprintf("failed to remove finalizer : %s", err))
-				return ctrl.Result{Requeue: true}, err
+				return ctrl.Result{}, err
 			}
 		}
 
@@ -131,128 +124,126 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return ctrl.Result{}, nil
 	}
 
-	if existing.Spec.Checksum == existing.Spec.NewChecksum {
-		logger.Info("checksum is same, no update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
+	if instance.Spec.Checksum == instance.Spec.NewChecksum {
+		logger.Info("checksum is same, no update needed", "Checksum", instance.Spec.Checksum, "NewChecksum", instance.Spec.NewChecksum)
 
-		if pkgmanifest.ShouldRetryManifest(logger, existing) {
+		if pkgmanifest.ShouldRetryManifest(logger, instance) {
 			logger.Info("Reapplying manifest")
 			// wipe the manifest checksum to get reconcile to run an Update
-			existing.Spec.Checksum = ""
-			if err = r.Update(ctx, existing); err != nil {
+			instance.Spec.Checksum = ""
+			if err := r.Update(ctx, instance); err != nil {
 				logger.Error(err, "failed to wipe checksum for manifest")
 			}
-			return ctrl.Result{}, err
+			return ctrl.Result{}, nil
 		}
 
 		// manifest is already installed as specified - get latest status from objects in the cluster
-		err = r.checkManifestStatus(ctx, logger, req.NamespacedName, existing.Spec.Objects)
+		err := r.checkManifestStatus(ctx, logger, req.NamespacedName, instance.Spec.Objects)
 		return ctrl.Result{}, err
 	}
 
-	if (existing.Spec.Checksum != existing.Spec.NewChecksum) && (existing.Spec.NewChecksum != "") {
+	if (instance.Spec.Checksum != instance.Spec.NewChecksum) && (instance.Spec.NewChecksum != "") {
 		// Update is required
-		logger.Info("checksum differs, update needed", "Checksum", existing.Spec.Checksum, "NewChecksum", existing.Spec.NewChecksum)
+		logger.Info("checksum differs, update needed", "Checksum", instance.Spec.Checksum, "NewChecksum", instance.Spec.NewChecksum)
 		// First, update the checksum to avoid any reconciliation
 		// Update the CRD
 		updatedCRD := boundlessv1alpha1.Manifest{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:            existing.Name,
-				Namespace:       existing.Namespace,
-				ResourceVersion: existing.ResourceVersion,
+				Name:            instance.Name,
+				Namespace:       instance.Namespace,
+				ResourceVersion: instance.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-
-				Url:           existing.Spec.Url,
-				Checksum:      existing.Spec.NewChecksum,
-				NewChecksum:   existing.Spec.NewChecksum,
-				FailurePolicy: existing.Spec.FailurePolicy,
-				Timeout:       existing.Spec.Timeout,
-				Values:        existing.Spec.Values,
+				Url:           instance.Spec.Url,
+				Checksum:      instance.Spec.NewChecksum,
+				NewChecksum:   instance.Spec.NewChecksum,
+				FailurePolicy: instance.Spec.FailurePolicy,
+				Timeout:       instance.Spec.Timeout,
+				Values:        instance.Spec.Values,
 			},
 		}
 
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
-			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while update operation %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while update operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation ", fmt.Sprintf("failed to update manifest crd while update operation  : %s", err))
 			return ctrl.Result{}, err
 		}
 
 		// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#pullrequestreview-1754136032
-		if err = r.UpdateManifestObjects(req, ctx, existing); err != nil {
+		if err := r.UpdateManifestObjects(req, ctx, instance); err != nil {
 			logger.Error(err, "failed to update manifest")
-			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest ", fmt.Sprintf("failed to update manifest  : %s", err))
 			return ctrl.Result{}, err
 		}
 
-		if existing.Spec.Timeout != "" && existing.Spec.FailurePolicy == pkgmanifest.FailurePolicyRetry {
-			timeoutDuration, err := time.ParseDuration(existing.Spec.Timeout)
+		if instance.Spec.Timeout != "" && instance.Spec.FailurePolicy == pkgmanifest.FailurePolicyRetry {
+			timeoutDuration, err := time.ParseDuration(instance.Spec.Timeout)
 			if err != nil {
 				logger.Error(err, "failed to parse timeout for manifest", "Timeout", timeoutDuration)
-				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 				return ctrl.Result{}, err
 			}
-			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: existing.Namespace, Name: existing.Name}, timeoutDuration, existing.Spec.FailurePolicy, false)
+			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, timeoutDuration, instance.Spec.FailurePolicy, false)
 		}
 	}
 
-	if existing.Spec.NewChecksum == "" {
+	if instance.Spec.NewChecksum == "" {
 		// We will reach here only in case of create request.
 		// First, update the checksum in CRD to avoid any reconciliations.
 		// Update the CRD
 		updatedCRD := boundlessv1alpha1.Manifest{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:            existing.Name,
-				Namespace:       existing.Namespace,
-				ResourceVersion: existing.ResourceVersion,
+				Name:            instance.Name,
+				Namespace:       instance.Namespace,
+				ResourceVersion: instance.ResourceVersion,
 			},
 			Spec: boundlessv1alpha1.ManifestSpec{
-
-				Url:           existing.Spec.Url,
-				Checksum:      existing.Spec.Checksum,
-				NewChecksum:   existing.Spec.Checksum,
-				Timeout:       existing.Spec.Timeout,
-				FailurePolicy: existing.Spec.FailurePolicy,
-				Values:        existing.Spec.Values,
+				Url:           instance.Spec.Url,
+				Checksum:      instance.Spec.Checksum,
+				NewChecksum:   instance.Spec.Checksum,
+				Timeout:       instance.Spec.Timeout,
+				FailurePolicy: instance.Spec.FailurePolicy,
+				Values:        instance.Spec.Values,
 			},
 		}
 
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while create operation")
-			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while create operation %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while create operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			return ctrl.Result{}, err
 		}
 
 		// Create the kustomize file, get kustomize build output and create objects thereby.
-		bodyBytes, err := kustomize.Render(logger, existing.Spec.Url, existing.Spec.Values)
+		bodyBytes, err := kustomize.Render(logger, instance.Spec.Url, instance.Spec.Values)
 
 		if err != nil {
-			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", existing.Spec.Url)
-			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", existing.Namespace, existing.Name, err.Error())
-			return ctrl.Result{RequeueAfter: time.Minute}, err
+			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", instance.Spec.Url)
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to fetch manifest file content for url %s/%s : %s", instance.Namespace, instance.Name, err.Error())
+			return ctrl.Result{}, err
 		}
 
 		logger.Info("received new crd request. Creating manifest objects..")
 		err = r.CreateManifestObjects(ctx, key, logger, bodyBytes)
 		if err != nil {
 			logger.Error(err, "failed to create objects for the manifest", "Name", req.Name)
-			r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to create objects for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to create objects for the manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			return ctrl.Result{}, err
 		}
 
-		if existing.Spec.Timeout != "" && existing.Spec.FailurePolicy != pkgmanifest.FailurePolicyNone {
-			timeoutDuration, err := time.ParseDuration(existing.Spec.Timeout)
+		if instance.Spec.Timeout != "" && instance.Spec.FailurePolicy != pkgmanifest.FailurePolicyNone {
+			timeoutDuration, err := time.ParseDuration(instance.Spec.Timeout)
 			if err != nil {
 				logger.Error(err, "failed to parse timeout for manifest", "Timeout", timeoutDuration)
-				r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", existing.Namespace, existing.Name, err.Error())
+				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 				return ctrl.Result{}, err
 			}
-			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: existing.Namespace, Name: existing.Name}, timeoutDuration, existing.Spec.FailurePolicy, true)
+			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, timeoutDuration, instance.Spec.FailurePolicy, true)
 		}
 	}
 
-	r.Recorder.AnnotatedEventf(existing, map[string]string{event.AddonAnnotationKey: existing.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest %s/%s", existing.Namespace, existing.Name)
+	r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest %s/%s", instance.Namespace, instance.Name)
 	return ctrl.Result{}, nil
 }
 

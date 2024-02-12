@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,12 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/installation"
-)
-
-const (
-	// NamespaceBoundlessSystem is the namespace where all boundless components are installed
-	NamespaceBoundlessSystem = "boundless-system"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 // BlueprintReconciler reconciles a Blueprint object
@@ -42,48 +38,25 @@ type BlueprintReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile request on Blueprint instance", "Name", req.Name)
 	instance := &boundlessv1alpha1.Blueprint{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-		logger.Error(err, "Failed to get Blueprint instance")
+		if apierrors.IsNotFound(err) {
+			logger.Info("Blueprint instance not found. Ignoring since object must be deleted.", "Name", req.Name)
+			return ctrl.Result{}, nil
+		}
+		logger.Error(err, "Failed to get Blueprint instance", "Name", req.Name, "Requeue", true)
 		return ctrl.Result{}, err
 	}
 
-	exists, err := installation.CheckHelmControllerExists(ctx, r.Client)
-	if err != nil {
-		logger.Error(err, "failed to check if helm controller already exists")
-		return ctrl.Result{}, fmt.Errorf("failed to check if helm controller already exists")
-	}
-	if !exists {
-		logger.Info("Helm controller is not installed. Installing...")
-		if err = installation.InstallHelmController(ctx, r.Client, logger); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	exist, err := installation.CheckIfCertManagerAlreadyExists(ctx, r.Client, logger)
-	if err != nil {
-		logger.Error(err, "failed to check if cert manager already exists")
-		return ctrl.Result{}, fmt.Errorf("failed to check if cert manager already exists")
-	}
-	if !exist {
-		logger.Info("cert manager is not installed. Installing...")
-		if err = installation.InstallCertManager(ctx, r.Client, logger); err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
-		logger.Info("cert manager is already installed.")
-	}
-
+	var err error
 	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil && instance.Spec.Components.Core.Ingress.Provider != "" {
 		logger.Info("Reconciling ingress")
 		err = r.createOrUpdateIngress(ctx, logger, ingressResource(instance.Spec.Components.Core.Ingress))
 		if err != nil {
 			logger.Error(err, "Failed to reconcile ingress", "Name", instance.Spec.Components.Core.Ingress)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -102,7 +75,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		err = r.createOrUpdateAddon(ctx, logger, addon)
 		if err != nil {
 			logger.Error(err, "Failed to reconcile addonSpec", "Name", addonSpec.Name, "Spec.Namespace", addonSpec.Namespace)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		// if the addon is in the spec , we shouldn't uninstall it
@@ -229,7 +202,7 @@ func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ing
 	return &boundlessv1alpha1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.IngressSpec{
 			Enabled:  spec.Enabled,
@@ -244,7 +217,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	addon := &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
-			Namespace: NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: boundlessv1alpha1.AddonSpec{
 			Name:      spec.Name,

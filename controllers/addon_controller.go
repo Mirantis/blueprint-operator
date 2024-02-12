@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/go-logr/logr"
 	batch "k8s.io/api/batch/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
 	"github.com/mirantiscontainers/boundless-operator/pkg/event"
 	"github.com/mirantiscontainers/boundless-operator/pkg/helm"
@@ -72,13 +72,11 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	instance := &boundlessv1alpha1.Addon{}
 	err = r.Get(ctx, req.NamespacedName, instance)
 	if err != nil {
-		msg := "failed to get Addon instance"
-		if errors.IsNotFound(err) {
-			// Ignore request.
-			logger.Info(msg, "Name", req.Name, "Requeue", false)
+		if apierrors.IsNotFound(err) {
+			logger.Info("Addon instance not found. Ignoring since object must be deleted.", "Name", req.Name)
 			return ctrl.Result{}, nil
 		}
-		logger.Error(err, msg, "Name", req.Namespace, "Requeue", true)
+		logger.Error(err, "Failed to get addon instance", "Name", req.Name, "Requeue", true)
 		return ctrl.Result{}, err
 	}
 
@@ -97,7 +95,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	case kindChart:
 		if instance.Spec.Chart == nil {
 			logger.Info("Chart info is missing")
-			return ctrl.Result{Requeue: false}, fmt.Errorf("chart info is missing: %w", err)
+			return ctrl.Result{}, fmt.Errorf("chart info is missing: %w", err)
 		}
 		chart := helm.Chart{
 			Name:    instance.Spec.Chart.Name,
@@ -147,7 +145,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err = hc.CreateHelmChart(chart, instance.Spec.Namespace); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		// unfortunately the HelmChart CR doesn't have any useful events or status we can monitor
@@ -157,17 +155,17 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		err = r.Get(ctx, types.NamespacedName{Namespace: instance.Spec.Namespace, Name: jobName}, job)
 		if err != nil {
 			// might need some time for helmchart CR to create job
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+			return ctrl.Result{}, err
 		}
 
 		if err := r.updateHelmchartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+			return ctrl.Result{}, err
 		}
 
 	case kindManifest:
 		if instance.Spec.Manifest == nil {
 			logger.Info("Manifest info is missing")
-			return ctrl.Result{Requeue: false}, fmt.Errorf("manifest info is missing: %w", err)
+			return ctrl.Result{}, fmt.Errorf("manifest info is missing: %w", err)
 		}
 		mc := manifest.NewManifestController(r.Client, logger)
 
@@ -186,7 +184,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			// The object is being deleted
 			if controllerutil.ContainsFinalizer(instance, addonManifestFinalizer) {
 				// our finalizer is present, so lets delete the helm chart
-				if err := mc.DeleteManifest(NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
+				if err := mc.DeleteManifest(consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest.URL); err != nil {
 					// if fail to delete the manifest here, return with error
 					// so that it can be retried
 					r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
@@ -204,20 +202,20 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, nil
 		}
 
-		err = mc.CreateManifest(NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest)
+		err = mc.CreateManifest(consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest)
 		if err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 
 		m := &boundlessv1alpha1.Manifest{}
-		err = r.Get(ctx, types.NamespacedName{Namespace: NamespaceBoundlessSystem, Name: instance.Spec.Name}, m)
+		err = r.Get(ctx, types.NamespacedName{Namespace: consts.NamespaceBoundlessSystem, Name: instance.Spec.Name}, m)
 		if err != nil {
-			if errors.IsNotFound(err) {
+			if apierrors.IsNotFound(err) {
 				// might need some time for CR to  be created
 				r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
-				return ctrl.Result{RequeueAfter: 10 * time.Second}, err
+				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, err
 		}
@@ -234,11 +232,11 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	default:
 		logger.Info("Unknown AddOn kind", "Kind", instance.Spec.Kind)
-		return ctrl.Result{Requeue: false}, fmt.Errorf("Unknown AddOn Kind: %w", err)
+		return ctrl.Result{}, fmt.Errorf("Unknown addon Kind: %w", err)
 	}
 
 	logger.Info("Finished reconcile request on Addon instance", "Name", req.Name)
-	return ctrl.Result{Requeue: false}, nil
+	return ctrl.Result{}, nil
 }
 
 // updateManifestAddonStatus checks if the manifest associated with the addon has a status to bubble up to addon and updates addon if so

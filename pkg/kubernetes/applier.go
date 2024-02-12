@@ -38,7 +38,7 @@ func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 	// separate out the CRDs and other objects
 	// CRDs need to be created first
 	crds, others := a.splitCrdAndOthers(objs)
-	a.log.V(2).Info("Found objects", "CRD Objects", len(crds), "Other Objects", len(others))
+	a.log.Info("Found objects", "CRD Objects", len(crds), "Other Objects", len(others))
 	for _, o := range crds {
 		if err = a.createOrUpdateObject(ctx, o); err != nil {
 			return fmt.Errorf("failed to apply %s crds resources from manifest: %w", o.GetName(), err)
@@ -67,12 +67,12 @@ func (a *Applier) Delete(ctx context.Context, objs []*unstructured.Unstructured)
 		}
 		if err := a.client.Get(ctx, key, object); err != nil {
 			if apierrors.IsNotFound(err) {
-				a.log.Error(err, "Already deleted", "Namespace", o.GetNamespace(), "Name", o.GetName())
+				a.log.V(1).Info("Already deleted", "Namespace", o.GetNamespace(), "Name", o.GetName())
 				continue
 			}
 			return fmt.Errorf("failed to delete object: %s/%s", o.GetNamespace(), o.GetName())
 		}
-		a.log.Info("Deleting object", "Kind", object.GetKind(), "Namespace", object.GetNamespace(), "Name", object.GetName())
+		a.log.V(1).Info("Deleting object", "Kind", object.GetKind(), "Namespace", object.GetNamespace(), "Name", object.GetName())
 		if err := a.client.Delete(ctx, object); err != nil {
 			return fmt.Errorf("failed to delete %s/%s/%s", object.GetKind(), object.GetNamespace(), object.GetName())
 		}
@@ -101,21 +101,21 @@ func (a *Applier) createOrUpdateObject(ctx context.Context, obj *unstructured.Un
 	existing.SetGroupVersionKind(obj.GroupVersionKind())
 
 	key := client.ObjectKeyFromObject(obj)
-	a.log.Info("Checking if object with key exists", "Key", key)
+	a.log.V(1).Info("Checking if object with key exists", "Key", key)
 	err := a.client.Get(ctx, key, existing)
 	if apierrors.IsNotFound(err) {
-		a.log.Info("Creating object", "GroupVersionKind", gvk, "Name", name)
+		a.log.V(1).Info("Creating object", "GroupVersionKind", gvk, "Name", name)
 		if err = a.client.Create(ctx, obj); err != nil {
 			return fmt.Errorf("failed to create resource %q of GroupVersionKind=%q: %w", name, gvk, err)
 		}
-		a.log.Info("Created object", "GroupVersionKind", gvk, "Name", name)
+		a.log.V(1).Info("Created object", "GroupVersionKind", gvk, "Name", name)
 	} else {
-		a.log.Info("Updating object", "GroupVersionKind", gvk, "Name", name)
+		a.log.V(1).Info("Updating object", "GroupVersionKind", gvk, "Name", name)
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		if err = a.client.Update(ctx, obj); err != nil {
 			return fmt.Errorf("failed to update resource %q of GroupVersionKind=%q: %w", name, gvk, err)
 		}
-		a.log.Info("Updated object", "GroupVersionKind", gvk, "Name", name)
+		a.log.V(1).Info("Updated object", "GroupVersionKind", gvk, "Name", name)
 	}
 
 	return nil

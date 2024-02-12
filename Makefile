@@ -136,7 +136,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantis/boundless-operator=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/boundless-operator=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
@@ -163,7 +163,7 @@ GINKGO ?= $(LOCALBIN)/ginkgo
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.11.1
-GINKGO_VERSION ?= v2.11.0
+GINKGO_VERSION ?= v2.13.2
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize

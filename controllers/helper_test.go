@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -9,6 +10,14 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+)
+
+const (
+	// defaultTimeout is timeout for waiting for assertions
+	defaultTimeout = time.Second * 10
+
+	// defaultInterval interval for waiting for assertions
+	defaultInterval = time.Millisecond * 250
 )
 
 func getObject(ctx context.Context, key runtimeclient.ObjectKey, obj runtimeclient.Object) func() bool {

@@ -117,7 +117,7 @@ func (r *IngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	logger.Info("Creating HelmChart resource", "Name", chart.Name, "Version", chart.Version)
 	if err2 := hc.CreateHelmChart(chart, instance.Namespace); err2 != nil {
 		logger.Error(err, "failed to install ingress controller", "Controller Type", instance.Spec.Provider, "Version", "v1alpha1")
-		return ctrl.Result{Requeue: true}, err2
+		return ctrl.Result{}, err2
 	}
 
 	logger.Info("Setting IngressReady", "Name", instance.Name)
@@ -128,7 +128,7 @@ func (r *IngressReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	logger.Info("Finished reconcile request on MkeIngress instance", "Name", req.Name)
-	return ctrl.Result{Requeue: false}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

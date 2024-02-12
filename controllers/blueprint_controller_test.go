@@ -1,23 +1,20 @@
 package controllers
 
 import (
-	"context"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 const (
 	blueprintName = "test-blueprint"
 )
 
-var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
+var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBoundlessSystem}
 
 func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 	blueprint := &v1alpha1.Blueprint{
@@ -27,7 +24,7 @@ func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      blueprintName,
-			Namespace: NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 	}
 	for _, addon := range addons {
@@ -40,12 +37,6 @@ func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 // Otherwise, the results may not be predictable
 // This is because all these tests runs in a single "environment"
 var _ = Describe("Blueprint controller", Ordered, Serial, func() {
-
-	const (
-		timeout  = time.Second * 10
-		interval = time.Millisecond * 250
-	)
-
 	BeforeEach(func() {
 		// Reset the state by creating empty blueprint
 		blueprint := newBlueprint()
@@ -63,22 +54,15 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			blueprint := newBlueprint()
 			Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
-			key := types.NamespacedName{Name: blueprintName, Namespace: NamespaceBoundlessSystem}
-			Eventually(getObject(ctx, key, blueprint), timeout, interval).Should(BeTrue())
-		})
-
-		It("Should install Helm Controller", func() {
-			// @todo (Ranyodh): This test should be moved to "Installing" CRD when we have that
-			ctx := context.Background()
-			helmDeploy := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: NamespaceBoundlessSystem}
-			Eventually(getObject(ctx, lookupKey, helmDeploy), timeout, interval).Should(BeTrue())
+			key := types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBoundlessSystem}
+			Eventually(getObject(ctx, key, blueprint), defaultTimeout, defaultInterval).Should(BeTrue())
 		})
 	})
 
 	Context("A blueprint is updated", func() {
 		var addonName, addonNamespace string
 		var helmAddon v1alpha1.AddonSpec
+		var addonKey types.NamespacedName
 
 		BeforeEach(func() {
 			addonName = randomName("addon")
@@ -94,9 +78,11 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 					Version: "15.1.1",
 				},
 			}
+
+			addonKey = types.NamespacedName{Name: addonName, Namespace: consts.NamespaceBoundlessSystem}
+
 		})
 		Context("Helm chart addon is added to the blueprint", func() {
-
 			BeforeEach(func() {
 				By("Creating a blueprint with one addon")
 				blueprint := newBlueprint(helmAddon)
@@ -110,28 +96,30 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			})
 
 			It("Should create the correct addon resource", func() {
-				lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
 				actual := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, lookupKey, actual), timeout, interval).Should(BeTrue())
+				Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 			})
 		})
 
 		Context("Helm chart addon is removed from blueprint", func() {
-
 			It("Should delete addon resource", func() {
 				By("Creating a blueprint with one addon")
 				blueprint := newBlueprint(helmAddon)
 				Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
+				By("Waiting for addon to be created")
+				actual := &v1alpha1.Addon{}
+				Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
+				assertAddon(helmAddon, actual.Spec)
+
 				By("Removing addon from blueprints")
-				blueprint2 := newBlueprint()
-				Expect(createOrUpdateBlueprint(ctx, blueprint2)).Should(Succeed())
+				empty := newBlueprint()
+				Expect(createOrUpdateBlueprint(ctx, empty)).Should(Succeed())
 
 				By("Checking if addon is removed")
-				lookupKey := types.NamespacedName{Name: addonName, Namespace: NamespaceBoundlessSystem}
 				createdAddon := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, lookupKey, createdAddon), timeout, interval).Should(BeFalse())
+				Eventually(getObject(ctx, addonKey, createdAddon), defaultTimeout, defaultInterval).Should(BeFalse())
 			})
 		})
 	})
