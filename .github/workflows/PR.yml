@@ -25,4 +25,5 @@ jobs:
   cleanup:
     if: ${{ always() }}
     needs: [vet, test, e2e, build]
+    secrets: inherit
     uses: ./.github/workflows/cleanup.yml

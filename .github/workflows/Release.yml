@@ -21,4 +21,5 @@ jobs:
   cleanup:
     if: ${{ always() }} # always run this job
     needs: [push-to-ghcr]
+    secrets: inherit
     uses: ./.github/workflows/cleanup.yml
