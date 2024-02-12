@@ -11,7 +11,7 @@ import (
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
-func makeAddon(a metav1.ObjectMeta) *v1alpha1.Addon {
+func newAddon(a metav1.ObjectMeta) *v1alpha1.Addon {
 	return &v1alpha1.Addon{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Addon",

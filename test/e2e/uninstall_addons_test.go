@@ -35,17 +35,17 @@ func TestUninstallAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/update.yaml"),
 
 			// ensure all addons are installed and available before we start deleting them
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a1), v1alpha1.TypeComponentAvailable),
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a2), v1alpha1.TypeComponentAvailable),
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a3), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a3), v1alpha1.TypeComponentAvailable),
 		)).
 		WithSetup("DeleteAddonsWithBlueprint", funcs.AllOf(
 			funcs.ApplyResources(FieldManager, dir, "happypath/delete.yaml"),
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/delete.yaml"),
 		)).
 		Assess("AllRemovedAddonsHaveBeenDeleted", funcs.AllOf(
-			funcs.ResourceDeletedWithin(DefaultWaitTimeout, makeAddon(a2)),
-			funcs.ResourceDeletedWithin(DefaultWaitTimeout, makeAddon(a3)),
+			funcs.ResourceDeletedWithin(DefaultWaitTimeout, newAddon(a2)),
+			funcs.ResourceDeletedWithin(DefaultWaitTimeout, newAddon(a3)),
 		)).
 		Assess("Addon2ObjectsHasBeenDeleted", funcs.AllOf(
 			// @TODO: check for more/all objects
@@ -56,13 +56,13 @@ func TestUninstallAddons(t *testing.T) {
 			funcs.ResourceDeletedWithin(DefaultWaitTimeout, &v1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: a3dep.Name, Namespace: a3dep.Namespace}}),
 		)).
 		Assess("Addon1StillAvailable", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, makeAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a1), v1alpha1.TypeComponentAvailable),
 			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a1dep.Namespace, a1dep.Name),
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
 			ApplyCleanupBlueprint(),
-			funcs.DeleteResource(makeAddon(a1)),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
+			funcs.DeleteResource(newAddon(a1)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a1)),
 		)).
 		Feature()
 

@@ -42,8 +42,8 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
 
 			// wait for the addons to be installed
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a1), v1alpha1.TypeComponentAvailable),
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a2), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		WithSetup("UpdateBlueprint", funcs.AllOf(
 			// update the blueprint to include two new addons and update the existing ones
@@ -51,12 +51,12 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/update.yaml"),
 		)).
 		Assess("ExistingAddonsStillExists", funcs.AllOf(
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a1)),
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a2)),
+			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
+			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("ExistingAddonsAreSuccessfullyInstalled", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, makeAddon(a1), v1alpha1.TypeComponentAvailable),
-			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, makeAddon(a2), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("ExistingHelmAddonIsSuccessfullyUpdated", funcs.AllOf(
 			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a1dep.Namespace, a1dep.Name),
@@ -78,19 +78,19 @@ func TestUpdateAddons(t *testing.T) {
 			}),
 		)).
 		Assess("NewAddonsAreCreated", funcs.AllOf(
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a3)),
+			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a3)),
 		)).
 		Assess("NewAddonsAreSuccessfullyInstalled", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a3), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a3), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("NewAddonObjectsSuccessfullyCreated", funcs.AllOf(
 			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a3dep.Namespace, a3dep.Name),
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
 			ApplyCleanupBlueprint(),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a2)),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a3)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a1)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a2)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a3)),
 		)).
 		Feature()
 

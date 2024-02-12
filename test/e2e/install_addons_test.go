@@ -32,14 +32,14 @@ func TestInstallAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
 		)).
 		Assess("TwoAddonsAreCreated", funcs.AllOf(
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a1)),
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, makeAddon(a2)),
+			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
+			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("HelmAddonsIsSuccessfullyInstalled", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(2*time.Minute, makeAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("ManifestAddonIsSuccessfullyInstalled", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, makeAddon(a2), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("HelmAddonObjectsAreSuccessfullyCreated", funcs.AllOf(
 			// @TODO: check for more/all objects
@@ -51,8 +51,8 @@ func TestInstallAddons(t *testing.T) {
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
 			ApplyCleanupBlueprint(),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a1)),
-			funcs.ResourceDeletedWithin(2*time.Minute, makeAddon(a2)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a1)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a2)),
 		)).
 		Feature()
 
