@@ -19,7 +19,7 @@ const (
 	deploymentHelmController = "helm-controller"
 )
 
-// CertManagerComponent is the manifest for installing cert manager.
+// HelmControllerComponent is the manifest for installing cert manager.
 type component struct {
 	client client.Client
 	logger logr.Logger
