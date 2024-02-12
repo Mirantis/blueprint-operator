@@ -4,11 +4,6 @@ package helmcontroller
 
 const helmControllerTemplate = `
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: boundless-system
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: helm-controller

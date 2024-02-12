@@ -24,27 +24,27 @@ const (
 	deploymentWebhook     = "cert-manager-webhook"
 )
 
-// CertManagerComponent is the manifest for installing cert manager.
-type component struct {
+// certManager is a component that manages cert manager in the cluster.
+type certManager struct {
 	client client.Client
 	logger logr.Logger
 }
 
 // NewCertManagerComponent creates a new instance of the cert manager component.
 func NewCertManagerComponent(client client.Client, logger logr.Logger) components.Component {
-	return &component{
+	return &certManager{
 		client: client,
 		logger: logger,
 	}
 }
 
 // Name returns the name of the component.
-func (c *component) Name() string {
+func (c *certManager) Name() string {
 	return "cert-manager"
 }
 
 // Install installs cert manager in the cluster.
-func (c *component) Install(ctx context.Context) error {
+func (c *certManager) Install(ctx context.Context) error {
 	var err error
 	c.logger.Info("Installing cert manager")
 
@@ -78,7 +78,7 @@ func (c *component) Install(ctx context.Context) error {
 }
 
 // Uninstall uninstalls cert manager from the cluster.
-func (c *component) Uninstall(ctx context.Context) error {
+func (c *certManager) Uninstall(ctx context.Context) error {
 	c.logger.Info("uninstalling cert manager")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -101,7 +101,7 @@ func (c *component) Uninstall(ctx context.Context) error {
 
 // CheckExists checks if cert manager is already installed in the cluster.
 // This shall check both BOP specific as well as external installations.
-func (c *component) CheckExists(ctx context.Context) (bool, error) {
+func (c *certManager) CheckExists(ctx context.Context) (bool, error) {
 	// First, we check if an external cert manager instance already exists in the cluster.
 	exists, err := checkIfExternalCertManagerExists(ctx, c.client)
 	if err != nil {

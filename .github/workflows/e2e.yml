@@ -23,5 +23,29 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.IMAGE }}
+          path: /tmp
+
+      - name: Load docker image
+        working-directory: .
+        run: docker load --input /tmp/${{ env.IMAGE }}.tar
+
+      - name: Tag the docker image
+        run: |
+          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          echo ${{ env.IMAGE }}:$COMMIT_SHA
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.IMAGE }}:$COMMIT_SHA
+
+      - name: Generate the operator manifest
+        run: |
+          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          IMG="${{ env.IMAGE }}:$COMMIT_SHA" make build-operator-manifest
+
       - name: Run E2E tests
-        run: make e2e
+        run: |
+          COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
+          echo "Running E2E tests with image ${{ env.IMAGE }}:$COMMIT_SHA"
+          make e2e E2E_TEST_FLAGS="-test.v -test.failfast -test.timeout 20m --img ${{ env.IMAGE }}:$COMMIT_SHA"

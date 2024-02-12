@@ -21,3 +21,7 @@ jobs:
     needs: [vet, test, e2e, build]
     secrets: inherit
     uses: ./.github/workflows/push-to-ghcr.yml
+  cleanup:
+    needs: [vet, test, e2e, build, push-to-ghcr]
+    secrets: inherit
+    uses: ./.github/workflows/cleanup.yml

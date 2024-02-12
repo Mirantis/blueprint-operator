@@ -18,3 +18,8 @@ jobs:
     needs: [vet, test, e2e, build]
     secrets: inherit
     uses: ./.github/workflows/push-to-ghcr.yml
+  cleanup:
+    if: ${{ always() }} # always run this job
+    needs: [push-to-ghcr]
+    secrets: inherit
+    uses: ./.github/workflows/cleanup.yml

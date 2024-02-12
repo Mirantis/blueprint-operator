@@ -1,0 +1,25 @@
+apiVersion: boundless.mirantis.com/v1alpha1
+kind: Blueprint
+metadata:
+  name: boundless-cluster
+  namespace: boundless-system
+spec:
+  components:
+    addons:
+      - name: test-addon-1
+        kind: chart
+        enabled: true
+        namespace: test-ns-1
+        chart:
+          name: nginx
+          repo: https://charts.bitnami.com/bitnami
+          version: 15.1.1
+          values: |
+            "service":
+              "type": "ClusterIP"
+      - name: test-addon-2
+        kind: manifest
+        enabled: true
+        namespace: test-ns-1
+        manifest:
+          url: "https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml"
