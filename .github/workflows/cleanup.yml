@@ -1,0 +1,18 @@
+name: Cleanup
+
+on:
+  workflow_call:
+
+jobs:
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load environment
+        uses: c-py/action-dotenv-to-setenv@v4
+        with:
+          env-file: .github/development.env
+
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v4
+        with:
+          name: ${{ env.IMAGE }}

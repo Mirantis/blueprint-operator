@@ -22,3 +22,7 @@ jobs:
     uses: ./.github/workflows/e2e.yml
   build:
     uses: ./.github/workflows/build.yml
+  cleanup:
+    if: ${{ always() }}
+    needs: [vet, test, e2e, build]
+    uses: ./.github/workflows/cleanup.yml
