@@ -3,11 +3,6 @@ package certmanager
 // Source: https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
 
 const certManagerTemplate = `
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: boundless-system
----
 # Source: cert-manager/templates/crd-templates.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
