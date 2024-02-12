@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 func newAddon(a metav1.ObjectMeta) *v1alpha1.Addon {
@@ -35,7 +36,7 @@ func ApplyCleanupBlueprint() features.Func {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "boundless-cluster",
-				Namespace: BoundlessNamespace,
+				Namespace: consts.NamespaceBoundlessSystem,
 			},
 			Spec: v1alpha1.BlueprintSpec{
 				Components: v1alpha1.Component{

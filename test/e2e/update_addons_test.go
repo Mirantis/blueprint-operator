@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
 )
 
@@ -24,9 +25,9 @@ import (
 func TestUpdateAddons(t *testing.T) {
 	dir := filepath.Join(curDir, "manifests")
 
-	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: BoundlessNamespace}
-	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: BoundlessNamespace}
-	a3 := metav1.ObjectMeta{Name: "test-addon-3", Namespace: BoundlessNamespace}
+	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: consts.NamespaceBoundlessSystem}
+	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBoundlessSystem}
+	a3 := metav1.ObjectMeta{Name: "test-addon-3", Namespace: consts.NamespaceBoundlessSystem}
 
 	a1dep := metav1.ObjectMeta{Name: "nginx", Namespace: "test-ns-1"}
 	a2dep := metav1.ObjectMeta{Name: "controller", Namespace: "metallb-system"}

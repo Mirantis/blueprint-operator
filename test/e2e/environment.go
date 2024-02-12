@@ -15,7 +15,7 @@ type Environment struct {
 // not parsing them yet, which is left to the caller to do.
 func NewEnvironmentFromFlags() Environment {
 	c := Environment{}
-	c.img = flag.String("img", DefaultOperatorImage, "operator image to use for the test suite")
+	c.img = flag.String("img", defaultOperatorImage, "operator image to use for the test suite")
 	return c
 }
 

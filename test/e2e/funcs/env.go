@@ -20,14 +20,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-)
-
-const (
-	// BoundlessNamespace is the namespace where the boundless operator is installed
-	BoundlessNamespace = "boundless-system"
-
-	// BoundlessOperatorName is the name of the boundless operator deployment
-	BoundlessOperatorName = "boundless-operator-controller-manager"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 // AddBoundlessTypeToScheme adds the boundless operator's custom resources to the environment's scheme
@@ -54,7 +47,7 @@ func InstallBoundlessOperator() env.Func {
 		}
 
 		// Wait for the boundless operator to be ready
-		if err = waitForDeploymentReady(c, BoundlessNamespace, BoundlessOperatorName, 5*time.Minute); err != nil {
+		if err = waitForDeploymentReady(c, consts.NamespaceBoundlessSystem, consts.BoundlessOperatorName, 5*time.Minute); err != nil {
 			return ctx, fmt.Errorf("failed to wait for boundless operator to be ready: %v", err)
 		}
 		return ctx, nil
