@@ -19,26 +19,26 @@ const (
 	deploymentHelmController = "helm-controller"
 )
 
-// HelmControllerComponent is the manifest for installing cert manager.
-type component struct {
+// helmController is a component that managers helm controller
+type helmController struct {
 	client client.Client
 	logger logr.Logger
 }
 
 // NewHelmControllerComponent creates a new helm controller component.
 func NewHelmControllerComponent(client client.Client, logger logr.Logger) components.Component {
-	return &component{
+	return &helmController{
 		client: client,
 		logger: logger,
 	}
 }
 
 // Name returns the name of the component
-func (c *component) Name() string {
+func (c *helmController) Name() string {
 	return "helm-controller"
 }
 
-func (c *component) Install(ctx context.Context) error {
+func (c *helmController) Install(ctx context.Context) error {
 	var err error
 	c.logger.Info("Installing helm controller")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -61,7 +61,7 @@ func (c *component) Install(ctx context.Context) error {
 }
 
 // Uninstall uninstalls cert manager from the cluster.
-func (c *component) Uninstall(ctx context.Context) error {
+func (c *helmController) Uninstall(ctx context.Context) error {
 	c.logger.Info("Uninstalling helm controller")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -83,7 +83,7 @@ func (c *component) Uninstall(ctx context.Context) error {
 }
 
 // CheckExists checks if the helm controller exists in the cluster
-func (c *component) CheckExists(ctx context.Context) (bool, error) {
+func (c *helmController) CheckExists(ctx context.Context) (bool, error) {
 	key := client.ObjectKey{
 		Namespace: consts.NamespaceBoundlessSystem,
 		Name:      deploymentHelmController,
