@@ -12,8 +12,9 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
   e2e:
-    uses: ./.github/workflows/e2e.yml
+    if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # if all needs jobs are successful
     needs: [vet, test, build]
+    uses: ./.github/workflows/e2e.yml
   push-to-ghcr:
     if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # if all `needs` jobs are successful
     needs: [vet, test, build, e2e]
