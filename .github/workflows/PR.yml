@@ -19,7 +19,7 @@ jobs:
   build:
     uses: ./.github/workflows/build.yml
   e2e:
-    if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # if all `needs` jobs are successful
+    if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # when all `needs` jobs are successful
     needs: [ vet, test, build ]
     uses: ./.github/workflows/e2e.yml
   cleanup:
