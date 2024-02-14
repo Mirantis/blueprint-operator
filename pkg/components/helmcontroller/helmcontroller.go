@@ -44,6 +44,10 @@ func (c *helmController) Install(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
+	if err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, consts.NamespaceBoundlessSystem); err != nil {
+		return err
+	}
+
 	applier := kubernetes.NewApplier(c.logger, c.client)
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(helmControllerTemplate))); err != nil {
 		return err

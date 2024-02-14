@@ -3,10 +3,8 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -123,7 +121,7 @@ func (r *BlueprintReconciler) deleteAddons(ctx context.Context, logger logr.Logg
 }
 
 func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger logr.Logger, addon *boundlessv1alpha1.Addon) error {
-	err := r.createNamespaceIfNotExist(ctx, logger, addon.Spec.Namespace)
+	err := utils.CreateNamespaceIfNotExist(r.Client, ctx, logger, addon.Spec.Namespace)
 	if err != nil {
 		return err
 	}
@@ -258,27 +256,6 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	}
 
 	return addon
-}
-
-func (r *BlueprintReconciler) createNamespaceIfNotExist(ctx context.Context, logger logr.Logger, namespace string) error {
-	ns := corev1.Namespace{}
-	err := r.Get(ctx, client.ObjectKey{Name: namespace}, &ns)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			logger.Info("namespace does not exist, creating", "Namespace", namespace)
-			ns.ObjectMeta.Name = namespace
-			err = r.Create(ctx, &ns)
-			if err != nil {
-				return err
-			}
-
-		} else {
-			logger.Info("error checking namespace exists", "Namespace", namespace)
-			return err
-		}
-	}
-
-	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
