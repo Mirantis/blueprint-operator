@@ -72,6 +72,9 @@ spec:
         - --leader-elect
         image: ghcr.io/mirantiscontainers/boundless-operator:latest
         name: manager
+        env:
+          - name: ENABLE_WEBHOOKS
+            value: "false"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:

@@ -7,21 +7,23 @@ import (
 
 	"github.com/go-logr/logr"
 
-	v1 "k8s.io/api/apps/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
+	v1 "k8s.io/api/apps/v1"
+	coreV1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	namespaceCertManager  = "cert-manager"
-	deploymentCAInjector  = "cert-manager-cainjector"
-	deploymentCertManager = "cert-manager"
-	deploymentWebhook     = "cert-manager-webhook"
+	namespaceCertManager        = "cert-manager"
+	deploymentCAInjector        = "cert-manager-cainjector"
+	deploymentCertManager       = "cert-manager"
+	deploymentWebhook           = "cert-manager-webhook"
+	deploymentControllerManager = "boundless-operator-controller-manager"
+	namespaceBoundlessSystem    = "boundless-system"
 )
 
 // certManager is a component that manages cert manager in the cluster.
@@ -73,6 +75,34 @@ func (c *certManager) Install(ctx context.Context) error {
 	}
 
 	c.logger.Info("finished installing cert manager")
+
+	// Wait for 30s
+	time.Sleep(time.Second * 30)
+
+	// Now, make changes in the configuration
+	c.logger.Info("now, enabling webhooks in BOP")
+	// Enable webhook
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(WebhookConfigTemplate))); err != nil {
+		c.logger.Info("failed to create webhook")
+		return err
+	}
+
+	c.logger.Info("Sakshi: Webhook enabled successfully")
+
+	// Enable cert-manager
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(CertManagerConfigTemplate))); err != nil {
+		c.logger.Info("failed to enable cert manager")
+		return err
+	}
+
+	c.logger.Info("Sakshi: applied cert-manager configuration")
+
+	// Patch controller-manager deployment
+	if err = patchControllerManagerWebhook(ctx, c.client, c.logger); err != nil {
+		c.logger.Info("failed to patch existing controller-manager deployment ")
+		return err
+	}
+	c.logger.Info("Sakshi: Restarting controller manager")
 
 	return nil
 }
@@ -140,4 +170,62 @@ func checkIfExternalCertManagerExists(ctx context.Context, runtimeClient client.
 	}
 
 	return true, nil
+}
+
+func patchControllerManagerWebhook(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {
+	key := client.ObjectKey{
+		Namespace: namespaceBoundlessSystem,
+		Name:      deploymentControllerManager,
+	}
+
+	d := &v1.Deployment{}
+	if err := runtimeClient.Get(ctx, key, d); err != nil {
+		logger.Info("Failed to get deployment:%s, namespace: %s", deploymentControllerManager, namespaceBoundlessSystem)
+		return err
+	}
+
+	port := coreV1.ContainerPort{
+		ContainerPort: 9443,
+		Name:          "webhook-server",
+		Protocol:      "TCP",
+	}
+
+	vm := coreV1.VolumeMount{
+		MountPath: "/tmp/k8s-webhook-server/serving-certs",
+		Name:      "cert",
+		ReadOnly:  true,
+	}
+	var mode int32 = 420
+	secret := &coreV1.SecretVolumeSource{
+		DefaultMode: &mode,
+		SecretName:  "webhook-server-cert",
+	}
+
+	v := coreV1.Volume{
+		Name: "cert",
+		VolumeSource: coreV1.VolumeSource{
+			Secret: secret,
+		},
+	}
+
+	env := coreV1.EnvVar{
+		Name:  "ENABLE_WEBHOOKS",
+		Value: "true",
+	}
+
+	for i, _ := range d.Spec.Template.Spec.Containers {
+		if d.Spec.Template.Spec.Containers[i].Name == "manager" {
+			d.Spec.Template.Spec.Containers[i].Ports = append(d.Spec.Template.Spec.Containers[i].Ports, port)
+			d.Spec.Template.Spec.Containers[i].VolumeMounts = append(d.Spec.Template.Spec.Containers[i].VolumeMounts, vm)
+			d.Spec.Template.Spec.Containers[i].Env = []coreV1.EnvVar{env}
+		}
+	}
+
+	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, v)
+	if err := runtimeClient.Update(ctx, d); err != nil {
+		logger.Info("Failed to update deployment:%s, namespace: %s", deploymentControllerManager, namespaceBoundlessSystem)
+		return err
+	}
+
+	return nil
 }
