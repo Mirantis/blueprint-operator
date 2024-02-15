@@ -24,8 +24,6 @@ func (r *Blueprint) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-
 //+kubebuilder:webhook:path=/mutate-boundless-mirantis-com-v1alpha1-blueprint,mutating=true,failurePolicy=fail,sideEffects=None,groups=boundless.mirantis.com,resources=blueprints,verbs=create;update,versions=v1alpha1,name=mblueprint.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Blueprint{}
@@ -33,8 +31,6 @@ var _ webhook.Defaulter = &Blueprint{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Blueprint) Default() {
 	blueprintlog.Info("default", "name", r.Name)
-
-	// TODO(user): fill in your defaulting logic.
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -110,6 +106,5 @@ func (r *Blueprint) ValidateUpdate(old runtime.Object) (admission.Warnings, erro
 func (r *Blueprint) ValidateDelete() (admission.Warnings, error) {
 	blueprintlog.Info("validate delete", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil, nil
 }

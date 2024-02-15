@@ -8,6 +8,7 @@ import (
 	"github.com/go-logr/logr"
 
 	"github.com/mirantiscontainers/boundless-operator/pkg/components"
+	"github.com/mirantiscontainers/boundless-operator/pkg/components/webhook"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
@@ -76,33 +77,29 @@ func (c *certManager) Install(ctx context.Context) error {
 
 	c.logger.Info("finished installing cert manager")
 
-	// Wait for 30s
-	time.Sleep(time.Second * 30)
-
-	// Now, make changes in the configuration
-	c.logger.Info("now, enabling webhooks in BOP")
+	// Now, make changes in the configuration to enable webhooks
 	// Enable webhook
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(WebhookConfigTemplate))); err != nil {
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(webhook.WebhookTemplate))); err != nil {
 		c.logger.Info("failed to create webhook")
 		return err
 	}
 
-	c.logger.Info("Sakshi: Webhook enabled successfully")
+	c.logger.Info("webhook enabled successfully")
 
-	// Enable cert-manager
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(CertManagerConfigTemplate))); err != nil {
+	// Create certificate resources
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(CertificateTemplate))); err != nil {
 		c.logger.Info("failed to enable cert manager")
 		return err
 	}
 
-	c.logger.Info("Sakshi: applied cert-manager configuration")
+	c.logger.Info("certificate resources created successfully")
 
 	// Patch controller-manager deployment
 	if err = patchControllerManagerWebhook(ctx, c.client, c.logger); err != nil {
 		c.logger.Info("failed to patch existing controller-manager deployment ")
 		return err
 	}
-	c.logger.Info("Sakshi: Restarting controller manager")
+	c.logger.Info("webhooks configured successfully in controller manager")
 
 	return nil
 }

@@ -1,6 +1,6 @@
-package certmanager
+package webhook
 
-const WebhookConfigTemplate = `
+const WebhookTemplate = `
 apiVersion: v1
 kind: Service
 metadata:
@@ -8,7 +8,6 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/created-by: boundless-operator
     app.kubernetes.io/instance: webhook-service
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: service
     app.kubernetes.io/part-of: boundless-operator
   name: boundless-operator-webhook-service
@@ -31,7 +30,6 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/created-by: boundless-operator
     app.kubernetes.io/instance: mutating-webhook-configuration
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: mutatingwebhookconfiguration
     app.kubernetes.io/part-of: boundless-operator
   name: boundless-operator-mutating-webhook-configuration
@@ -67,7 +65,6 @@ metadata:
     app.kubernetes.io/component: webhook
     app.kubernetes.io/created-by: boundless-operator
     app.kubernetes.io/instance: validating-webhook-configuration
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: validatingwebhookconfiguration
     app.kubernetes.io/part-of: boundless-operator
   name: boundless-operator-validating-webhook-configuration

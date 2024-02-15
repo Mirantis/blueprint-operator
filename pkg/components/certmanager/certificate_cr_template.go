@@ -1,6 +1,9 @@
 package certmanager
 
-const CertManagerConfigTemplate = `
+// The following manifests contain a self-signed issuer CR and a certificate CR.
+// More document can be found at https://docs.cert-manager.io
+
+const CertificateTemplate = `
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -8,7 +11,6 @@ metadata:
     app.kubernetes.io/component: certificate
     app.kubernetes.io/created-by: boundless-operator
     app.kubernetes.io/instance: serving-cert
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: certificate
     app.kubernetes.io/part-of: boundless-operator
   name: boundless-operator-serving-cert
@@ -29,7 +31,6 @@ metadata:
     app.kubernetes.io/component: certificate
     app.kubernetes.io/created-by: boundless-operator
     app.kubernetes.io/instance: selfsigned-issuer
-    app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/name: issuer
     app.kubernetes.io/part-of: boundless-operator
   name: boundless-operator-selfsigned-issuer
