@@ -95,13 +95,6 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Blueprint")
 		os.Exit(1)
 	}
-	if err = (&controllers.IngressReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Ingress")
-		os.Exit(1)
-	}
 	if err = (&controllers.ManifestReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),

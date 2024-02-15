@@ -205,23 +205,6 @@ spec:
                       - name
                       type: object
                     type: array
-                  core:
-                    properties:
-                      ingress:
-                        description: IngressSpec defines the desired state of Ingress
-                        properties:
-                          config:
-                            type: string
-                          enabled:
-                            description: Enabled is a flag to enable/disable the ingress
-                            type: boolean
-                          provider:
-                            type: string
-                        required:
-                        - enabled
-                        - provider
-                        type: object
-                    type: object
                 type: object
             type: object
           status:
