@@ -6,6 +6,7 @@
 package v1alpha1
 
 import (
+	"encoding/json"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -210,6 +211,11 @@ func (in *ChartInfo) DeepCopyInto(out *ChartInfo) {
 		for key, val := range *in {
 			(*out)[key] = val
 		}
+	}
+	if in.Values != nil {
+		in, out := &in.Values, &out.Values
+		*out = make(json.RawMessage, len(*in))
+		copy(*out, *in)
 	}
 }
 

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -97,15 +98,25 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			logger.Info("Chart info is missing")
 			return ctrl.Result{}, fmt.Errorf("chart info is missing: %w", err)
 		}
+
+		jsonString := json.RawMessage(instance.Spec.Chart.Values)
+		j, err := json.Marshal(&jsonString)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		logger.Info("Values", "Values", fmt.Sprintf("%s", j))
+
 		chart := helm.Chart{
 			Name:    instance.Spec.Chart.Name,
 			Repo:    instance.Spec.Chart.Repo,
 			Version: instance.Spec.Chart.Version,
 			Set:     instance.Spec.Chart.Set,
-			Values:  instance.Spec.Chart.Values,
+			Values:  fmt.Sprintf("%s", j),
 		}
 
-		logger.Info("Reconciler instance details", "Name", instance.Spec.Chart.Name)
+		logger.Info("Here")
+		logger.Info("Reconciler instance details", "Name", instance.Spec.Chart.Name, "Values", instance.Spec.Chart.Values)
+		logger.Info("Here")
 
 		hc := helm.NewHelmChartController(r.Client, logger)
 

@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 
@@ -31,8 +33,10 @@ type ChartInfo struct {
 	// +kubebuilder:validation:Required
 	Version string `json:"version"`
 
-	Set    map[string]intstr.IntOrString `json:"set,omitempty"`
-	Values string                        `json:"values,omitempty"`
+	Set map[string]intstr.IntOrString `json:"set,omitempty"`
+
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Values json.RawMessage `json:"values,omitempty"`
 }
 
 type ManifestInfo struct {

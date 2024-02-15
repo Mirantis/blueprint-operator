@@ -1111,7 +1111,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/mirantiscontainers/boundless-operator:latest
+        image: nwneisen/boundless-operator:dev
         livenessProbe:
           httpGet:
             path: /healthz
