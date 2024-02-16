@@ -27,8 +27,20 @@ func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([
 	var resources []string
 	var images []kustypes.Image
 	var patches []kustypes.Patch
+	var labels []kustypes.Label
+
+	// This shall add the following label to all manifest objects
+	label := kustypes.Label{
+		Pairs: map[string]string{
+			"controlled-by": "boundless",
+		},
+		IncludeSelectors: true,
+	}
+
+	labels = append(labels, label)
 
 	resources = append(resources, url)
+
 	if values != nil {
 		if len(values.Images) > 0 {
 			for i := range values.Images {
@@ -66,6 +78,7 @@ func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([
 	kus.Resources = resources
 	kus.Patches = patches
 	kus.Images = images
+	kus.Labels = labels
 
 	kd, err := yaml.Marshal(kus)
 	if err != nil {

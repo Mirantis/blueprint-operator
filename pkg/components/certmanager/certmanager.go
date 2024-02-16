@@ -54,7 +54,7 @@ func (c *certManager) Install(ctx context.Context) error {
 	if err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, consts.NamespaceBoundlessSystem); err != nil {
 		return err
 	}
-	
+
 	applier := kubernetes.NewApplier(c.logger, c.client)
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certManagerTemplate))); err != nil {
 		return err
