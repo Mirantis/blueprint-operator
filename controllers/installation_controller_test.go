@@ -2,8 +2,6 @@ package controllers
 
 import (
 	"context"
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -60,12 +58,12 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 		It("Should delete Helm Controller", func() {
 			dep := &appsv1.Deployment{}
 			lookupKey := types.NamespacedName{Name: "helm-controller", Namespace: consts.NamespaceBoundlessSystem}
-			Eventually(getObject(context.TODO(), lookupKey, dep), 1*time.Minute, defaultInterval).Should(BeFalse())
+			Eventually(getObject(context.TODO(), lookupKey, dep), timeoutOneMinute, defaultInterval).Should(BeFalse())
 		})
 		It("Should delete cert manager", func() {
 			dep := &appsv1.Deployment{}
 			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: consts.NamespaceBoundlessSystem}
-			Eventually(getObject(context.TODO(), lookupKey, dep), 1*time.Minute, defaultInterval).Should(BeFalse())
+			Eventually(getObject(context.TODO(), lookupKey, dep), timeoutOneMinute, defaultInterval).Should(BeFalse())
 		})
 		AfterAll(func() {
 			// Create the Installation again to avoid the error in the next tests

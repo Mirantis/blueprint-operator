@@ -18,6 +18,8 @@ const (
 
 	// defaultInterval interval for waiting for assertions
 	defaultInterval = time.Millisecond * 250
+
+	timeoutOneMinute = time.Minute * 1
 )
 
 func getObject(ctx context.Context, key runtimeclient.ObjectKey, obj runtimeclient.Object) func() bool {
