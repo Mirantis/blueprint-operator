@@ -273,7 +273,6 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Watches(
 			&batch.Job{}, // Watch all Job Objects in the cluster
 			handler.EnqueueRequestsFromMapFunc(r.findAddonForJob),               // All jobs trigger this MapFunc, the MapFunc filters which jobs should trigger reconciles to which addons, if any

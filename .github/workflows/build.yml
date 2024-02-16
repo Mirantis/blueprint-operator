@@ -14,7 +14,7 @@ jobs:
         uses: c-py/action-dotenv-to-setenv@v4
         with:
           env-file: .github/development.env
-          
+
       - name: Setup Go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v4
         with:

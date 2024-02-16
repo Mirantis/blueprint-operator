@@ -315,7 +315,6 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Manifest{}).
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Watches(
 			&appsv1.DaemonSet{},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
