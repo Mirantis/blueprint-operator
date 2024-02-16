@@ -48,17 +48,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	var err error
-	if instance.Spec.Components.Core != nil && instance.Spec.Components.Core.Ingress != nil && instance.Spec.Components.Core.Ingress.Provider != "" {
-		logger.Info("Reconciling ingress")
-		err = r.createOrUpdateIngress(ctx, logger, ingressResource(instance.Spec.Components.Core.Ingress))
-		if err != nil {
-			logger.Error(err, "Failed to reconcile ingress", "Name", instance.Spec.Components.Core.Ingress)
-			return ctrl.Result{}, err
-		}
-	}
-
-	err, addonsToUninstall := r.getInstalledAddons(ctx, err, logger)
+	addonsToUninstall, err := r.getInstalledAddons(ctx, logger)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -91,20 +81,19 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 // getInstalledAddons returns a map of addons that are presently installed in the cluster
-func (r *BlueprintReconciler) getInstalledAddons(ctx context.Context, err error, logger logr.Logger) (error, map[string]boundlessv1alpha1.Addon) {
+func (r *BlueprintReconciler) getInstalledAddons(ctx context.Context, logger logr.Logger) (map[string]boundlessv1alpha1.Addon, error) {
 	allAddonsInCluster := &boundlessv1alpha1.AddonList{}
-	err = r.List(ctx, allAddonsInCluster)
-	if err != nil {
-		return err, nil
+	if err := r.List(ctx, allAddonsInCluster); err != nil {
+		return nil, err
 	}
-	logger.Info("existing addons are", "addonNames", allAddonsInCluster.Items)
 
+	logger.Info("existing addons are", "addonNames", allAddonsInCluster.Items)
 	addonsToUninstall := make(map[string]boundlessv1alpha1.Addon)
 	for _, addon := range allAddonsInCluster.Items {
 		addonsToUninstall[addon.GetName()] = addon
 	}
 
-	return nil, addonsToUninstall
+	return addonsToUninstall, nil
 }
 
 // deleteAddons deletes provided addonsToUninstall from the cluster
@@ -168,50 +157,7 @@ func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger lo
 	return nil
 }
 
-func (r *BlueprintReconciler) createOrUpdateIngress(ctx context.Context, logger logr.Logger, obj client.Object) error {
-	existing := &boundlessv1alpha1.Ingress{}
-	err := r.Get(ctx, client.ObjectKey{Name: obj.GetName(), Namespace: obj.GetNamespace()}, existing)
-	if err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return err
-		}
-	}
-
-	if existing.Name != "" {
-		logger.Info("Ingress already exists. Updating", "Name", existing.Name)
-		obj.SetResourceVersion(existing.GetResourceVersion())
-		err = r.Update(ctx, obj)
-		if err != nil {
-			return fmt.Errorf("failed to update ingress %s: %w", existing.Name, err)
-		}
-		return nil
-	}
-
-	logger.Info("Creating ingress", "Name", existing.Name)
-	err = r.Create(ctx, obj)
-	if err != nil {
-		return fmt.Errorf("failed to create ingress %s: %w", obj.GetName(), err)
-	}
-	return nil
-}
-
-func ingressResource(spec *boundlessv1alpha1.IngressSpec) *boundlessv1alpha1.Ingress {
-	name := fmt.Sprintf("mke-%s", spec.Provider)
-	return &boundlessv1alpha1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: consts.NamespaceBoundlessSystem,
-		},
-		Spec: boundlessv1alpha1.IngressSpec{
-			Enabled:  spec.Enabled,
-			Provider: spec.Provider,
-			Config:   spec.Config,
-		},
-	}
-}
-
 func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
-
 	addon := &boundlessv1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
