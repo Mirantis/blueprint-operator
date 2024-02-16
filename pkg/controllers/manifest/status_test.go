@@ -19,21 +19,15 @@ import (
 
 var _ = Describe("Status", func() {
 	var (
-		m        *mocks.MockClient
-		mc       *Controller
-		manifest types.NamespacedName
-		logger   logr.Logger
+		m      *mocks.MockClient
+		mc     *Controller
+		logger logr.Logger
 	)
 
 	BeforeEach(func() {
 		m = mocks.NewMockClient()
 		logger = log.FromContext(context.TODO())
 		mc = NewManifestController(m, logger)
-
-		manifest = types.NamespacedName{
-			Namespace: "namespace",
-			Name:      "manifest",
-		}
 	})
 
 	Context("ErrorTest", func() {
