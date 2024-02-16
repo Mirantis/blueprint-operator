@@ -166,6 +166,8 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err := r.updateHelmChartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
+
 	case kindManifest:
 		if err := r.manifestController.CreateManifest(consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
@@ -192,7 +194,9 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err := r.updateManifestAddonStatus(ctx, logger, instance, m); err != nil {
 			return ctrl.Result{}, err
 		}
+		return ctrl.Result{}, nil
 	}
+
 	logger.Info("Finished reconcile request on Addon instance", "Name", req.Name)
 	return ctrl.Result{}, nil
 }
