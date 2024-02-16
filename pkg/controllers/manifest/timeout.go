@@ -15,14 +15,14 @@ import (
 
 // AwaitTimeout waits timeout duration and then checks the status of manifest denoted by provided manifestName
 // If the manifest is not Available after timeout, AwaitTimeout returns an error
-func (mc *ManifestController) AwaitTimeout(logger logr.Logger, manifestName types.NamespacedName, timeout time.Duration) error {
+func (mc *Controller) AwaitTimeout(logger logr.Logger, manifestName types.NamespacedName, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return wait.PollUntilContextTimeout(ctx, 5*time.Second, timeout, true, mc.checkManifestAvailableFunc(logger, manifestName))
 }
 
-func (mc *ManifestController) checkManifestAvailableFunc(logger logr.Logger, manifestName types.NamespacedName) wait.ConditionWithContextFunc {
+func (mc *Controller) checkManifestAvailableFunc(logger logr.Logger, manifestName types.NamespacedName) wait.ConditionWithContextFunc {
 	return func(ctx context.Context) (bool, error) {
 		var manifest boundlessv1alpha1.Manifest
 		err := mc.client.Get(ctx, manifestName, &manifest)

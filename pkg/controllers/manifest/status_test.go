@@ -8,8 +8,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
-	v1 "k8s.io/api/apps/v1"
-	core_v1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -20,7 +20,7 @@ import (
 var _ = Describe("Status", func() {
 	var (
 		m        *mocks.MockClient
-		mc       *ManifestController
+		mc       *Controller
 		manifest types.NamespacedName
 		logger   logr.Logger
 	)
@@ -39,7 +39,7 @@ var _ = Describe("Status", func() {
 	Context("ErrorTest", func() {
 		Context("No manifest objects", func() {
 			It("Should return unhealthy status", func() {
-				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifest, nil)
+				stat, err := mc.CheckManifestStatus(context.TODO(), logger, nil)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stat).Should(Equal(Status{boundlessv1alpha1.TypeComponentUnhealthy, "No objects detected for manifest", ""}))
 			})
@@ -58,11 +58,11 @@ var _ = Describe("Status", func() {
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDeployment"},
-					&v1.Deployment{},
+					&appsv1.Deployment{},
 					mock.Anything,
 				).Return(fmt.Errorf("error"))
 
-				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifest, manifestObjects)
+				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).To(HaveOccurred())
 				Expect(stat).Should(Equal(Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get deployment from manifest", ""}))
 			})
@@ -84,15 +84,15 @@ var _ = Describe("Status", func() {
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDeployment"},
-					&v1.Deployment{},
+					&appsv1.Deployment{},
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
-					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionTrue})
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionFalse})
+					deployment := args.Get(2).(*appsv1.Deployment)
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionFalse})
 				})
 
-				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifest, manifestObjects)
+				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stat).Should(Equal(Status{boundlessv1alpha1.TypeComponentProgressing, "1 or more manifest deployments are still progressing", ""}))
 			})
@@ -117,12 +117,12 @@ var _ = Describe("Status", func() {
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDeployment"},
-					&v1.Deployment{},
+					&appsv1.Deployment{},
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
-					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionTrue})
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionFalse})
+					deployment := args.Get(2).(*appsv1.Deployment)
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionFalse})
 
 				})
 
@@ -130,16 +130,16 @@ var _ = Describe("Status", func() {
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDaemonset"},
-					&v1.DaemonSet{},
+					&appsv1.DaemonSet{},
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
-					daemonset := args.Get(2).(*v1.DaemonSet)
+					daemonset := args.Get(2).(*appsv1.DaemonSet)
 					daemonset.Status.NumberAvailable = 0
 					daemonset.Status.NumberReady = 0
 					daemonset.Status.DesiredNumberScheduled = 1
 				})
 
-				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifest, manifestObjects)
+				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stat).Should(Equal(Status{boundlessv1alpha1.TypeComponentProgressing, "1 or more manifest daemonsets are still progressing", ""}))
 			})
@@ -164,12 +164,12 @@ var _ = Describe("Status", func() {
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDeployment"},
-					&v1.Deployment{},
+					&appsv1.Deployment{},
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
-					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionTrue})
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionFalse})
+					deployment := args.Get(2).(*appsv1.Deployment)
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionFalse})
 
 				})
 
@@ -177,16 +177,16 @@ var _ = Describe("Status", func() {
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDaemonset"},
-					&v1.DaemonSet{},
+					&appsv1.DaemonSet{},
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
-					daemonset := args.Get(2).(*v1.DaemonSet)
+					daemonset := args.Get(2).(*appsv1.DaemonSet)
 					daemonset.Status.NumberAvailable = 1
 					daemonset.Status.NumberReady = 1
 					daemonset.Status.DesiredNumberScheduled = 1
 				})
 
-				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifest, manifestObjects)
+				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stat).Should(Equal(Status{boundlessv1alpha1.TypeComponentProgressing, "1 or more manifest deployments are still progressing", ""}))
 			})
@@ -213,28 +213,28 @@ var _ = Describe("Status", func() {
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDeployment"},
-					&v1.Deployment{},
+					&appsv1.Deployment{},
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
-					deployment := args.Get(2).(*v1.Deployment)
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentAvailable, Status: core_v1.ConditionTrue})
-					deployment.Status.Conditions = append(deployment.Status.Conditions, v1.DeploymentCondition{Type: v1.DeploymentProgressing, Status: core_v1.ConditionFalse})
+					deployment := args.Get(2).(*appsv1.Deployment)
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue})
+					deployment.Status.Conditions = append(deployment.Status.Conditions, appsv1.DeploymentCondition{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionFalse})
 				})
 
 				// Mock out Daemonset is Done
 				m.On("Get",
 					context.TODO(),
 					types.NamespacedName{Namespace: "TestNamespace", Name: "TestDaemonset"},
-					&v1.DaemonSet{},
+					&appsv1.DaemonSet{},
 					mock.Anything,
 				).Return(nil).Run(func(args mock.Arguments) {
-					daemonset := args.Get(2).(*v1.DaemonSet)
+					daemonset := args.Get(2).(*appsv1.DaemonSet)
 					daemonset.Status.NumberAvailable = 1
 					daemonset.Status.NumberReady = 1
 					daemonset.Status.DesiredNumberScheduled = 1
 				})
 
-				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifest, manifestObjects)
+				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stat).Should(Equal(Status{
 					boundlessv1alpha1.TypeComponentAvailable,

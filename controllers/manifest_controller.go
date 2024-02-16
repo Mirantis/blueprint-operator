@@ -133,6 +133,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			instance.Spec.Checksum = ""
 			if err := r.Update(ctx, instance); err != nil {
 				logger.Error(err, "failed to wipe checksum for manifest")
+				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
 		}
@@ -163,6 +164,10 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			},
 		}
 
+		// @TODO Ranyodh: The update to CRD here will trigger a new reconcile, while this current reconcile will continue to process
+		// This will cause errors as the manifest is already has been updated.
+		// Also, the call to  UpdateManifestObjects() after this causes the objects to be updated again.
+		// There should be only one reconcile for the update of the manifest. This needs to be fixed.
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while update operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
@@ -310,6 +315,7 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Manifest{}).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Watches(
 			&appsv1.DaemonSet{},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
@@ -532,7 +538,7 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 
 func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
 	mc := pkgmanifest.NewManifestController(r.Client, logger)
-	manifestStatus, err := mc.CheckManifestStatus(ctx, logger, namespacedName, objects)
+	manifestStatus, err := mc.CheckManifestStatus(ctx, logger, objects)
 	if err != nil {
 		return err
 	}

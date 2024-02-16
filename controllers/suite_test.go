@@ -77,6 +77,15 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred(), "failed to create manager")
 
+	// Create the namespace for boundless system here as this is needed for
+	// testing all the controllers
+	// Also, according to https://book.kubebuilder.io/reference/envtest.html?highlight=testing#testing-considerations
+	// the envtest does not delete namespace from the test environment.
+	// So, we can't delete and create namespace for individual tests
+	// The tests needs to be written considering this limitation
+	By("creating boundless-system namespace")
+	createBoundlessNamespace(ctx)
+
 	err = (&BlueprintReconciler{
 		Client: k8sManager.GetClient(),
 		Scheme: k8sManager.GetScheme(),
@@ -103,15 +112,6 @@ var _ = BeforeSuite(func() {
 		SetupLogger: setupLogger,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-
-	// Create the namespace for boundless system here as this is needed for
-	// testing all the controllers
-	// Also, according to https://book.kubebuilder.io/reference/envtest.html?highlight=testing#testing-considerations
-	// the envtest does not delete namespace from the test environment.
-	// So, we can't delete and create namespace for individual tests
-	// The tests needs to be written considering this limitation
-	By("creating boundless-system namespace")
-	createBoundlessNamespace(ctx)
 
 	go func() {
 		defer GinkgoRecover()

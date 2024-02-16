@@ -10,17 +10,11 @@ import (
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
 
-type Chart struct {
-	Name    string                        `yaml:"name"`
-	Repo    string                        `yaml:"repo"`
-	Version string                        `yaml:"version"`
-	Set     map[string]intstr.IntOrString `yaml:"set,omitempty"`
-	Values  string                        `yaml:"values,omitempty"`
-}
+	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+)
 
 type Controller struct {
 	client client.Client
@@ -34,40 +28,41 @@ func NewHelmChartController(client client.Client, logger logr.Logger) *Controlle
 	}
 }
 
-func (hc *Controller) CreateHelmChart(chartSpec Chart, namespace string) error {
-
+// CreateHelmChart creates a HelmChart CRD in the given namespace
+func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace string) error {
 	helmChart := helmv1.HelmChart{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      chartSpec.Name,
-			Namespace: namespace,
+			Name:      info.Name,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: helmv1.HelmChartSpec{
-			TargetNamespace: namespace,
-			Chart:           chartSpec.Name,
-			Version:         chartSpec.Version,
-			Repo:            chartSpec.Repo,
-			Set:             chartSpec.Set,
-			ValuesContent:   chartSpec.Values,
+			TargetNamespace: targetNamespace,
+			Chart:           info.Name,
+			Version:         info.Version,
+			Repo:            info.Repo,
+			Set:             info.Set,
+			ValuesContent:   info.Values,
 		},
 	}
 
 	return hc.createOrUpdateHelmChart(helmChart)
 }
 
-func (hc *Controller) DeleteHelmChart(chartSpec Chart, namespace string) error {
+// DeleteHelmChart deletes a HelmChart CRD in the given namespace
+func (hc *Controller) DeleteHelmChart(info *v1alpha1.ChartInfo, targetNamespace string) error {
 
 	chart := helmv1.HelmChart{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      chartSpec.Name,
-			Namespace: namespace,
+			Name:      info.Name,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: helmv1.HelmChartSpec{
-			TargetNamespace: namespace,
-			Chart:           chartSpec.Name,
-			Version:         chartSpec.Version,
-			Repo:            chartSpec.Repo,
-			Set:             chartSpec.Set,
-			ValuesContent:   chartSpec.Values,
+			TargetNamespace: targetNamespace,
+			Chart:           info.Name,
+			Version:         info.Version,
+			Repo:            info.Repo,
+			Set:             info.Set,
+			ValuesContent:   info.Values,
 		},
 	}
 

@@ -3,11 +3,13 @@ package manifest
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	apps_v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
 type Status struct {
@@ -21,7 +23,7 @@ type Status struct {
 // If no errors are found, we check if any deployments/daemonsets are still progressing and set the manifest status to Progressing
 // Otherwise set the manifest status to Available
 // This is not comprehensive and may need to be updated as we support more complex manifests
-func (mc *ManifestController) CheckManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) (Status, error) {
+func (mc *Controller) CheckManifestStatus(ctx context.Context, logger logr.Logger, objects []boundlessv1alpha1.ManifestObject) (Status, error) {
 
 	if objects == nil || len(objects) == 0 {
 		logger.Info("No manifest objects for manifest")
@@ -70,7 +72,7 @@ func (mc *ManifestController) CheckManifestStatus(ctx context.Context, logger lo
 	return Status{boundlessv1alpha1.TypeComponentAvailable, "Manifest Components Available", fmt.Sprintf("Deployments : %s, Daemonsets : %s", deploymentStatus.Reason, daemonsetStatus.Reason)}, nil
 }
 
-func (mc *ManifestController) checkManifestDeployments(ctx context.Context, logger logr.Logger, deployments []boundlessv1alpha1.ManifestObject) (Status, error) {
+func (mc *Controller) checkManifestDeployments(ctx context.Context, logger logr.Logger, deployments []boundlessv1alpha1.ManifestObject) (Status, error) {
 
 	if len(deployments) == 0 {
 		return Status{}, nil
@@ -80,7 +82,7 @@ func (mc *ManifestController) checkManifestDeployments(ctx context.Context, logg
 
 	for _, obj := range deployments {
 
-		deployment := &apps_v1.Deployment{}
+		deployment := &appsv1.Deployment{}
 		err := mc.client.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, deployment)
 		if err != nil {
 			return Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get deployment from manifest", ""}, err
@@ -90,12 +92,12 @@ func (mc *ManifestController) checkManifestDeployments(ctx context.Context, logg
 			continue
 		}
 
-		progressCondition, err := getConditionOfType(apps_v1.DeploymentProgressing, deployment.Status.Conditions)
+		progressCondition, err := getConditionOfType(appsv1.DeploymentProgressing, deployment.Status.Conditions)
 		if err != nil {
 			return Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get deployment conditions from manifest", ""}, err
 		}
 
-		availableCondition, err := getConditionOfType(apps_v1.DeploymentAvailable, deployment.Status.Conditions)
+		availableCondition, err := getConditionOfType(appsv1.DeploymentAvailable, deployment.Status.Conditions)
 		if err != nil {
 			return Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get deployment conditions from manifest", ""}, err
 		}
@@ -123,17 +125,17 @@ func (mc *ManifestController) checkManifestDeployments(ctx context.Context, logg
 	return Status{boundlessv1alpha1.TypeComponentAvailable, "Manifest Deployments Available", ""}, nil
 }
 
-func getConditionOfType(desiredType apps_v1.DeploymentConditionType, conditions []apps_v1.DeploymentCondition) (apps_v1.DeploymentCondition, error) {
+func getConditionOfType(desiredType appsv1.DeploymentConditionType, conditions []appsv1.DeploymentCondition) (appsv1.DeploymentCondition, error) {
 	for _, condition := range conditions {
 		if condition.Type == desiredType {
 			return condition, nil
 		}
 	}
 
-	return apps_v1.DeploymentCondition{}, fmt.Errorf("condition type unavailable")
+	return appsv1.DeploymentCondition{}, fmt.Errorf("condition type unavailable")
 }
 
-func (mc *ManifestController) checkManifestDaemonsets(ctx context.Context, logger logr.Logger, daemonsets []boundlessv1alpha1.ManifestObject) (Status, error) {
+func (mc *Controller) checkManifestDaemonsets(ctx context.Context, logger logr.Logger, daemonsets []boundlessv1alpha1.ManifestObject) (Status, error) {
 
 	if len(daemonsets) == 0 {
 		return Status{}, nil
@@ -143,7 +145,7 @@ func (mc *ManifestController) checkManifestDaemonsets(ctx context.Context, logge
 
 	for _, obj := range daemonsets {
 
-		daemonset := &apps_v1.DaemonSet{}
+		daemonset := &appsv1.DaemonSet{}
 		err := mc.client.Get(ctx, types.NamespacedName{Namespace: obj.Namespace, Name: obj.Name}, daemonset)
 		if err != nil {
 			return Status{boundlessv1alpha1.TypeComponentUnhealthy, "Unable to get daemonset from manifest", ""}, err
