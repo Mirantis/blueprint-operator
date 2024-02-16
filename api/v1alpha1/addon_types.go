@@ -16,6 +16,7 @@ type AddonSpec struct {
 	Kind string `json:"kind"`
 
 	Enabled   bool          `json:"enabled"`
+	DryRun    bool          `json:"dryRun"`
 	Namespace string        `json:"namespace,omitempty"`
 	Chart     *ChartInfo    `json:"chart,omitempty"`
 	Manifest  *ManifestInfo `json:"manifest,omitempty"`

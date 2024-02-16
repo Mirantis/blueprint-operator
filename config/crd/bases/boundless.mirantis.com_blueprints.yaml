@@ -65,6 +65,8 @@ spec:
                           - repo
                           - version
                           type: object
+                        dryRun:
+                          type: boolean
                         enabled:
                           type: boolean
                         kind:
@@ -200,6 +202,7 @@ spec:
                         namespace:
                           type: string
                       required:
+                      - dryRun
                       - enabled
                       - kind
                       - name

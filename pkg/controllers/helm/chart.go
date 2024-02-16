@@ -28,7 +28,7 @@ func NewHelmChartController(client client.Client, logger logr.Logger) *Controlle
 }
 
 // CreateHelmChart creates a HelmChart CRD in the given namespace
-func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace string) error {
+func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace string, isDryRun bool) error {
 	helmChart := helmv1.HelmChart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      info.Name,
@@ -41,7 +41,12 @@ func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 			Repo:            info.Repo,
 			Set:             info.Set,
 			ValuesContent:   info.Values,
+			JobImage:        "tppolkow/klipper-helm:test2", // TODO: use mirantiscontainers fork instead
 		},
+	}
+
+	if isDryRun {
+		helmChart.Spec.DryRun = "server"
 	}
 
 	return hc.createOrUpdateHelmChart(helmChart)
@@ -62,6 +67,7 @@ func (hc *Controller) DeleteHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 			Repo:            info.Repo,
 			Set:             info.Set,
 			ValuesContent:   info.Values,
+			JobImage:        "tppolkow/klipper-helm:test2", // TODO: use mirantiscontainers fork instead
 		},
 	}
 
