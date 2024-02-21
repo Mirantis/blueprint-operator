@@ -1,9 +1,9 @@
-package certmanager
+package webhook
 
 // The following manifests contain a self-signed issuer CR and a certificate CR.
 // More document can be found at https://docs.cert-manager.io
 
-const CertificateTemplate = `
+const certificateTemplate = `
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

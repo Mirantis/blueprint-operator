@@ -17,6 +17,7 @@ import (
 	components "github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/helmcontroller"
+	"github.com/mirantiscontainers/boundless-operator/pkg/components/webhook"
 )
 
 var (
@@ -58,6 +59,7 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	componentList := []components.Component{
 		helmcontroller.NewHelmControllerComponent(r.Client, logger),
 		certmanager.NewCertManagerComponent(r.Client, logger),
+		webhook.NewWebhookComponent(r.Client, logger),
 	}
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {

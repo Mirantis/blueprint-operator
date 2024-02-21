@@ -1,6 +1,6 @@
 package webhook
 
-const WebhookTemplate = `
+const webhookTemplate = `
 apiVersion: v1
 kind: Service
 metadata:

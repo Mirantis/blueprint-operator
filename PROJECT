@@ -65,4 +65,3 @@ resources:
   path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
   version: v1alpha1
 version: "3"
-
