@@ -41,6 +41,7 @@ func (c *webhook) Name() string {
 	return "webhook"
 }
 
+// Install installs webhooks in the cluster.
 func (c *webhook) Install(ctx context.Context) error {
 	var err error
 	c.logger.Info("Installing validation webhooks")
@@ -70,7 +71,7 @@ func (c *webhook) Install(ctx context.Context) error {
 	return nil
 }
 
-// Uninstall uninstalls cert manager from the cluster.
+// Uninstall uninstalls validation webhooks from the cluster.
 func (c *webhook) Uninstall(ctx context.Context) error {
 	c.logger.Info("Uninstalling validation webhooks")
 
@@ -103,7 +104,7 @@ func (c *webhook) Uninstall(ctx context.Context) error {
 	return nil
 }
 
-// CheckExists checks if the helm controller exists in the cluster
+// CheckExists checks if the webhook service exists in the cluster
 func (c *webhook) CheckExists(ctx context.Context) (bool, error) {
 	key := client.ObjectKey{
 		Namespace: consts.NamespaceBoundlessSystem,

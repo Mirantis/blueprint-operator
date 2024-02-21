@@ -73,21 +73,6 @@ func (c *certManager) Install(ctx context.Context) error {
 
 	c.logger.Info("finished installing cert manager")
 
-	// Create certificate resources
-	/*if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(CertificateTemplate))); err != nil {
-		c.logger.Info("failed to enable cert manager")
-		return err
-	}
-
-	c.logger.Info("certificate resources created successfully")
-
-	// Patch controller-manager deployment
-	if err = patchControllerManagerWebhook(ctx, c.client, c.logger); err != nil {
-		c.logger.Info("failed to patch existing controller-manager deployment ")
-		return err
-	}
-	c.logger.Info("webhooks configured successfully in controller manager")
-	*/
 	return nil
 }
 
