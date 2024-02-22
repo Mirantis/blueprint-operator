@@ -13,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 type Controller struct {
@@ -33,7 +32,7 @@ func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 	helmChart := helmv1.HelmChart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      info.Name,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: targetNamespace,
 		},
 		Spec: helmv1.HelmChartSpec{
 			TargetNamespace: targetNamespace,
@@ -54,7 +53,7 @@ func (hc *Controller) DeleteHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 	chart := helmv1.HelmChart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      info.Name,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: targetNamespace,
 		},
 		Spec: helmv1.HelmChartSpec{
 			TargetNamespace: targetNamespace,
