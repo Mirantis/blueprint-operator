@@ -24,19 +24,19 @@ const (
 	FailurePolicyRetry = "Retry"
 )
 
-type ManifestController struct {
+type Controller struct {
 	client client.Client
 	logger logr.Logger
 }
 
-func NewManifestController(client client.Client, logger logr.Logger) *ManifestController {
-	return &ManifestController{
+func NewManifestController(client client.Client, logger logr.Logger) *Controller {
+	return &Controller{
 		client: client,
 		logger: logger,
 	}
 }
 
-func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
+func (mc *Controller) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
 
 	dataBytes, err := kustomize.Render(mc.logger, manifestSpec.URL, manifestSpec.Values)
 	if err != nil {
@@ -77,7 +77,7 @@ func (mc *ManifestController) CreateManifest(namespace, name string, manifestSpe
 
 }
 
-func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifest) error {
+func (mc *Controller) createOrUpdateManifest(m boundlessv1alpha1.Manifest) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -140,11 +140,11 @@ func (mc *ManifestController) createOrUpdateManifest(m boundlessv1alpha1.Manifes
 	return nil
 }
 
-func (mc *ManifestController) checkIfManifestNeedsUpdate(m boundlessv1alpha1.Manifest, existing *boundlessv1alpha1.Manifest) bool {
+func (mc *Controller) checkIfManifestNeedsUpdate(m boundlessv1alpha1.Manifest, existing *boundlessv1alpha1.Manifest) bool {
 	return existing.Spec.Checksum != m.Spec.Checksum || existing.Spec.FailurePolicy != m.Spec.FailurePolicy || existing.Spec.Timeout != m.Spec.Timeout
 }
 
-func (mc *ManifestController) getExistingManifest(namespace, name string) (*boundlessv1alpha1.Manifest, error) {
+func (mc *Controller) getExistingManifest(namespace, name string) (*boundlessv1alpha1.Manifest, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -166,13 +166,13 @@ func (mc *ManifestController) getExistingManifest(namespace, name string) (*boun
 	return existing, nil
 }
 
-func (mc *ManifestController) getCheckSumUrl(kustomizeBytes []byte) (string, error) {
+func (mc *Controller) getCheckSumUrl(kustomizeBytes []byte) (string, error) {
 	sum := sha256.Sum256(kustomizeBytes)
 	mc.logger.Info("computed checksum on kustomize build output", "Checksum", hex.EncodeToString(sum[:]))
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func (mc *ManifestController) DeleteManifest(namespace, name, url string) error {
+func (mc *Controller) DeleteManifest(namespace, name, url string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()

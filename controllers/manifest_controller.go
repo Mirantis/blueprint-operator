@@ -133,13 +133,19 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			instance.Spec.Checksum = ""
 			if err := r.Update(ctx, instance); err != nil {
 				logger.Error(err, "failed to wipe checksum for manifest")
+				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
 		}
 
-		// manifest is already installed as specified - get latest status from objects in the cluster
-		err := r.checkManifestStatus(ctx, logger, req.NamespacedName, instance.Spec.Objects)
-		return ctrl.Result{}, err
+		// manifest is already installed as specified - update manifest status from status's of objects in the cluster
+		if err := r.updateManifestStatus(ctx, logger, req.NamespacedName, instance.Spec.Objects); err != nil {
+			logger.Error(err, "failed to update manifest status")
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest status %s/%s : %s", instance.Namespace, instance.Name, err.Error())
+			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest status", fmt.Sprintf("failed to update manifest status : %s", err))
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	if (instance.Spec.Checksum != instance.Spec.NewChecksum) && (instance.Spec.NewChecksum != "") {
@@ -147,6 +153,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		logger.Info("checksum differs, update needed", "Checksum", instance.Spec.Checksum, "NewChecksum", instance.Spec.NewChecksum)
 		// First, update the checksum to avoid any reconciliation
 		// Update the CRD
+		// @todo (Ranyodh): The CRD should also add finalizer (or do a Patch() update), otherwise, the finalizer will be removed
 		updatedCRD := boundlessv1alpha1.Manifest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            instance.Name,
@@ -163,9 +170,13 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			},
 		}
 
+		// @TODO Ranyodh: The update to CRD here will trigger a new reconcile, while this current reconcile will continue to process
+		// This will cause errors as the manifest is already has been updated.
+		// Also, the call to  UpdateManifestObjects() after this causes the CRD to be updated again.
+		// There should be only one reconcile for the update of the manifest. This needs to be fixed.
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
-			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while update operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
+			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest resource while update operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation ", fmt.Sprintf("failed to update manifest crd while update operation  : %s", err))
 			return ctrl.Result{}, err
 		}
@@ -193,6 +204,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// We will reach here only in case of create request.
 		// First, update the checksum in CRD to avoid any reconciliations.
 		// Update the CRD
+		// @todo (Ranyodh): The CRD should also add finalizer (or do a Patch() update), otherwise, the finalizer will be removed
 		updatedCRD := boundlessv1alpha1.Manifest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            instance.Name,
@@ -209,6 +221,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			},
 		}
 
+		// @TODO Ranyodh: The update to CRD here will trigger a new reconcile. We must exit the reconciler after this.
 		if err := r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while create operation")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while create operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
@@ -473,6 +486,8 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 		logger.Error(err, "failed to get manifest object")
 		return err
 	}
+
+	// @todo (Ranyodh): The CRD should also add finalizer (or do a Patch() update), otherwise, the finalizer will be removed
 	updatedCRD := boundlessv1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            crd.Name,
@@ -530,9 +545,9 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 	}
 }
 
-func (r *ManifestReconciler) checkManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
+func (r *ManifestReconciler) updateManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
 	mc := pkgmanifest.NewManifestController(r.Client, logger)
-	manifestStatus, err := mc.CheckManifestStatus(ctx, logger, namespacedName, objects)
+	manifestStatus, err := mc.CheckManifestStatus(ctx, logger, objects)
 	if err != nil {
 		return err
 	}

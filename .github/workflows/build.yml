@@ -15,6 +15,11 @@ jobs:
         with:
           env-file: .github/development.env
 
+      - name: Setup Go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
       - name: Build docker image
         working-directory: .
         run: make docker-build

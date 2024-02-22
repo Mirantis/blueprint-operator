@@ -40,7 +40,7 @@ func TestInstallAddons(t *testing.T) {
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("ManifestAddonIsSuccessfullyInstalled", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a2), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("HelmAddonObjectsAreSuccessfullyCreated", funcs.AllOf(
 			// @TODO: check for more/all objects

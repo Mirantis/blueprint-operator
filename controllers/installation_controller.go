@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	components "github.com/mirantiscontainers/boundless-operator/pkg/components"
+	"github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/helmcontroller"
 )

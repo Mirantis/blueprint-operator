@@ -21,11 +21,13 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 			obj := &operator.Installation{}
 			lookupKey := types.NamespacedName{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}
 
-			Eventually(func() []string {
+			// getFinalizers returns the finalizers of the object
+			getFinalizers := func() []string {
 				err := k8sClient.Get(context.TODO(), lookupKey, obj)
 				Expect(err).NotTo(HaveOccurred())
 				return obj.Finalizers
-			}, defaultTimeout, defaultInterval).Should(ContainElement(installationFinalizer))
+			}
+			Eventually(getFinalizers, defaultTimeout, defaultInterval).Should(ContainElement(installationFinalizer))
 
 			Expect(k8sClient.Get(context.TODO(), lookupKey, obj)).Should(Succeed())
 			Expect(obj.Finalizers).Should(ContainElement(installationFinalizer))
@@ -74,6 +76,12 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 				},
 			}
 			Expect(k8sClient.Create(context.TODO(), install)).Should(Succeed())
+			dep := &appsv1.Deployment{}
+			helmKey := types.NamespacedName{Name: "helm-controller", Namespace: consts.NamespaceBoundlessSystem}
+			certKey := types.NamespacedName{Name: "cert-manager", Namespace: consts.NamespaceBoundlessSystem}
+
+			Eventually(getObject(context.TODO(), helmKey, dep), defaultTimeout, defaultInterval).Should(BeTrue(), "Failed to reinstall helm controller")
+			Eventually(getObject(context.TODO(), certKey, dep), defaultTimeout, defaultInterval).Should(BeTrue(), "Failed to reinstall cert manager")
 		})
 	})
 })
