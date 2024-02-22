@@ -121,7 +121,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	} else {
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(instance, finalizer) {
-			// our finalizer is present, so lets delete the addon
 			if err := r.deleteAddon(instance); err != nil {
 				// if fail to delete the addon here, return with error
 				// so that it can be retried
