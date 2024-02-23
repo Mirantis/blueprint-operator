@@ -7,6 +7,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"time"
 
 	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
@@ -51,6 +52,10 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 
 	Context("When Installation resource is deleted", func() {
 		BeforeAll(func() {
+
+			// Adding this as webhooks will restart the controller manager
+			time.Sleep(30 * time.Second)
+		
 			// Delete the Installation
 			install := &operator.Installation{}
 			lookupKey := types.NamespacedName{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}
@@ -82,6 +87,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 
 			Eventually(getObject(context.TODO(), helmKey, dep), defaultTimeout, defaultInterval).Should(BeTrue(), "Failed to reinstall helm controller")
 			Eventually(getObject(context.TODO(), certKey, dep), defaultTimeout, defaultInterval).Should(BeTrue(), "Failed to reinstall cert manager")
+			time.Sleep(30 * time.Second)
 		})
 	})
 })
