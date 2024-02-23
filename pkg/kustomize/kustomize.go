@@ -32,7 +32,7 @@ func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([
 	// This shall add the following label to all manifest objects
 	label := kustypes.Label{
 		Pairs: map[string]string{
-			"controlled-by": "boundless",
+			"controlled-by": "com.mirantis.boundless",
 		},
 		IncludeSelectors: true,
 	}
