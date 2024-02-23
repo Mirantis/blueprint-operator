@@ -20,6 +20,10 @@ resources:
   kind: Addon
   path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
   version: v1alpha1
+  webhooks:
+      defaulting: true
+      validation: true
+      webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
@@ -29,6 +33,10 @@ resources:
   kind: Blueprint
   path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
   version: v1alpha1
+  webhooks:
+      defaulting: true
+      validation: true
+      webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
