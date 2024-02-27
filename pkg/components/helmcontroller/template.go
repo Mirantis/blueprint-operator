@@ -342,7 +342,7 @@ spec:
     spec:
       containers:
         - name: helm-controller
-          image: tppolkow/helm-controller:test3
+          image: ghcr.io/mirantiscontainers/helm-controller:0147f09
           command: ["helm-controller"]
       serviceAccountName: helm-controller
 `

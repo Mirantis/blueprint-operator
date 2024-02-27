@@ -15,6 +15,9 @@ import (
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
+// this is the image that is used by helm controller to actually run the helm install
+const helmJobImage = "ghcr.io/mirantiscontainers/klipper-helm:42274ad"
+
 type Controller struct {
 	client client.Client
 	logger logr.Logger
@@ -41,7 +44,7 @@ func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 			Repo:            info.Repo,
 			Set:             info.Set,
 			ValuesContent:   info.Values,
-			JobImage:        "tppolkow/klipper-helm:test2", // TODO: use mirantiscontainers fork instead
+			JobImage:        helmJobImage,
 		},
 	}
 
@@ -67,7 +70,7 @@ func (hc *Controller) DeleteHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 			Repo:            info.Repo,
 			Set:             info.Set,
 			ValuesContent:   info.Values,
-			JobImage:        "tppolkow/klipper-helm:test2", // TODO: use mirantiscontainers fork instead
+			JobImage:        helmJobImage,
 		},
 	}
 
