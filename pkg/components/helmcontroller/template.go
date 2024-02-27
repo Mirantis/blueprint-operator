@@ -44,12 +44,18 @@ spec:
         - jsonPath: .spec.bootstrap
           name: Bootstrap
           type: string
+        - jsonPath: .spec.dryRun
+          name: DryRun
+          type: string
       name: v1
       schema:
         openAPIV3Schema:
           properties:
             spec:
               properties:
+                dryRun:
+                  nullable: true
+                  type: string
                 bootstrap:
                   type: boolean
                 chart:
@@ -336,7 +342,7 @@ spec:
     spec:
       containers:
         - name: helm-controller
-          image: rancher/helm-controller:v0.12.1
+          image: ghcr.io/mirantiscontainers/helm-controller:0147f09
           command: ["helm-controller"]
       serviceAccountName: helm-controller
 `

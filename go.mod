@@ -2,6 +2,8 @@ module github.com/mirantiscontainers/boundless-operator
 
 go 1.21
 
+replace github.com/k3s-io/helm-controller => github.com/mirantiscontainers/helm-controller v0.12.2-0.20240226220425-c45beeae2ba4
+
 require (
 	github.com/go-logr/logr v1.3.0
 	github.com/k3s-io/helm-controller v0.15.4

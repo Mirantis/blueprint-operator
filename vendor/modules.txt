@@ -93,8 +93,8 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/k3s-io/helm-controller v0.15.4
-## explicit; go 1.19
+# github.com/k3s-io/helm-controller v0.15.4 => github.com/mirantiscontainers/helm-controller v0.12.2-0.20240226220425-c45beeae2ba4
+## explicit; go 1.16
 github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io
 github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1
 # github.com/mailru/easyjson v0.7.7
@@ -810,3 +810,4 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
 sigs.k8s.io/yaml/goyaml.v3
+# github.com/k3s-io/helm-controller => github.com/mirantiscontainers/helm-controller v0.12.2-0.20240226220425-c45beeae2ba4

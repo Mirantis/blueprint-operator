@@ -167,6 +167,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Kind:      spec.Kind,
+			DryRun:    spec.DryRun,
 		},
 	}
 

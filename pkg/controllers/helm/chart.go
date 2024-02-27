@@ -15,6 +15,9 @@ import (
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
+// this is the image that is used by helm controller to actually run the helm install
+const helmJobImage = "ghcr.io/mirantiscontainers/klipper-helm:42274ad"
+
 type Controller struct {
 	client client.Client
 	logger logr.Logger
@@ -28,7 +31,7 @@ func NewHelmChartController(client client.Client, logger logr.Logger) *Controlle
 }
 
 // CreateHelmChart creates a HelmChart CRD in the given namespace
-func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace string) error {
+func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace string, isDryRun bool) error {
 	helmChart := helmv1.HelmChart{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      info.Name,
@@ -41,7 +44,12 @@ func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 			Repo:            info.Repo,
 			Set:             info.Set,
 			ValuesContent:   info.Values,
+			JobImage:        helmJobImage,
 		},
+	}
+
+	if isDryRun {
+		helmChart.Spec.DryRun = "server"
 	}
 
 	return hc.createOrUpdateHelmChart(helmChart)
@@ -62,6 +70,7 @@ func (hc *Controller) DeleteHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 			Repo:            info.Repo,
 			Set:             info.Set,
 			ValuesContent:   info.Values,
+			JobImage:        helmJobImage,
 		},
 	}
 
