@@ -1,11 +1,13 @@
 package webhook
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -14,18 +16,21 @@ import (
 	"github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
 )
 
 const (
-	serviceWebhook              = "boundless-operator-webhook-service"
-	namespaceBoundlessSystem    = "boundless-system"
-	deploymentControllerManager = "boundless-operator-controller-manager"
+	serviceWebhook = "boundless-operator-webhook-service"
 )
 
 // webhook is a component that manages validation webhooks in the cluster.
 type webhook struct {
 	client client.Client
 	logger logr.Logger
+}
+
+type webhookConfig struct {
+	Image string
 }
 
 // NewWebhookComponent creates a new instance of the webhook component.
@@ -43,15 +48,11 @@ func (c *webhook) Name() string {
 
 // Install installs webhooks in the cluster.
 func (c *webhook) Install(ctx context.Context) error {
-	var err error
 	c.logger.Info("Installing validation webhooks")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(webhookTemplate))); err != nil {
-		return err
-	}
 
 	// Create certificate resources
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certificateTemplate))); err != nil {
@@ -61,13 +62,26 @@ func (c *webhook) Install(ctx context.Context) error {
 
 	c.logger.Info("certificate resources created successfully")
 
-	// Patch controller-manager deployment
-	if err = patchControllerManagerDeployment(ctx, c.client, c.logger); err != nil {
-		c.logger.Info("failed to patch existing controller-manager deployment ")
+	operatorImage, err := utils.GetOperatorImage(ctx, c.client)
+	if err != nil {
+		return fmt.Errorf("failed to install webhooks: %w", err)
+	}
+
+	cfg := webhookConfig{
+		Image: operatorImage,
+	}
+
+	rendered, err := renderTemplate(webhookTemplate, cfg)
+	if err != nil {
+		return fmt.Errorf("failed to render webhook template: %w", err)
+	}
+
+	c.logger.V(2).Info("applying webhook resources with image: %s", operatorImage)
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader(rendered)); err != nil {
 		return err
 	}
-	c.logger.Info("webhooks configured successfully in controller manager")
 
+	c.logger.Info("webhooks configured successfully in controller manager")
 	return nil
 }
 
@@ -121,60 +135,17 @@ func (c *webhook) CheckExists(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func patchControllerManagerDeployment(ctx context.Context, runtimeClient client.Client, logger logr.Logger) error {
-	key := client.ObjectKey{
-		Namespace: namespaceBoundlessSystem,
-		Name:      deploymentControllerManager,
+func renderTemplate(source string, cfg webhookConfig) ([]byte, error) {
+	tmpl, err := template.New("dummy").Parse(source)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse webhook template: %w", err)
 	}
 
-	d := &v1.Deployment{}
-	if err := runtimeClient.Get(ctx, key, d); err != nil {
-		logger.Info("Failed to get deployment:%s, namespace: %s", deploymentControllerManager, namespaceBoundlessSystem)
-		return err
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to execute webhook template: %w", err)
 	}
 
-	port := coreV1.ContainerPort{
-		ContainerPort: 9443,
-		Name:          "webhook-server",
-		Protocol:      "TCP",
-	}
-
-	vm := coreV1.VolumeMount{
-		MountPath: "/tmp/k8s-webhook-server/serving-certs",
-		Name:      "cert",
-		ReadOnly:  true,
-	}
-	var mode int32 = 420
-	secret := &coreV1.SecretVolumeSource{
-		DefaultMode: &mode,
-		SecretName:  "webhook-server-cert",
-	}
-
-	v := coreV1.Volume{
-		Name: "cert",
-		VolumeSource: coreV1.VolumeSource{
-			Secret: secret,
-		},
-	}
-
-	env := coreV1.EnvVar{
-		Name:  "ENABLE_WEBHOOKS",
-		Value: "true",
-	}
-
-	for i, _ := range d.Spec.Template.Spec.Containers {
-		if d.Spec.Template.Spec.Containers[i].Name == "manager" {
-			d.Spec.Template.Spec.Containers[i].Ports = append(d.Spec.Template.Spec.Containers[i].Ports, port)
-			d.Spec.Template.Spec.Containers[i].VolumeMounts = append(d.Spec.Template.Spec.Containers[i].VolumeMounts, vm)
-			d.Spec.Template.Spec.Containers[i].Env = []coreV1.EnvVar{env}
-		}
-	}
-
-	d.Spec.Template.Spec.Volumes = append(d.Spec.Template.Spec.Volumes, v)
-	if err := runtimeClient.Update(ctx, d); err != nil {
-		logger.Info("Failed to update deployment:%s, namespace: %s", deploymentControllerManager, namespaceBoundlessSystem)
-		return err
-	}
-
-	return nil
+	return buf.Bytes(), nil
 }

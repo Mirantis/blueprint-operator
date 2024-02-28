@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -45,6 +46,11 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 		It("Should install cert manager", func() {
 			dep := &appsv1.Deployment{}
 			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: consts.NamespaceBoundlessSystem}
+			Eventually(getObject(context.TODO(), lookupKey, dep), defaultTimeout, defaultInterval).Should(BeTrue())
+		})
+		It("Should install webhook", func() {
+			dep := &appsv1.Deployment{}
+			lookupKey := types.NamespacedName{Name: "boundless-", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), defaultTimeout, defaultInterval).Should(BeTrue())
 		})
 	})

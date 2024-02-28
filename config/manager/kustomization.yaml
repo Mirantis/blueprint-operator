@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: ghcr.io/mirantiscontainers/boundless-operator
   newName: localhost:5001/boundless-operator
-  newTag: dev
+  newTag: dev.2

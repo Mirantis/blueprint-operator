@@ -6,4 +6,7 @@ const (
 
 	// BoundlessOperatorName is the name of the boundless operator deployment
 	BoundlessOperatorName = "boundless-operator-controller-manager"
+
+	// BoundlessContainerName is the name of the boundless operator container
+	BoundlessContainerName = "manager"
 )

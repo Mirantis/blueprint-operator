@@ -1169,9 +1169,6 @@ spec:
         - --leader-elect
         command:
         - /manager
-        env:
-        - name: ENABLE_WEBHOOKS
-          value: "false"
         image: ghcr.io/mirantiscontainers/boundless-operator:latest
         livenessProbe:
           httpGet:
@@ -1200,5 +1197,7 @@ spec:
             - ALL
       securityContext:
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: boundless-operator-controller-manager
       terminationGracePeriodSeconds: 10
