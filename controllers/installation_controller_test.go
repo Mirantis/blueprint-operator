@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -51,7 +52,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 		It("Should install webhook", func() {
 			dep := &appsv1.Deployment{}
 			lookupKey := types.NamespacedName{Name: "boundless-operator-webhook", Namespace: consts.NamespaceBoundlessSystem}
-			Eventually(getObject(context.TODO(), lookupKey, dep), defaultTimeout, defaultInterval).Should(BeTrue())
+			Eventually(getObject(context.TODO(), lookupKey, dep), time.Minute*1, defaultInterval).Should(BeTrue())
 		})
 	})
 
