@@ -50,7 +50,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 		})
 		It("Should install webhook", func() {
 			dep := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "boundless-", Namespace: consts.NamespaceBoundlessSystem}
+			lookupKey := types.NamespacedName{Name: "boundless-operator-webhook", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), defaultTimeout, defaultInterval).Should(BeTrue())
 		})
 	})
