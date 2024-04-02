@@ -56,7 +56,7 @@ func (c *webhook) Install(ctx context.Context) error {
 
 	// Create certificate resources
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certificateTemplate))); err != nil {
-		c.logger.Info("failed to enable cert manager")
+		c.logger.Info("failed to create Certificate resources")
 		return err
 	}
 

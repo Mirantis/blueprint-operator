@@ -46,8 +46,19 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 
 		It("Should install cert manager", func() {
 			dep := &appsv1.Deployment{}
+
+			By("Checking cert-manager deployment")
 			lookupKey := types.NamespacedName{Name: "cert-manager", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), defaultTimeout, defaultInterval).Should(BeTrue())
+
+			By("Checking cert-manager-webhook deployment")
+			lookupKey = types.NamespacedName{Name: "cert-manager-webhook", Namespace: consts.NamespaceBoundlessSystem}
+			Eventually(getObject(context.TODO(), lookupKey, dep), defaultTimeout, defaultInterval).Should(BeTrue())
+
+			By("Checking cert-manager-cainjector deployment")
+			lookupKey = types.NamespacedName{Name: "cert-manager-cainjector", Namespace: consts.NamespaceBoundlessSystem}
+			Eventually(getObject(context.TODO(), lookupKey, dep), defaultTimeout, defaultInterval).Should(BeTrue())
+
 		})
 		It("Should install webhook", func() {
 			dep := &appsv1.Deployment{}
