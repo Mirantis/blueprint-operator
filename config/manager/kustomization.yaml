@@ -4,5 +4,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
 - name: ghcr.io/mirantiscontainers/boundless-operator
-  newName: localhost:5001/boundless-operator
-  newTag: dev.2
+  newName: ghcr.io/mirantiscontainers/boundless-operator
+  newTag: latest
