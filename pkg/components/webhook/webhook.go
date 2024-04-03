@@ -54,14 +54,6 @@ func (c *webhook) Install(ctx context.Context) error {
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
 
-	// Create certificate resources
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certificateTemplate))); err != nil {
-		c.logger.Info("failed to create Certificate resources")
-		return err
-	}
-
-	c.logger.Info("certificate resources created successfully")
-
 	operatorImage, err := utils.GetOperatorImage(ctx, c.client)
 	if err != nil {
 		return fmt.Errorf("failed to install webhooks: %w", err)
@@ -81,7 +73,15 @@ func (c *webhook) Install(ctx context.Context) error {
 		return err
 	}
 
-	c.logger.Info("webhooks configured successfully in controller manager")
+	c.logger.Info("webhook resources created successfully")
+
+	// Create certificate resources
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certificateTemplate))); err != nil {
+		c.logger.Info("failed to create Certificate resources")
+		return err
+	}
+
+	c.logger.Info("webhooks configured successfully")
 	return nil
 }
 
