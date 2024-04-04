@@ -209,5 +209,5 @@ endif
 .PHONY: ginkgo
 ginkgo: $(GINKGO) ## Download controller-gen locally if necessary. If wrong version is installed, it will be overwritten.
 $(GINKGO): $(LOCALBIN)
-	test -s $(LOCALBIN)/ginkgo && $(LOCALBIN)/ginkgo --version | grep -q $(GINKGO_VERSION) || \
+	test -s $(LOCALBIN)/ginkgo && $(LOCALBIN)/ginkgo version | grep -q $(GINKGO_VERSION) || \
 	GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/v2/ginkgo@$(GINKGO_VERSION)

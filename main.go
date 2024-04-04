@@ -7,7 +7,6 @@ import (
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -39,6 +38,7 @@ func init() {
 }
 
 func main() {
+	var webhook bool
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -47,6 +47,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.BoolVar(&webhook, "webhook", false, "Run as webhook controller")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -54,6 +55,10 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	if webhook {
+		enableLeaderElection = false
+	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
@@ -80,42 +85,48 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.AddonReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("addon controller"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Addon")
-		os.Exit(1)
-	}
-	if err = (&controllers.BlueprintReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Blueprint")
-		os.Exit(1)
-	}
-	if err = (&controllers.ManifestReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("manifest controller"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Manifest")
-		os.Exit(1)
-	}
-	if err = (&controllers.InstallationReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		SetupLogger: setupLog,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Installation")
-		os.Exit(1)
-	}
-
-	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-		setupLog.Info("ENABLE_WEBHOOKS is set to true")
+	if webhook {
+		// @todo: Create a separate implementation for webhook server
+		//   JIRA: https://mirantis.jira.com/browse/BOP-534
+		//   This is a temporary solution to run the operator as a webhook server
+		//   to save time on the initial implementation as we currently don't have CI for creating/managing other images.
+		//   The final implementation should be a separate image for the webhook server.
+		setupLog.Info("Running as webhook controller")
 		if err = (&boundlessv1alpha1.Blueprint{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Blueprint")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("Running as operator controller")
+		if err = (&controllers.AddonReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Recorder: mgr.GetEventRecorderFor("addon controller"),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Addon")
+			os.Exit(1)
+		}
+		if err = (&controllers.BlueprintReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Blueprint")
+			os.Exit(1)
+		}
+		if err = (&controllers.ManifestReconciler{
+			Client:   mgr.GetClient(),
+			Scheme:   mgr.GetScheme(),
+			Recorder: mgr.GetEventRecorderFor("manifest controller"),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Manifest")
+			os.Exit(1)
+		}
+		if err = (&controllers.InstallationReconciler{
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			SetupLogger: setupLog,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "Installation")
 			os.Exit(1)
 		}
 	}

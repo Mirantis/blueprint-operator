@@ -22,7 +22,7 @@ spec:
   issuerRef:
     kind: Issuer
     name: boundless-operator-selfsigned-issuer
-  secretName: webhook-server-cert
+  secretName: boundless-webhook-server-cert
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer

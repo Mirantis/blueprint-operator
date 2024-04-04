@@ -15,8 +15,16 @@ func TestOperatorInstall(t *testing.T) {
 			Assess("BoundlessOperatorDeploymentIsSuccessfullyInstalled", funcs.AllOf(
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, consts.BoundlessOperatorName),
 			)).
-			Assess("HelmControllerDeploymentIsSuccessfullyInstalled", funcs.AllOf(
+			Assess("HelmControllerIsSuccessfullyInstalled", funcs.AllOf(
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "helm-controller"),
+			)).
+			Assess("CertManagerIsSuccessfullyInstalled", funcs.AllOf(
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager-webhook"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager-cainjector"),
+			)).
+			Assess("WebhookIsSuccessfullyInstalled", funcs.AllOf(
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "boundless-operator-webhook"),
 			)).
 			Feature(),
 	)
