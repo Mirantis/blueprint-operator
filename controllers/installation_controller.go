@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"context"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,6 +25,16 @@ import (
 
 var (
 	DefaultInstanceKey = client.ObjectKey{Name: "default", Namespace: "default"}
+	// HelmAddOnHistVec is a histogram vector metric to observe various helm add ons installed by Blueprint Operator.
+	HelmAddOnHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "helm_add_on_histogram",
+		Help: "Histogram vector for Helm Add Ons.",
+		// Creating more buckets for operations that takes few seconds and less buckets
+		// for those that are taking a long time.
+		Buckets: []float64{1, 2, 3, 4, 5, 7, 10, 12, 15, 18, 20, 25, 30, 60, 120, 180, 300},
+	},
+		// Possible status - "pass", "fail"
+		[]string{"name", "status"})
 )
 
 // InstallationReconciler reconciles a Installation object
@@ -42,7 +55,7 @@ var installationFinalizer = "boundless.mirantis.com/installation-finalizer"
 func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconciling Installation instance")
-
+	start := time.Now()
 	// Get the installation object if it exists so that we can save the original
 	// status before we merge/fill that object with other values.
 	instance := &operator.Installation{}
@@ -107,8 +120,8 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		} else {
 			logger.Info("Component is already installed", "Name", component.Name())
 		}
+		HelmAddOnHistVec.WithLabelValues(component.Name(), "pass").Observe(time.Since(start).Seconds())
 	}
-
 	logger.V(1).Info("Finished reconciling Installation")
 	return ctrl.Result{}, nil
 }

@@ -2,10 +2,13 @@ package main
 
 import (
 	"flag"
-	"os"
-
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"net/http"
+	"os"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -26,6 +29,11 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+	// BlueprintInfo is a gauge metric to observe the Blueprint Operator version.
+	BlueprintInfo = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "blueprint_info",
+		Help: "Blueprint Operator Information",
+	}, []string{"version"})
 )
 
 func init() {
@@ -59,7 +67,13 @@ func main() {
 	if webhook {
 		enableLeaderElection = false
 	}
+	go func() {
+		setupLog.Info("Starting the http server to expose Prometheus metrics..")
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":2112", nil)
 
+	}()
+	BlueprintInfo.WithLabelValues("1.0.0-rc1").Set(1)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
