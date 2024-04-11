@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/go-logr/logr"
 	batch "k8s.io/api/batch/v1"
@@ -67,6 +68,7 @@ type AddonReconciler struct {
 func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile request on Addon instance", "Name", req.Name)
+	start := time.Now()
 
 	r.helmController = helm.NewHelmChartController(r.Client, logger)
 	r.manifestController = manifest.NewManifestController(r.Client, logger)
@@ -195,6 +197,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 		return ctrl.Result{}, nil
 	}
+	AddOnHistVec.WithLabelValues(req.Name, "pass").Observe(time.Since(start).Seconds())
 
 	logger.Info("Finished reconcile request on Addon instance", "Name", req.Name)
 	return ctrl.Result{}, nil

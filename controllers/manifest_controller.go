@@ -67,7 +67,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	_ = log.FromContext(ctx)
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile request on Manifest instance")
-
+	start := time.Now()
 	key := types.NamespacedName{
 		Namespace: req.Namespace,
 		Name:      req.Name,
@@ -255,7 +255,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, timeoutDuration, instance.Spec.FailurePolicy, true)
 		}
 	}
-
+	ManifestHistVec.WithLabelValues(req.Name, "pass").Observe(time.Since(start).Seconds())
 	r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest %s/%s", instance.Namespace, instance.Name)
 	return ctrl.Result{}, nil
 }
