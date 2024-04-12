@@ -167,7 +167,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err := r.updateHelmChartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
 
 	case kindManifest:
 		if err := r.manifestController.CreateManifest(consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
@@ -195,7 +194,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if err := r.updateManifestAddonStatus(ctx, logger, instance, m); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+
 	}
 	AddOnHistVec.WithLabelValues(req.Name, "pass").Observe(time.Since(start).Seconds())
 

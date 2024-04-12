@@ -2,21 +2,20 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"net/http"
-	"os"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -43,6 +42,8 @@ func init() {
 	utilruntime.Must(boundlessv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(helmv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+	// Register custom metrics with the global prometheus registry
+	metrics.Registry.MustRegister(BlueprintInfo, controllers.AddOnHistVec, controllers.ManifestHistVec, controllers.InstallationHistVec)
 }
 
 func main() {
@@ -67,12 +68,7 @@ func main() {
 	if webhook {
 		enableLeaderElection = false
 	}
-	go func() {
-		setupLog.Info("Starting the http server to expose Prometheus metrics..")
-		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(":2112", nil)
-
-	}()
+	// TODO: Set to correct version
 	BlueprintInfo.WithLabelValues("1.0.0-rc1").Set(1)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
