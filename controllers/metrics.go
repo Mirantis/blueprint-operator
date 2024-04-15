@@ -14,8 +14,9 @@ var (
 		// for those that are taking a long time.
 		Buckets: []float64{1, 2, 3, 4, 5, 7, 10, 12, 15, 18, 20, 25, 30, 60, 120, 180, 300},
 	},
+		// Possible operations - "install", "uninstall"
 		// Possible status - "pass", "fail"
-		[]string{"name", "status"})
+		[]string{"name", "operation", "status"})
 	// AddOnHistVec is a histogram vector metric to observe various add ons installed by Blueprint Operator.
 	AddOnHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "blueprint_add_on_histogram",

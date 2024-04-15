@@ -68,13 +68,22 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile request on Manifest instance")
 	start := time.Now()
+	var err error
+	defer func() {
+		status := "pass"
+		if err != nil {
+			status = "fail"
+		}
+		ManifestHistVec.WithLabelValues(req.Name, status).Observe(time.Since(start).Seconds())
+
+	}()
 	key := types.NamespacedName{
 		Namespace: req.Namespace,
 		Name:      req.Name,
 	}
 
 	instance := &boundlessv1alpha1.Manifest{}
-	if err := r.Client.Get(ctx, key, instance); err != nil {
+	if err = r.Client.Get(ctx, key, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Manifest instance not found. Ignoring since object must be deleted.", "Name", req.Name)
 			return ctrl.Result{}, nil
@@ -103,7 +112,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(instance, finalizerName) {
 			// The finalizer is present, so let's delete the objects for this manifest
-			if err := r.DeleteManifestObjects(ctx, instance.Spec.Objects); err != nil {
+			if err = r.DeleteManifestObjects(ctx, instance.Spec.Objects); err != nil {
 				logger.Error(err, "failed to delete manifest objects")
 				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "failed to delete manifest objects %s/%s", instance.Namespace, instance.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to delete manifest objects", fmt.Sprintf("failed to delete manifest objects : %s", err))
@@ -112,7 +121,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 			// Remove the finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(instance, finalizerName)
-			if err := r.Update(ctx, instance); err != nil {
+			if err = r.Update(ctx, instance); err != nil {
 				logger.Error(err, "failed to remove finalizer")
 				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonSuccessfulCreate, "failed to remove finalizer %s/%s", instance.Namespace, instance.Name)
 				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to remove finalizer", fmt.Sprintf("failed to remove finalizer : %s", err))
@@ -131,7 +140,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			logger.Info("Reapplying manifest")
 			// wipe the manifest checksum to get reconcile to run an Update
 			instance.Spec.Checksum = ""
-			if err := r.Update(ctx, instance); err != nil {
+			if err = r.Update(ctx, instance); err != nil {
 				logger.Error(err, "failed to wipe checksum for manifest")
 				return ctrl.Result{}, err
 			}
@@ -139,7 +148,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// manifest is already installed as specified - update manifest status from status's of objects in the cluster
-		if err := r.updateManifestStatus(ctx, logger, req.NamespacedName, instance.Spec.Objects); err != nil {
+		if err = r.updateManifestStatus(ctx, logger, req.NamespacedName, instance.Spec.Objects); err != nil {
 			logger.Error(err, "failed to update manifest status")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest status %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest status", fmt.Sprintf("failed to update manifest status : %s", err))
@@ -174,7 +183,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// This will cause errors as the manifest is already has been updated.
 		// Also, the call to  UpdateManifestObjects() after this causes the CRD to be updated again.
 		// There should be only one reconcile for the update of the manifest. This needs to be fixed.
-		if err := r.Update(ctx, &updatedCRD); err != nil {
+		if err = r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest resource while update operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation ", fmt.Sprintf("failed to update manifest crd while update operation  : %s", err))
@@ -182,7 +191,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#pullrequestreview-1754136032
-		if err := r.UpdateManifestObjects(req, ctx, instance); err != nil {
+		if err = r.UpdateManifestObjects(req, ctx, instance); err != nil {
 			logger.Error(err, "failed to update manifest")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest ", fmt.Sprintf("failed to update manifest  : %s", err))
@@ -190,7 +199,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		if instance.Spec.Timeout != "" && instance.Spec.FailurePolicy == pkgmanifest.FailurePolicyRetry {
-			timeoutDuration, err := time.ParseDuration(instance.Spec.Timeout)
+			var timeoutDuration time.Duration
+			timeoutDuration, err = time.ParseDuration(instance.Spec.Timeout)
 			if err != nil {
 				logger.Error(err, "failed to parse timeout for manifest", "Timeout", timeoutDuration)
 				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
@@ -222,14 +232,15 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		// @TODO Ranyodh: The update to CRD here will trigger a new reconcile. We must exit the reconciler after this.
-		if err := r.Update(ctx, &updatedCRD); err != nil {
+		if err = r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while create operation")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest crd while create operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
 			return ctrl.Result{}, err
 		}
 
 		// Create the kustomize file, get kustomize build output and create objects thereby.
-		bodyBytes, err := kustomize.Render(logger, instance.Spec.Url, instance.Spec.Values)
+		var bodyBytes []byte
+		bodyBytes, err = kustomize.Render(logger, instance.Spec.Url, instance.Spec.Values)
 
 		if err != nil {
 			logger.Error(err, "failed to fetch manifest file content for url: %s", "Manifest Url", instance.Spec.Url)
@@ -246,7 +257,8 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		}
 
 		if instance.Spec.Timeout != "" && instance.Spec.FailurePolicy != pkgmanifest.FailurePolicyNone {
-			timeoutDuration, err := time.ParseDuration(instance.Spec.Timeout)
+			var timeoutDuration time.Duration
+			timeoutDuration, err = time.ParseDuration(instance.Spec.Timeout)
 			if err != nil {
 				logger.Error(err, "failed to parse timeout for manifest", "Timeout", timeoutDuration)
 				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to parse timeout for the manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
@@ -255,7 +267,6 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			go r.retryUpgradeInstallAfterTimeout(ctx, logger, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, timeoutDuration, instance.Spec.FailurePolicy, true)
 		}
 	}
-	ManifestHistVec.WithLabelValues(req.Name, "pass").Observe(time.Since(start).Seconds())
 	r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest %s/%s", instance.Namespace, instance.Name)
 	return ctrl.Result{}, nil
 }
