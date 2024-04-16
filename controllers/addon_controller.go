@@ -70,14 +70,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	logger.Info("Reconcile request on Addon instance", "Name", req.Name)
 	start := time.Now()
 	var err error
-	defer func() {
-		status := "pass"
-		if err != nil {
-			status = "fail"
-		}
-		AddOnHistVec.WithLabelValues(req.Name, status).Observe(time.Since(start).Seconds())
-
-	}()
+	defer addOnHistVec.WithLabelValues(req.Name, getMetricStatus(err)).Observe(time.Since(start).Seconds())
 
 	r.helmController = helm.NewHelmChartController(r.Client, logger)
 	r.manifestController = manifest.NewManifestController(r.Client, logger)
