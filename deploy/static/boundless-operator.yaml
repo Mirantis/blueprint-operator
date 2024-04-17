@@ -1177,10 +1177,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 20
         name: manager
-        ports:
-        - containerPort: 2112
-          name: metrics
-          protocol: TCP
         readinessProbe:
           httpGet:
             path: /readyz

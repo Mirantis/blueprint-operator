@@ -7,7 +7,7 @@ import (
 
 var (
 	// installationHistVec is a histogram vector metric to observe various installations by Blueprint Operator.
-	installationHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	InstallationHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "blueprint_installation_histogram",
 		Help: "Histogram vector for Blueprint Installations.",
 		// Creating more buckets for operations that takes few seconds and less buckets
@@ -18,7 +18,7 @@ var (
 		// Possible status - "pass", "fail"
 		[]string{"name", "operation", "status"})
 	// addOnHistVec is a histogram vector metric to observe various add ons installed by Blueprint Operator.
-	addOnHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	AddOnHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "blueprint_add_on_histogram",
 		Help: "Histogram vector for Blueprint Add Ons.",
 		// Creating more buckets for operations that takes few seconds and less buckets
@@ -28,7 +28,7 @@ var (
 		// Possible status - "pass", "fail"
 		[]string{"name", "status"})
 	// manifestHistVec is a histogram vector metric to observe various manifests reconciled by Blueprint Operator.
-	manifestHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
+	ManifestHistVec = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "blueprint_manifest_histogram",
 		Help: "Histogram vector for Blueprint Manifests.",
 		// Creating more buckets for operations that takes few seconds and less buckets
