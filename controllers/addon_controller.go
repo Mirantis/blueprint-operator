@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/go-logr/logr"
 	batch "k8s.io/api/batch/v1"
@@ -67,12 +68,15 @@ type AddonReconciler struct {
 func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile request on Addon instance", "Name", req.Name)
+	start := time.Now()
+	var err error
+	defer AddOnHistVec.WithLabelValues(req.Name, getMetricStatus(err)).Observe(time.Since(start).Seconds())
 
 	r.helmController = helm.NewHelmChartController(r.Client, logger)
 	r.manifestController = manifest.NewManifestController(r.Client, logger)
 
 	instance := &boundlessv1alpha1.Addon{}
-	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
+	if err = r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Addon instance not found. Ignoring since object must be deleted.", "Name", req.Name)
 			return ctrl.Result{}, nil
@@ -113,7 +117,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		// registering our finalizer.
 		if !controllerutil.ContainsFinalizer(instance, finalizer) {
 			controllerutil.AddFinalizer(instance, finalizer)
-			if err := r.Update(ctx, instance); err != nil {
+			if err = r.Update(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{}, nil
@@ -121,7 +125,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	} else {
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(instance, finalizer) {
-			if err := r.deleteAddon(instance); err != nil {
+			if err = r.deleteAddon(instance); err != nil {
 				// if fail to delete the addon here, return with error
 				// so that it can be retried
 				return ctrl.Result{}, err
@@ -129,7 +133,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(instance, finalizer)
-			if err := r.Update(ctx, instance); err != nil {
+			if err = r.Update(ctx, instance); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -143,7 +147,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	case kindChart:
 		chart := instance.Spec.Chart
 		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-		if err := r.helmController.CreateHelmChart(instance.Spec.Chart, instance.Spec.Namespace, instance.Spec.DryRun); err != nil {
+		if err = r.helmController.CreateHelmChart(instance.Spec.Chart, instance.Spec.Namespace, instance.Spec.DryRun); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{}, err
@@ -153,7 +157,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		// each helm chart object creates a job that runs the helm install - update status from that instead
 		jobName := fmt.Sprintf(helmJobNameTemplate, instance.Spec.Chart.Name)
 		job := &batch.Job{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: instance.Spec.Namespace, Name: jobName}, job); err != nil {
+		if err = r.Get(ctx, types.NamespacedName{Namespace: instance.Spec.Namespace, Name: jobName}, job); err != nil {
 			// might need some time for helmchart CR to create job
 			if apierrors.IsNotFound(err) {
 				logger.Info("HelmChart Job not yet found", "Name", jobName, "Requeue", true)
@@ -162,20 +166,19 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, err
 		}
 
-		if err := r.updateHelmChartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
+		if err = r.updateHelmChartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
 
 	case kindManifest:
-		if err := r.manifestController.CreateManifest(consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
+		if err = r.manifestController.CreateManifest(consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{}, err
 		}
 
 		m := &boundlessv1alpha1.Manifest{}
-		if err := r.Get(ctx, types.NamespacedName{Namespace: consts.NamespaceBoundlessSystem, Name: instance.Spec.Name}, m); err != nil {
+		if err = r.Get(ctx, types.NamespacedName{Namespace: consts.NamespaceBoundlessSystem, Name: instance.Spec.Name}, m); err != nil {
 			if apierrors.IsNotFound(err) {
 				// might need some time for CR to  be created
 				r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
@@ -186,14 +189,14 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, err
 		}
 
-		if err := r.setOwnerReferenceOnManifest(ctx, logger, instance, m); err != nil {
+		if err = r.setOwnerReferenceOnManifest(ctx, logger, instance, m); err != nil {
 			return ctrl.Result{}, err
 		}
 
-		if err := r.updateManifestAddonStatus(ctx, logger, instance, m); err != nil {
+		if err = r.updateManifestAddonStatus(ctx, logger, instance, m); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+
 	}
 
 	logger.Info("Finished reconcile request on Addon instance", "Name", req.Name)

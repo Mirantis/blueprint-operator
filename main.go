@@ -5,15 +5,17 @@ import (
 	"os"
 
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -26,6 +28,11 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+	// BlueprintInfo is a gauge metric to observe the Blueprint Operator version.
+	BlueprintInfo = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "blueprint_info",
+		Help: "Blueprint Operator Information",
+	}, []string{"version"})
 )
 
 func init() {
@@ -35,6 +42,9 @@ func init() {
 	utilruntime.Must(boundlessv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(helmv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
+	// Register custom metrics
+	metrics.Registry.MustRegister(BlueprintInfo, controllers.AddOnHistVec, controllers.InstallationHistVec, controllers.ManifestHistVec)
+
 }
 
 func main() {
@@ -60,6 +70,8 @@ func main() {
 		enableLeaderElection = false
 	}
 
+	// TODO: Set to correct version
+	BlueprintInfo.WithLabelValues("1.0.0-rc1").Set(1)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{

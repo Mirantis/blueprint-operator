@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +43,7 @@ var installationFinalizer = "boundless.mirantis.com/installation-finalizer"
 func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconciling Installation instance")
-
+	start := time.Now()
 	// Get the installation object if it exists so that we can save the original
 	// status before we merge/fill that object with other values.
 	instance := &operator.Installation{}
@@ -77,8 +78,10 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		for _, component := range componentList {
 			if err := component.Uninstall(ctx); err != nil {
 				logger.Error(err, "Failed to uninstall component", "Name", component.Name())
+				InstallationHistVec.WithLabelValues(component.Name(), metricsOperationUninstall, metricStatusFailure).Observe(time.Since(start).Seconds())
 				return ctrl.Result{}, err
 			}
+			InstallationHistVec.WithLabelValues(component.Name(), metricsOperationUninstall, metricStatusSuccess).Observe(time.Since(start).Seconds())
 		}
 
 		// remove our finalizer from the list and update it.
@@ -102,13 +105,14 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		if !exists {
 			logger.Info("Component is not installed. Installing...", "Name", component.Name())
 			if err = component.Install(ctx); err != nil {
+				InstallationHistVec.WithLabelValues(component.Name(), metricsOperationInstall, metricStatusFailure).Observe(time.Since(start).Seconds())
 				return ctrl.Result{}, err
 			}
+			InstallationHistVec.WithLabelValues(component.Name(), metricsOperationInstall, metricStatusSuccess).Observe(time.Since(start).Seconds())
 		} else {
 			logger.Info("Component is already installed", "Name", component.Name())
 		}
 	}
-
 	logger.V(1).Info("Finished reconciling Installation")
 	return ctrl.Result{}, nil
 }
