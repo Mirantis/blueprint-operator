@@ -44,16 +44,16 @@ const (
 	metricsOperationInstall = "install"
 	// metricsOperationInstall represents an uninstall operation by Blueprint Operator.
 	metricsOperationUninstall = "uninstall"
-	// metricsOperationInstall represents a reconcile operation by Blueprint Operator that succeeds.
-	metricStatusPass = "pass"
-	// metricsOperationInstall represents a reconcile operation by Blueprint Operator that fails.
-	metricStatusFail = "fail"
+	// metricStatusSuccess represents a reconcile operation by Blueprint Operator that succeeds.
+	metricStatusSuccess = "success"
+	// metricStatusFailure represents a reconcile operation by Blueprint Operator that fails.
+	metricStatusFailure = "failure"
 )
 
 // getMetricStatus returns the status of the metric based on the error.
 func getMetricStatus(err error) string {
 	if err != nil {
-		return metricStatusFail
+		return metricStatusFailure
 	}
-	return metricStatusPass
+	return metricStatusSuccess
 }

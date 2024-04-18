@@ -78,10 +78,10 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		for _, component := range componentList {
 			if err := component.Uninstall(ctx); err != nil {
 				logger.Error(err, "Failed to uninstall component", "Name", component.Name())
-				InstallationHistVec.WithLabelValues(component.Name(), metricsOperationUninstall, metricStatusFail).Observe(time.Since(start).Seconds())
+				InstallationHistVec.WithLabelValues(component.Name(), metricsOperationUninstall, metricStatusFailure).Observe(time.Since(start).Seconds())
 				return ctrl.Result{}, err
 			}
-			InstallationHistVec.WithLabelValues(component.Name(), metricsOperationUninstall, metricStatusPass).Observe(time.Since(start).Seconds())
+			InstallationHistVec.WithLabelValues(component.Name(), metricsOperationUninstall, metricStatusSuccess).Observe(time.Since(start).Seconds())
 		}
 
 		// remove our finalizer from the list and update it.
@@ -105,10 +105,10 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		if !exists {
 			logger.Info("Component is not installed. Installing...", "Name", component.Name())
 			if err = component.Install(ctx); err != nil {
-				InstallationHistVec.WithLabelValues(component.Name(), metricsOperationInstall, metricStatusFail).Observe(time.Since(start).Seconds())
+				InstallationHistVec.WithLabelValues(component.Name(), metricsOperationInstall, metricStatusFailure).Observe(time.Since(start).Seconds())
 				return ctrl.Result{}, err
 			}
-			InstallationHistVec.WithLabelValues(component.Name(), metricsOperationInstall, metricStatusPass).Observe(time.Since(start).Seconds())
+			InstallationHistVec.WithLabelValues(component.Name(), metricsOperationInstall, metricStatusSuccess).Observe(time.Since(start).Seconds())
 		} else {
 			logger.Info("Component is already installed", "Name", component.Name())
 		}
