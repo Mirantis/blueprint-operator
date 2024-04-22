@@ -6,20 +6,17 @@ import (
 	"slices"
 	"time"
 
+	helmv2 "github.com/fluxcd/helm-controller/api/v2beta2"
 	"github.com/go-logr/logr"
-	batch "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
@@ -30,11 +27,11 @@ import (
 )
 
 const (
-	kindManifest        = "manifest"
-	kindChart           = "chart"
-	finalizer           = "boundless.mirantis.com/addon-finalizer"
-	addonIndexName      = "helmchartIndex"
-	helmJobNameTemplate = "helm-install-%s"
+	kindManifest            = "manifest"
+	kindChart               = "chart"
+	finalizer               = "boundless.mirantis.com/addon-finalizer"
+	addonIndexName          = "helmchartIndex"
+	helmReleaseNameTemplate = "helm-install-%s"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -45,6 +42,8 @@ type AddonReconciler struct {
 
 	helmController     *helm.Controller
 	manifestController *manifest.Controller
+
+	SetupLogger logr.Logger
 }
 
 //+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons,verbs=get;list;watch;create;update;patch;delete
@@ -149,26 +148,25 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	case kindChart:
 		chart := instance.Spec.Chart
 		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-		if err = r.helmController.CreateHelmChart(instance.Spec.Chart, instance.Spec.Namespace, instance.Spec.DryRun); err != nil {
+		if err = r.helmController.CreateHelmRelease(instance, instance.Spec.Namespace, instance.Spec.DryRun); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{}, err
 		}
 
-		// unfortunately the HelmChart CR doesn't have any useful events or status we can monitor
-		// each helm chart object creates a job that runs the helm install - update status from that instead
-		jobName := fmt.Sprintf(helmJobNameTemplate, instance.Spec.Chart.Name)
-		job := &batch.Job{}
-		if err = r.Get(ctx, types.NamespacedName{Namespace: instance.Spec.Namespace, Name: jobName}, job); err != nil {
-			// might need some time for helmchart CR to create job
+		releaseName := instance.Spec.Chart.Name
+		releaseKey := types.NamespacedName{Namespace: consts.NamespaceBoundlessSystem, Name: releaseName}
+
+		release := &helmv2.HelmRelease{}
+		if err = r.Get(ctx, releaseKey, release); err != nil {
 			if apierrors.IsNotFound(err) {
-				logger.Info("HelmChart Job not yet found", "Name", jobName, "Requeue", true)
+				logger.Info("HelmRelease not yet found", "Name", releaseName, "Requeue", true)
 				return ctrl.Result{RequeueAfter: DefaultRequeueDuration}, nil
 			}
 			return ctrl.Result{}, err
 		}
 
-		if err = r.updateHelmChartAddonStatus(ctx, logger, req.NamespacedName, job, instance); err != nil {
+		if err = r.updateHelmChartAddonStatus(ctx, logger, req.NamespacedName, release, instance); err != nil {
 			return ctrl.Result{}, err
 		}
 
@@ -208,7 +206,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *AddonReconciler) deleteAddon(addon *boundlessv1alpha1.Addon) error {
 	switch addon.Spec.Kind {
 	case kindChart:
-		if err := r.helmController.DeleteHelmChart(addon.Spec.Chart, addon.Spec.Namespace); err != nil {
+		if err := r.helmController.DeleteHelmRelease(addon); err != nil {
 			r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Chart Addon %s/%s: %s", addon.Spec.Namespace, addon.Name, err)
 			return err
 		}
@@ -265,12 +263,13 @@ func (r *AddonReconciler) setOwnerReferenceOnManifest(ctx context.Context, logge
 // SetupWithManager sets up the controller with the Manager.
 func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// attaches an index onto the Addon
-	// This is done so we can later easily find the addon associated with a particular job
+	// This is done so we can later easily find the addon associated with a particular helm release
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Addon{}, addonIndexName, func(rawObj client.Object) []string {
 		addon := rawObj.(*boundlessv1alpha1.Addon)
 		if isHelmChartAddon(addon) {
-			jobName := fmt.Sprintf(helmJobNameTemplate, addon.Spec.Chart.Name)
-			return []string{fmt.Sprintf("%s-%s", addon.Spec.Namespace, jobName)}
+			relName := addon.Spec.Chart.Name
+			r.SetupLogger.Info("Indexing addon", "Name", addon.Name, "Index", fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, relName))
+			return []string{fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, relName)}
 		}
 		// don't add this index for non helm-chart type addons
 		return nil
@@ -281,11 +280,11 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
-		Watches(
-			&batch.Job{}, // Watch all Job Objects in the cluster
-			handler.EnqueueRequestsFromMapFunc(r.findAddonForJob),               // All jobs trigger this MapFunc, the MapFunc filters which jobs should trigger reconciles to which addons, if any
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}), // By default, any Update to job will trigger a run of the MapFunc, limit it to only Resource version updates
-		).
+		//Watches(
+		//	&helmv2.HelmRelease{}, // Watch all HelmRelease Objects in the cluster
+		//	handler.EnqueueRequestsFromMapFunc(r.findAddonForHelmRelease), // All HelmRelease trigger this MapFunc, the MapFunc filters which HelmRelease should trigger reconciles to which addons, if any
+		//	//builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}), // By default, any Update to helm release will trigger a run of the MapFunc, limit it to only Resource version updates
+		//).
 		Complete(r)
 }
 
@@ -294,11 +293,13 @@ func isHelmChartAddon(addon *boundlessv1alpha1.Addon) bool {
 	return addon.Spec.Chart != nil && addon.Spec.Chart.Name != ""
 }
 
-// findAddonForJob finds the addons associated with a particular job
-// This is done by looking for the addon that was previously indexed in the form jobNamespace-jobName
-func (r *AddonReconciler) findAddonForJob(ctx context.Context, job client.Object) []reconcile.Request {
+// findAddonForHelmRelease finds the addons associated with a particular HelmRelease
+// This is done by looking for the addon that was previously indexed in the form releaseNamespace-releaseName
+func (r *AddonReconciler) findAddonForHelmRelease(ctx context.Context, helmRelease client.Object) []reconcile.Request {
+	logger := log.FromContext(ctx)
+	logger.Info("Finding Addon for HelmRelease", "Name", helmRelease.GetName(), "Index", fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, helmRelease.GetName()))
 	attachedAddonList := &boundlessv1alpha1.AddonList{}
-	err := r.List(context.TODO(), attachedAddonList, client.MatchingFields{addonIndexName: fmt.Sprintf("%s-%s", job.GetNamespace(), job.GetName())})
+	err := r.List(context.TODO(), attachedAddonList, client.MatchingFields{addonIndexName: fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, helmRelease.GetName())})
 	if err != nil {
 		return []reconcile.Request{}
 	}
@@ -312,27 +313,28 @@ func (r *AddonReconciler) findAddonForJob(ctx context.Context, job client.Object
 			},
 		}
 	}
+	logger.Info("Found Addons for HelmRelease", "Name", helmRelease.GetName(), "AddonCount", len(requests))
 	return requests
 }
 
-// updateHelmChartAddonStatus checks the status of the associated helm chart job and updates the status of the Addon CR accordingly
-func (r *AddonReconciler) updateHelmChartAddonStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, job *batch.Job, addon *boundlessv1alpha1.Addon) error {
+// updateHelmChartAddonStatus checks the status of the associated helm release and updates the status of the Addon CR accordingly
+func (r *AddonReconciler) updateHelmChartAddonStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, release *helmv2.HelmRelease, addon *boundlessv1alpha1.Addon) error {
 	logger.Info("Updating Helm Chart Addon Status")
-	jobStatus := helm.DetermineJobStatus(job)
-	if jobStatus == helm.JobStatusSuccess {
+	releaseStatus := helm.DetermineReleaseStatus(release)
+	if releaseStatus == helm.ReleaseStatusSuccess {
 		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Chart Addon %s/%s", addon.Spec.Namespace, addon.Name)
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, fmt.Sprintf("Helm Chart %s successfully installed", job.Name))
+		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, fmt.Sprintf("Helm Chart %s successfully installed", release.Name))
 		if err != nil {
 			return err
 		}
-	} else if jobStatus == helm.JobStatusFailed {
+	} else if releaseStatus == helm.ReleaseStatusFailed {
 		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedCreate, "Helm Chart Addon %s/%s has failed to install", addon.Spec.Namespace, addon.Name)
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Helm Chart %s install has failed", job.Name))
+		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Helm Chart %s install has failed", release.Name))
 		if err != nil {
 			return err
 		}
 	} else {
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentProgressing, fmt.Sprintf("Helm Chart %s install still progressing", job.Name))
+		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentProgressing, fmt.Sprintf("Helm Chart %s install still progressing", release.Name))
 		if err != nil {
 			return err
 		}

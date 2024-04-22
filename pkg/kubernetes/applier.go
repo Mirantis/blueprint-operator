@@ -56,6 +56,16 @@ func (a *Applier) Apply(ctx context.Context, reader UnstructuredReader) error {
 	return nil
 }
 
+// ApplyObjects create or update the provided objects in the cluster.
+func (a *Applier) ApplyObjects(ctx context.Context, objs []*unstructured.Unstructured) error {
+	for _, o := range objs {
+		if err := a.createOrUpdateObject(ctx, o); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Delete deletes the provided objects from the cluster.
 func (a *Applier) Delete(ctx context.Context, objs []*unstructured.Unstructured) error {
 	for _, o := range objs {

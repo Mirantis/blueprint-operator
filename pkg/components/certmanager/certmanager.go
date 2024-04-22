@@ -10,6 +10,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	v1 "k8s.io/api/apps/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
@@ -44,7 +48,6 @@ func (c *certManager) Name() string {
 
 // Install installs cert manager in the cluster.
 func (c *certManager) Install(ctx context.Context) error {
-	var err error
 	c.logger.Info("Installing cert manager")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -61,17 +64,17 @@ func (c *certManager) Install(ctx context.Context) error {
 
 	// Wait for all the deployments to be ready
 	c.logger.Info("waiting for ca injector deployment to be ready")
-	if err = utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCAInjector, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCAInjector, consts.NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
 	c.logger.Info("waiting for cert manager deployment to be ready")
-	if err = utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCertManager, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCertManager, consts.NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
 	c.logger.Info("waiting for webhook deployment to be ready")
-	if err = utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentWebhook, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentWebhook, consts.NamespaceBoundlessSystem); err != nil {
 		return err
 	}
 
