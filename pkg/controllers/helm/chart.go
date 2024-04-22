@@ -6,13 +6,19 @@ import (
 	"strings"
 	"time"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
+	"github.com/fluxcd/helm-controller/api/v2beta2"
 	"github.com/go-logr/logr"
-	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+
+	"github.com/fluxcd/source-controller/api/v1beta2"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 // this is the image that is used by helm controller to actually run the helm install
@@ -30,47 +36,96 @@ func NewHelmChartController(client client.Client, logger logr.Logger) *Controlle
 	}
 }
 
-// CreateHelmChart creates a HelmChart CRD in the given namespace
-func (hc *Controller) CreateHelmChart(info *v1alpha1.ChartInfo, targetNamespace string, isDryRun bool) error {
-	helmChart := helmv1.HelmChart{
+// CreateHelmRelease creates a HelmRelease object in the given namespace
+func (hc *Controller) CreateHelmRelease(info *v1alpha1.ChartInfo, targetNamespace string, isDryRun bool) error {
+
+	repo := v1beta2.HelmRepository{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      info.Name,
-			Namespace: targetNamespace,
+			Name:      fmt.Sprintf("repo-%s", info.Name),
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
-		Spec: helmv1.HelmChartSpec{
-			TargetNamespace: targetNamespace,
-			Chart:           info.Name,
-			Version:         info.Version,
-			Repo:            info.Repo,
-			Set:             info.Set,
-			ValuesContent:   info.Values,
-			JobImage:        helmJobImage,
+		Spec: v1beta2.HelmRepositorySpec{
+			URL: info.Repo,
+			Interval: metav1.Duration{
+				Duration: 1 * time.Minute,
+			},
 		},
 	}
+
+	var values *apiextensionsv1.JSON
+	if info.Values != "" {
+		v, _ := yaml.YAMLToJSON([]byte(info.Values))
+		values = &apiextensionsv1.JSON{Raw: v}
+	}
+
+	release := v2beta2.HelmRelease{
+		ObjectMeta: metav1.ObjectMeta{
+			// TODO (ranyodh): I think we should append addon name to the release name
+			Name:      info.Name,
+			Namespace: consts.NamespaceBoundlessSystem,
+		},
+		Spec: v2beta2.HelmReleaseSpec{
+			TargetNamespace: targetNamespace,
+			Chart: v2beta2.HelmChartTemplate{
+				Spec: v2beta2.HelmChartTemplateSpec{
+					Chart:   info.Name,
+					Version: info.Version,
+					SourceRef: v2beta2.CrossNamespaceObjectReference{
+						Name: fmt.Sprintf("repo-%s", info.Name),
+						Kind: "HelmRepository",
+					},
+				},
+			},
+			Values: values,
+		},
+	}
+
+	//helmChart := helmv1.HelmChart{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name:      info.Name,
+	//		Namespace: targetNamespace,
+	//	},
+	//	Spec: helmv1.HelmChartSpec{
+	//		TargetNamespace: targetNamespace,
+	//		Chart:           info.Name,
+	//		Version:         info.Version,
+	//		Repo:            info.Repo,
+	//		Set:             info.Set,
+	//		ValuesContent:   info.Values,
+	//		JobImage:        helmJobImage,
+	//	},
+	//}
 
 	if isDryRun {
-		helmChart.Spec.DryRun = "server"
+		//helmChart.Spec.DryRun = "server"
 	}
 
-	return hc.createOrUpdateHelmChart(helmChart)
+	return hc.createOrUpdateHelmRelease(repo, release)
 }
 
-// DeleteHelmChart deletes a HelmChart CRD in the given namespace
-func (hc *Controller) DeleteHelmChart(info *v1alpha1.ChartInfo, targetNamespace string) error {
+// DeleteHelmRelease deletes a HelmRelease object in the given namespace
+func (hc *Controller) DeleteHelmRelease(info *v1alpha1.ChartInfo, targetNamespace string) error {
 
-	chart := helmv1.HelmChart{
+	//chart := helmv1.HelmChart{
+	//	ObjectMeta: metav1.ObjectMeta{
+	//		Name:      info.Name,
+	//		Namespace: targetNamespace,
+	//	},
+	//	Spec: helmv1.HelmChartSpec{
+	//		TargetNamespace: targetNamespace,
+	//		Chart:           info.Name,
+	//		Version:         info.Version,
+	//		Repo:            info.Repo,
+	//		Set:             info.Set,
+	//		ValuesContent:   info.Values,
+	//		JobImage:        helmJobImage,
+	//	},
+	//}
+
+	release := v2beta2.HelmRelease{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      info.Name,
-			Namespace: targetNamespace,
-		},
-		Spec: helmv1.HelmChartSpec{
-			TargetNamespace: targetNamespace,
-			Chart:           info.Name,
-			Version:         info.Version,
-			Repo:            info.Repo,
-			Set:             info.Set,
-			ValuesContent:   info.Values,
-			JobImage:        helmJobImage,
+			Namespace: consts.NamespaceBoundlessSystem,
 		},
 	}
 
@@ -78,67 +133,127 @@ func (hc *Controller) DeleteHelmChart(info *v1alpha1.ChartInfo, targetNamespace 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	existing, err := hc.getExistingHelmChart(ctx, chart.Namespace, chart.Name)
+	existing, err := hc.getExistingHelmRelease(ctx, release.Namespace, release.Name)
 	if err != nil {
 		return err
 	}
 
 	if existing == nil {
-		hc.logger.Info("helm chart to clean up does not exist", "ChartName", chart.GetName())
+		hc.logger.Info("helm release to clean up does not exist", "HelmReleaseName", release.GetName())
 		return nil
 	}
 
-	err = hc.client.Delete(ctx, &chart)
+	err = hc.client.Delete(ctx, &release)
 	if err != nil {
-		hc.logger.Error(err, "failed to delete helm chart", "ChartName", chart.GetName())
+		hc.logger.Error(err, "failed to delete helm chart", "HelmReleaseName", release.GetName())
 		return err
 	}
 
-	hc.logger.Info("helm chart successfully deleted", "ChartName", chart.GetName())
+	hc.logger.Info("helm chart successfully deleted", "HelmReleaseName", release.GetName())
 	return nil
 }
 
-func (hc *Controller) createOrUpdateHelmChart(chart helmv1.HelmChart) error {
+func (hc *Controller) createOrUpdateHelmRelease(repo v1beta2.HelmRepository, release v2beta2.HelmRelease) error {
+	if err := hc.createOrUpdateRepo(repo); err != nil {
+		return fmt.Errorf("failed to create or update helm repository: %w", err)
+	}
+
+	if err := hc.createOrUpdateRelease(release); err != nil {
+		return fmt.Errorf("failed to create or update helm release: %w", err)
+	}
+
+	return nil
+}
+
+func (hc *Controller) createOrUpdateRelease(release v2beta2.HelmRelease) error {
 	// set a deadline for the Kubernetes API operations
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	existing, err := hc.getExistingHelmChart(ctx, chart.Namespace, chart.Name)
+	existing, err := hc.getExistingHelmRelease(ctx, release.Namespace, release.Name)
 	if err != nil {
 		return err
 	}
 
 	if existing != nil {
 
-		hc.logger.Info("helm chart already exists, updating", "ChartName", chart.GetName())
-		chart.SetResourceVersion(existing.GetResourceVersion())
-		err = hc.client.Update(ctx, &chart)
-		hc.logger.Info("helm chart updated", "ChartName", chart.GetName())
+		hc.logger.Info("helm release already exists, updating", "HelmReleaseName", release.GetName())
+		release.SetResourceVersion(existing.GetResourceVersion())
+		err = hc.client.Update(ctx, &release)
+		hc.logger.Info("helm release updated", "HelmReleaseName", release.GetName())
 	} else {
-		hc.logger.Info("helm chart does not exists, creating", "ChartName", chart.GetName(), "Namespace", chart.GetNamespace())
-		err = hc.client.Create(ctx, &chart)
+		hc.logger.Info("helm release does not exists, creating", "HelmReleaseName", release.GetName(), "Namespace", release.GetNamespace())
+		err = hc.client.Create(ctx, &release)
 		if err != nil {
 			return err
 		}
-		hc.logger.Info("helm chart created", "ChartName", chart.GetName())
+		hc.logger.Info("helm release created", "ChartName", release.GetName())
 	}
+
 	return nil
 }
 
-func (hc *Controller) getExistingHelmChart(ctx context.Context, namespace, name string) (*helmv1.HelmChart, error) {
+func (hc *Controller) createOrUpdateRepo(repo v1beta2.HelmRepository) error {
+	// set a deadline for the Kubernetes API operations
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	existing, err := hc.getExistingHelmRepo(ctx, repo.Namespace, repo.Name)
+	if err != nil {
+		return err
+	}
+
+	if existing != nil {
+		hc.logger.Info("helm repository already exists, updating", "HelmRepositoryName", repo.GetName())
+		repo.SetResourceVersion(existing.GetResourceVersion())
+		err = hc.client.Update(ctx, &repo)
+		hc.logger.Info("helm repository updated", "HelmRepositoryName", repo.GetName())
+	} else {
+		hc.logger.Info("helm repository does not exists, creating", "URL", repo.Spec.URL)
+		err = hc.client.Create(ctx, &repo)
+		if err != nil {
+			return err
+		}
+		hc.logger.Info("helm repository created", "HelmRepositoryName", repo.GetName())
+	}
+
+	return nil
+
+}
+
+func (hc *Controller) getExistingHelmRelease(ctx context.Context, namespace, name string) (*v2beta2.HelmRelease, error) {
 	key := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
 	}
 
-	existing := &helmv1.HelmChart{}
+	existing := &v2beta2.HelmRelease{}
 	err := hc.client.Get(ctx, key, existing)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
-			hc.logger.Info("helm chart does not exist", "Namespace", namespace, "ChartName", name)
+			hc.logger.Info("helm release does not exist", "Namespace", namespace, "ReleaseName", name)
 			return nil, nil
 		} else {
-			return nil, fmt.Errorf("failed to get existing helm chart: %w", err)
+			return nil, fmt.Errorf("failed to get existing helm release: %w", err)
+		}
+	}
+	return existing, nil
+}
+
+func (hc *Controller) getExistingHelmRepo(ctx context.Context, namespace, name string) (*v1beta2.HelmRepository, error) {
+	key := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+
+	existing := &v1beta2.HelmRepository{}
+	err := hc.client.Get(ctx, key, existing)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			hc.logger.Info("helm repo does not exist", "Namespace", namespace, "HelmRepositoryName", name)
+			return nil, nil
+		} else {
+			return nil, fmt.Errorf("failed to get existing helm repository: %w", err)
 		}
 	}
 	return existing, nil
