@@ -3,8 +3,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,7 +13,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	boundlessCertmanager "github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
 )
 
 // BlueprintReconciler reconciles a Blueprint object
@@ -48,10 +50,30 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	addonsToUninstall, err := r.getInstalledAddons(ctx, logger)
+	err := r.reconcileAddons(ctx, logger, instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	err = r.reconcileIssuers(ctx, logger, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.reconcileClusterIssuers(ctx, logger, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.Logger, instance *boundlessv1alpha1.Blueprint) error {
+	addonsToUninstall, err := listInstalled[boundlessv1alpha1.Addon](ctx, logger, r.Client, &boundlessv1alpha1.AddonList{})
+	if err != nil {
+		return err
+	}
+	logger.Info("AZAZA Addons", "Addons", addonsToUninstall)
 
 	for _, addonSpec := range instance.Spec.Components.Addons {
 		if addonSpec.Namespace == "" {
@@ -63,45 +85,77 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		err = r.createOrUpdateAddon(ctx, logger, addon)
 		if err != nil {
 			logger.Error(err, "Failed to reconcile addonSpec", "Name", addonSpec.Name, "Spec.Namespace", addonSpec.Namespace)
-			return ctrl.Result{}, err
+			return err
 		}
 
-		// if the addon is in the spec , we shouldn't uninstall it
+		// if the addon is in the spec, we shouldn't uninstall it
 		delete(addonsToUninstall, addon.GetName())
 	}
 
 	if len(addonsToUninstall) > 0 {
-		err = r.deleteAddons(ctx, logger, addonsToUninstall)
+		err = deleteComponents(ctx, logger, r.Client, addonsToUninstall)
 		if err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
-// getInstalledAddons returns a map of addons that are presently installed in the cluster
-func (r *BlueprintReconciler) getInstalledAddons(ctx context.Context, logger logr.Logger) (map[string]boundlessv1alpha1.Addon, error) {
-	allAddonsInCluster := &boundlessv1alpha1.AddonList{}
-	if err := r.List(ctx, allAddonsInCluster); err != nil {
-		return nil, err
+func (r *BlueprintReconciler) reconcileIssuers(ctx context.Context, logger logr.Logger, instance *boundlessv1alpha1.Blueprint) error {
+	issuersToUninstall, err := listInstalled[boundlessCertmanager.Issuer](ctx, logger, r.Client, &boundlessCertmanager.IssuerList{})
+	if err != nil {
+		return err
+	}
+	logger.Info("AZAZA List", "List", issuersToUninstall)
+
+	for _, issuerSpec := range instance.Spec.Components.CAs.Issuers {
+		logger.Info("Reconciling issuerSpec", "Name", issuerSpec.Name, "Spec.Namespace", issuerSpec.Namespace)
+		issuer := issuerResource(issuerSpec)
+
+		err = r.createOrUpdateIssuer(ctx, logger, issuer)
+		if err != nil {
+			logger.Error(err, "Failed to reconcile issuerSpec", "Name", issuerSpec.Name, "Spec.Namespace", issuerSpec.Namespace)
+			return err
+		}
+
+		// if the issuer is in the spec, we shouldn't uninstall it
+		delete(issuersToUninstall, fmt.Sprintf("%s/%s", issuer.Namespace, issuer.Name))
 	}
 
-	logger.Info("existing addons are", "addonNames", allAddonsInCluster.Items)
-	addonsToUninstall := make(map[string]boundlessv1alpha1.Addon)
-	for _, addon := range allAddonsInCluster.Items {
-		addonsToUninstall[addon.GetName()] = addon
+	if len(issuersToUninstall) > 0 {
+		err = deleteComponents(ctx, logger, r.Client, issuersToUninstall)
+		if err != nil {
+			return err
+		}
 	}
 
-	return addonsToUninstall, nil
+	return nil
 }
 
-// deleteAddons deletes provided addonsToUninstall from the cluster
-func (r *BlueprintReconciler) deleteAddons(ctx context.Context, logger logr.Logger, addonsToUninstall map[string]boundlessv1alpha1.Addon) error {
-	for _, addon := range addonsToUninstall {
-		logger.Info("Removing addon", "Name", addon.Name, "Namespace", addon.Spec.Namespace)
-		if err := r.Delete(ctx, &addon, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
-			logger.Error(err, "Failed to remove addon", "Name", addon.Name)
+func (r *BlueprintReconciler) reconcileClusterIssuers(ctx context.Context, logger logr.Logger, instance *boundlessv1alpha1.Blueprint) error {
+	clusterIssuersToUninstall, err := listInstalled[boundlessCertmanager.ClusterIssuer](ctx, logger, r.Client, &boundlessCertmanager.ClusterIssuerList{})
+	if err != nil {
+		return err
+	}
+
+	for _, clusterIssuerSpec := range instance.Spec.Components.CAs.ClusterIssuers {
+		logger.Info("Reconciling clusterIssuerSpec", "Name", clusterIssuerSpec.Name)
+		clusterIssuer := clusterIssuerResource(clusterIssuerSpec)
+
+		err = r.createOrUpdateClusterIssuer(ctx, logger, clusterIssuer)
+		if err != nil {
+			logger.Error(err, "Failed to reconcile clusterIssuerSpec", "Name", clusterIssuerSpec.Name)
+			return err
+		}
+
+		// if the clusterIssuer is in the spec, we shouldn't uninstall it
+		delete(clusterIssuersToUninstall, clusterIssuer.Name)
+	}
+
+	if len(clusterIssuersToUninstall) > 0 {
+		err = deleteComponents(ctx, logger, r.Client, clusterIssuersToUninstall)
+		if err != nil {
 			return err
 		}
 	}
@@ -210,4 +264,124 @@ func (r *BlueprintReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Blueprint{}).
 		Complete(r)
+}
+
+type BlueprintComponent interface {
+	GetComponentName() string
+	GetComponentNamespace() string
+	GetObject() client.Object
+}
+
+type BlueprintComponentList[T BlueprintComponent] interface {
+	GetItems() []T
+	GetObjectList() client.ObjectList
+}
+
+func listInstalled[T BlueprintComponent](ctx context.Context, logger logr.Logger, apiClient client.Client, list BlueprintComponentList[T]) (map[string]T, error) {
+	if err := apiClient.List(ctx, list.GetObjectList()); err != nil {
+		return nil, err
+	}
+
+	logger.Info("existing items are", "names", list)
+	itemsToUninstall := make(map[string]T)
+
+	for _, item := range list.GetItems() {
+		itemsToUninstall[item.GetComponentName()] = item
+	}
+
+	return itemsToUninstall, nil
+}
+
+func issuerResource(issuer boundlessv1alpha1.Issuer) *certmanager.Issuer {
+	return &certmanager.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      issuer.Name,
+			Namespace: issuer.Namespace,
+		},
+		Spec: issuer.Spec,
+	}
+}
+
+func clusterIssuerResource(clusterIssuer boundlessv1alpha1.ClusterIssuer) *certmanager.ClusterIssuer {
+	return &certmanager.ClusterIssuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterIssuer.Name,
+			Namespace: consts.NamespaceBoundlessSystem,
+		},
+		Spec: clusterIssuer.Spec,
+	}
+}
+
+func (r *BlueprintReconciler) createOrUpdateIssuer(ctx context.Context, logger logr.Logger, issuer *certmanager.Issuer) error {
+	err := utils.CreateNamespaceIfNotExist(r.Client, ctx, logger, issuer.Namespace)
+	if err != nil {
+		return err
+	}
+
+	existing := &certmanager.Issuer{}
+	err = r.Get(ctx, client.ObjectKey{Name: issuer.GetName(), Namespace: issuer.GetNamespace()}, existing)
+	if err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return err
+		}
+	}
+
+	if existing.Name != "" {
+		logger.Info("Issuer already exists. Updating", "Name", existing.Name, "Spec.Namespace", existing.Namespace)
+		issuer.SetResourceVersion(existing.GetResourceVersion())
+		issuer.SetFinalizers(existing.GetFinalizers())
+		err = r.Update(ctx, issuer)
+		if err != nil {
+			return fmt.Errorf("failed to update issuer %s: %w", existing.Name, err)
+		}
+		return nil
+	}
+
+	logger.Info("Creating issuer", "Name", issuer.Name, "Spec.Namespace", issuer.Namespace)
+	err = r.Create(ctx, issuer)
+	if err != nil {
+		return fmt.Errorf("failed to create issuer %s: %w", issuer.Name, err)
+	}
+	return nil
+}
+
+func (r *BlueprintReconciler) createOrUpdateClusterIssuer(ctx context.Context, logger logr.Logger, clusterIssuer *certmanager.ClusterIssuer) error {
+	existing := &certmanager.ClusterIssuer{}
+	err := r.Get(ctx, client.ObjectKey{Name: clusterIssuer.GetName(), Namespace: consts.NamespaceBoundlessSystem}, existing)
+	if err != nil {
+		if client.IgnoreNotFound(err) != nil {
+			return err
+		}
+	}
+
+	if existing.Name != "" {
+		logger.Info("ClusterIssuer already exists. Updating", "Name", existing.Name)
+
+		clusterIssuer.SetResourceVersion(existing.GetResourceVersion())
+		clusterIssuer.SetFinalizers(existing.GetFinalizers())
+		err = r.Update(ctx, clusterIssuer)
+		if err != nil {
+			return fmt.Errorf("failed to update clusterIssuer %s: %w", existing.Name, err)
+		}
+		return nil
+	}
+
+	logger.Info("Creating clusterIssuer", "Name", clusterIssuer.Name)
+	err = r.Create(ctx, clusterIssuer)
+	if err != nil {
+		return fmt.Errorf("failed to create clusterIssuer %s: %w", clusterIssuer.Name, err)
+	}
+	return nil
+}
+
+func deleteComponents[T BlueprintComponent](ctx context.Context, logger logr.Logger, apiClient client.Client, componentsToUninstall map[string]T) error {
+	for _, component := range componentsToUninstall {
+		logger.Info("Removing object", "Name", component.GetComponentName(), "Namespace", component.GetComponentNamespace())
+		if err := apiClient.Delete(ctx, component.GetObject(), client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
+			logger.Error(err, "Failed to remove object", "Name", component.GetComponentName())
+			return err
+		}
+	}
+
+	return nil
 }

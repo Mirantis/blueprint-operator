@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,6 +178,18 @@ type Addon struct {
 	Status AddonStatus `json:"status,omitempty"`
 }
 
+func (a Addon) GetComponentName() string {
+	return a.Spec.Name
+}
+
+func (a Addon) GetComponentNamespace() string {
+	return a.Spec.Namespace
+}
+
+func (a Addon) GetObject() client.Object {
+	return &a
+}
+
 //+kubebuilder:object:root=true
 
 // AddonList contains a list of Addon
@@ -184,6 +197,14 @@ type AddonList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Addon `json:"items"`
+}
+
+func (l *AddonList) GetItems() []Addon {
+	return l.Items
+}
+
+func (l *AddonList) GetObjectList() client.ObjectList {
+	return l
 }
 
 func init() {

@@ -13,6 +13,7 @@ type BlueprintSpec struct {
 // Component defines the core and addons components that should be installed
 type Component struct {
 	Addons []AddonSpec `json:"addons,omitempty"`
+	CAs    CASpec      `json:"certificateAuthorities,omitempty"`
 }
 
 // BlueprintStatus defines the observed state of Blueprint
