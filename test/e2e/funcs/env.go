@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +29,7 @@ import (
 func AddBoundlessTypeToScheme() env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		_ = v1alpha1.AddToScheme(cfg.Client().Resources().GetScheme())
+		_ = certmanager.AddToScheme(cfg.Client().Resources().GetScheme())
 		return ctx, nil
 	}
 }

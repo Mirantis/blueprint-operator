@@ -28,3 +28,26 @@ spec:
           name: crossplane
           repo: https://charts.crossplane.io/master/
           version: 1.15.0-rc.0.9.ged19cd5d
+    certificateAuthorities:
+      issuers:
+        - name: test-issuer-1
+          namespace: test-issuer-ns-1
+          spec:
+            ca: # updated issuer type; use secret instead of self-signed
+              secretName: test-issuer-secret
+        - name: test-issuer-2
+          namespace: test-issuer-ns-2 # update issuer namespace
+          spec:
+            selfSigned: {}
+        - name: test-issuer-3
+          namespace: test-issuer-ns-1
+          spec:
+            selfSigned: {}
+      clusterIssuers:
+        - name: test-cluster-issuer-1
+          spec:
+            ca: # updated issuer type; use secret instead of self-signed
+              secretName: test-cluster-issuer-secret
+        - name: test-cluster-issuer-2
+          spec:
+            selfSigned: {}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,6 +45,7 @@ func createOrUpdateBlueprint(ctx context.Context, new *v1alpha1.Blueprint) error
 		// This is to prevent issue caused by overwriting existing fields
 		// set by controllers on the object
 		existing.Spec.Components.Addons = cp.Spec.Components.Addons
+		existing.Spec.Components.CAs = cp.Spec.Components.CAs
 		return k8sClient.Update(ctx, existing)
 	}
 	return k8sClient.Create(ctx, cp)
@@ -69,6 +71,14 @@ func assertAddon(expected, actual v1alpha1.AddonSpec) {
 		Expect(actual.Manifest).ShouldNot(BeNil())
 		Expect(actual.Manifest.URL).Should(Equal(expected.Manifest.URL))
 	}
+}
+
+func assertIssuer(expected, actual certmanager.IssuerSpec) {
+	GinkgoHelper()
+
+	Expect(actual.IssuerConfig).ShouldNot(BeNil())
+	Expect(actual.IssuerConfig.CA).ShouldNot(BeNil())
+	Expect(actual.IssuerConfig.CA.SecretName).Should(Equal(expected.IssuerConfig.CA.SecretName))
 }
 
 func containsAddon(list []v1alpha1.AddonSpec, ns, name string) bool {

@@ -73,7 +73,6 @@ func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.L
 	if err != nil {
 		return err
 	}
-	logger.Info("AZAZA Addons", "Addons", addonsToUninstall)
 
 	for _, addonSpec := range instance.Spec.Components.Addons {
 		if addonSpec.Namespace == "" {
@@ -107,7 +106,6 @@ func (r *BlueprintReconciler) reconcileIssuers(ctx context.Context, logger logr.
 	if err != nil {
 		return err
 	}
-	logger.Info("AZAZA List", "List", issuersToUninstall)
 
 	for _, issuerSpec := range instance.Spec.Components.CAs.Issuers {
 		logger.Info("Reconciling issuerSpec", "Name", issuerSpec.Name, "Spec.Namespace", issuerSpec.Namespace)

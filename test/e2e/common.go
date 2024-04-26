@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
@@ -25,6 +26,31 @@ func newAddon(a metav1.ObjectMeta) *v1alpha1.Addon {
 	}
 }
 
+func newIssuer(i metav1.ObjectMeta) *certmanager.Issuer {
+	return &certmanager.Issuer{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Issuer",
+			APIVersion: "cert-manager.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      i.Name,
+			Namespace: i.Namespace,
+		},
+	}
+}
+
+func newClusterIssuer(ci metav1.ObjectMeta) *certmanager.ClusterIssuer {
+	return &certmanager.ClusterIssuer{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterIssuer",
+			APIVersion: "cert-manager.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ci.Name,
+		},
+	}
+}
+
 // ApplyCleanupBlueprint applies a blueprint with no addons to the cluster
 // This is used to clean up the cluster after the tests
 func ApplyCleanupBlueprint() features.Func {
@@ -41,6 +67,7 @@ func ApplyCleanupBlueprint() features.Func {
 			Spec: v1alpha1.BlueprintSpec{
 				Components: v1alpha1.Component{
 					Addons: []v1alpha1.AddonSpec{},
+					CAs:    v1alpha1.CASpec{},
 				},
 			},
 		}
