@@ -14,13 +14,3 @@ spec:
           name: nginx
           repo: https://charts.bitnami.com/bitnami
           version: 15.9.1
-    certificateAuthorities:
-      issuers:
-        - name: test-issuer-2
-          namespace: test-issuer-ns-2
-          spec:
-            selfSigned: {}
-      clusterIssuers:
-        - name: test-cluster-issuer-2
-          spec:
-            selfSigned: {}

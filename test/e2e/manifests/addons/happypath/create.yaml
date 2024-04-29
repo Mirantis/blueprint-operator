@@ -23,17 +23,3 @@ spec:
         namespace: test-ns-1
         manifest:
           url: "https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml"
-    certificateAuthorities:
-      issuers:
-        - name: test-issuer-1
-          namespace: test-issuer-ns-1
-          spec:
-            selfSigned: {}
-        - name: test-issuer-2
-          namespace: test-issuer-ns-1
-          spec:
-            selfSigned: {}
-      clusterIssuers:
-        - name: test-cluster-issuer-1
-          spec:
-            selfSigned: {}

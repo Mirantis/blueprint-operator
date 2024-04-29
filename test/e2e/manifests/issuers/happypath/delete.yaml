@@ -1,0 +1,17 @@
+apiVersion: boundless.mirantis.com/v1alpha1
+kind: Blueprint
+metadata:
+  name: boundless-cluster
+  namespace: boundless-system
+spec:
+  components:
+    certificateAuthorities:
+      issuers:
+        - name: test-issuer-2
+          namespace: test-issuer-ns-2
+          spec:
+            selfSigned: {}
+      clusterIssuers:
+        - name: test-cluster-issuer-2
+          spec:
+            selfSigned: {}

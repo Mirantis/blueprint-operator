@@ -2,9 +2,9 @@ package e2e
 
 import (
 	"context"
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"testing"
 
-	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"

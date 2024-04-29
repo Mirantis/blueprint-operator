@@ -5,29 +5,6 @@ metadata:
   namespace: boundless-system
 spec:
   components:
-    addons:
-      - name: test-addon-1
-        kind: chart
-        enabled: true
-        namespace: test-ns-1
-        chart:
-          name: nginx
-          repo: https://charts.bitnami.com/bitnami
-          version: 15.9.1 # updated version
-      - name: test-addon-2
-        kind: manifest
-        enabled: true
-        namespace: test-ns-1
-        manifest:
-          url: "https://raw.githubusercontent.com/metallb/metallb/v0.13.12/config/manifests/metallb-native.yaml" # updated version
-      - name: test-addon-3
-        kind: chart
-        enabled: true
-        namespace: default
-        chart:
-          name: crossplane
-          repo: https://charts.crossplane.io/master/
-          version: 1.15.0-rc.0.9.ged19cd5d
     certificateAuthorities:
       issuers:
         - name: test-issuer-1

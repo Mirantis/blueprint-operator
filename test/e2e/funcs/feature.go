@@ -31,7 +31,7 @@ import (
 )
 
 // DefaultPollInterval is the suggested poll interval for wait.For.
-const DefaultPollInterval = time.Millisecond * 100
+const DefaultPollInterval = time.Millisecond * 500
 
 // ResourceMatcher is a function that returns true if the supplied resource matches the desired state.
 type ResourceMatcher func(object k8s.Object) bool
