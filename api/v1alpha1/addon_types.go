@@ -1,11 +1,12 @@
 package v1alpha1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 )
 
 // AddonSpec defines the desired state of Addon
@@ -21,6 +22,74 @@ type AddonSpec struct {
 	Namespace string        `json:"namespace,omitempty"`
 	Chart     *ChartInfo    `json:"chart,omitempty"`
 	Manifest  *ManifestInfo `json:"manifest,omitempty"`
+}
+
+func (spec *AddonSpec) GetName() string {
+	return spec.Name
+}
+
+func (spec *AddonSpec) GetNamespace() string {
+	return spec.Namespace
+}
+
+func (spec *AddonSpec) SetNamespace(namespace string) {
+	spec.Namespace = namespace
+}
+
+func (spec *AddonSpec) IsNamespaced() bool {
+	return true
+}
+
+func (spec *AddonSpec) IsClusterScoped() bool {
+	return false
+}
+
+func (spec *AddonSpec) MakeComponent() Addon {
+	addon := Addon{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      spec.Name,
+			Namespace: consts.NamespaceBoundlessSystem,
+		},
+		Spec: AddonSpec{
+			Name:      spec.Name,
+			Namespace: spec.Namespace,
+			Kind:      spec.Kind,
+			DryRun:    spec.DryRun,
+		},
+	}
+
+	if spec.Chart != nil {
+		addon.Spec.Chart = &ChartInfo{
+			Name:    spec.Chart.Name,
+			Repo:    spec.Chart.Repo,
+			Version: spec.Chart.Version,
+			Set:     spec.Chart.Set,
+			Values:  spec.Chart.Values,
+		}
+	}
+
+	if spec.Manifest != nil {
+
+		if spec.Manifest.Values == nil {
+			addon.Spec.Manifest = &ManifestInfo{
+				URL:           spec.Manifest.URL,
+				FailurePolicy: spec.Manifest.FailurePolicy,
+				Timeout:       spec.Manifest.Timeout,
+			}
+		} else {
+			addon.Spec.Manifest = &ManifestInfo{
+				URL:           spec.Manifest.URL,
+				FailurePolicy: spec.Manifest.FailurePolicy,
+				Timeout:       spec.Manifest.Timeout,
+				Values: &Values{
+					Patches: spec.Manifest.Values.Patches,
+					Images:  spec.Manifest.Values.Images,
+				},
+			}
+		}
+	}
+
+	return addon
 }
 
 type ChartInfo struct {
