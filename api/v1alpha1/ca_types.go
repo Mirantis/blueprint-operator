@@ -38,8 +38,8 @@ func (i *Issuer) IsClusterScoped() bool {
 	return false
 }
 
-func (i *Issuer) MakeComponent() bopCertmanager.Issuer {
-	return bopCertmanager.Issuer{Issuer: certmanager.Issuer{
+func (i *Issuer) MakeComponent() *bopCertmanager.Issuer {
+	return &bopCertmanager.Issuer{Issuer: certmanager.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.Name,
 			Namespace: i.Namespace,
@@ -69,8 +69,8 @@ func (ci *ClusterIssuer) IsClusterScoped() bool {
 	return true
 }
 
-func (ci *ClusterIssuer) MakeComponent() bopCertmanager.ClusterIssuer {
-	return bopCertmanager.ClusterIssuer{ClusterIssuer: certmanager.ClusterIssuer{
+func (ci *ClusterIssuer) MakeComponent() *bopCertmanager.ClusterIssuer {
+	return &bopCertmanager.ClusterIssuer{ClusterIssuer: certmanager.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ci.Name,
 		},

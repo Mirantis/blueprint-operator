@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +21,8 @@ type Component interface {
 	GetComponentNamespace() string
 	// GetObject return the kube object representing the component
 	GetObject() client.Object
+	// SetObject sets the component object to the supplied kube object
+	SetObject(obj client.Object) error
 }
 
 // ComponentSpec represents the specs of the component
@@ -68,23 +71,39 @@ func deleteComponents[C Component](ctx context.Context, logger logr.Logger, apiC
 	return nil
 }
 
+// createEmptyCopy creates an empty copy of the desired component, the component must be a pointer
+func createEmptyCopy[C Component](desired C) (C, error) {
+	cType := reflect.TypeOf(desired)
+	if cType.Kind() != reflect.Ptr {
+		return *new(C), fmt.Errorf("component must be a pointer, got %s", cType.Kind().String())
+	}
+	return reflect.New(cType.Elem()).Interface().(C), nil
+}
+
 func createOrUpdateComponent[C Component](ctx context.Context, logger logr.Logger, apiClient client.Client, desired C) error {
 	desiredObj := desired.GetObject()
 
-	existing := new(C)
-	existingObj := (*existing).GetObject()
+	existing, err := createEmptyCopy(desired)
+	if err != nil {
+		return err
+	}
 
-	err := apiClient.Get(ctx, client.ObjectKey{Name: desiredObj.GetName(), Namespace: desiredObj.GetNamespace()}, existingObj)
+	existingObj := existing.GetObject()
+	err = apiClient.Get(ctx, client.ObjectKey{Name: desiredObj.GetName(), Namespace: desiredObj.GetNamespace()}, existingObj)
 	if err != nil {
 		if client.IgnoreNotFound(err) != nil {
 			return err
 		}
 	}
 
-	if existingObj.GetName() != "" {
-		logger.Info("Component already exists. Updating", "Name", existingObj.GetName(), "Spec.Namespace", (*existing).GetComponentNamespace())
+	if err = existing.SetObject(existingObj); err != nil {
+		return fmt.Errorf("failed to set existing object to the component: %w", err)
+	}
 
-		if desired.GetComponentNamespace() == (*existing).GetComponentNamespace() {
+	if existingObj.GetName() != "" {
+		logger.Info("Component already exists. Updating", "Name", existingObj.GetName(), "Spec.Namespace", existing.GetComponentNamespace())
+
+		if desired.GetComponentNamespace() == existing.GetComponentNamespace() {
 			desiredObj.SetResourceVersion(existingObj.GetResourceVersion())
 			// TODO : Copy all the fields from the existing
 			desiredObj.SetFinalizers(existingObj.GetFinalizers())
@@ -98,7 +117,7 @@ func createOrUpdateComponent[C Component](ctx context.Context, logger logr.Logge
 			// the component has moved namespaces, we need to delete and re-create it
 			logger.Info("Component has moved namespaces, deleting old version of the component",
 				"Name", desired.GetComponentName(),
-				"Old Namespace", (*existing).GetComponentNamespace(),
+				"Old Namespace", existing.GetComponentNamespace(),
 				"New Namespace", desired.GetComponentNamespace())
 			if err = apiClient.Delete(ctx, existingObj, client.PropagationPolicy(metav1.DeletePropagationForeground)); client.IgnoreNotFound(err) != nil {
 				logger.Error(err, "Failed to remove old version of component", "Name", existingObj.GetName())

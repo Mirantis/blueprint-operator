@@ -46,19 +46,19 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	err := reconcileComponents[boundlessv1alpha1.Addon, *boundlessv1alpha1.AddonSpec](ctx, logger, r.Client, instance,
+	err := reconcileComponents[*boundlessv1alpha1.Addon, *boundlessv1alpha1.AddonSpec](ctx, logger, r.Client, instance,
 		utils.PointSlice(instance.Spec.Components.Addons), &boundlessv1alpha1.AddonList{})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = reconcileComponents[bopCertmanager.Issuer, *boundlessv1alpha1.Issuer](ctx, logger, r.Client, instance,
+	err = reconcileComponents[*bopCertmanager.Issuer, *boundlessv1alpha1.Issuer](ctx, logger, r.Client, instance,
 		utils.PointSlice(instance.Spec.Components.CAs.Issuers), &bopCertmanager.IssuerList{})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = reconcileComponents[bopCertmanager.ClusterIssuer, *boundlessv1alpha1.ClusterIssuer](ctx, logger, r.Client, instance,
+	err = reconcileComponents[*bopCertmanager.ClusterIssuer, *boundlessv1alpha1.ClusterIssuer](ctx, logger, r.Client, instance,
 		utils.PointSlice(instance.Spec.Components.CAs.ClusterIssuers), &bopCertmanager.ClusterIssuerList{})
 	if err != nil {
 		return ctrl.Result{}, err
