@@ -28,6 +28,9 @@ func TestUpdateIssuers(t *testing.T) {
 	i2 := metav1.ObjectMeta{Name: "test-issuer-2", Namespace: "test-issuer-ns-1"}
 	i3 := metav1.ObjectMeta{Name: "test-issuer-3", Namespace: "test-issuer-ns-1"}
 
+	// updated issuer 2
+	ui2 := metav1.ObjectMeta{Name: "test-issuer-2", Namespace: "test-issuer-ns-2"}
+
 	ci1 := metav1.ObjectMeta{Name: "test-cluster-issuer-1"}
 	ci2 := metav1.ObjectMeta{Name: "test-cluster-issuer-2"}
 
@@ -50,14 +53,14 @@ func TestUpdateIssuers(t *testing.T) {
 		)).
 		Assess("ExistingIssuersStillExists", funcs.AllOf(
 			funcs.ComponentResourcesCreatedWithin(2*time.Minute, newIssuer(i1)),
-			funcs.ComponentResourcesCreatedWithin(2*time.Minute, newIssuer(i2)),
+			funcs.ComponentResourcesCreatedWithin(2*time.Minute, newIssuer(ui2)),
 		)).
 		Assess("ExistingClusterIssuersStillExists", funcs.AllOf(
 			funcs.ComponentResourcesCreatedWithin(2*time.Minute, newClusterIssuer(ci1)),
 		)).
 		Assess("ExistingIssuerAreSuccessfullyInstalled", funcs.AllOf(
 			funcs.IssuerHaveStatusWithin(2*time.Minute, newIssuer(i1), certmanagermeta.ConditionFalse),
-			funcs.IssuerHaveStatusWithin(2*time.Minute, newIssuer(i2), certmanagermeta.ConditionTrue),
+			funcs.IssuerHaveStatusWithin(2*time.Minute, newIssuer(ui2), certmanagermeta.ConditionTrue),
 		)).
 		Assess("ExistingClusterIssuerIsSuccessfullyInstalled", funcs.AllOf(
 			funcs.ClusterIssuerHaveStatusWithin(2*time.Minute, newClusterIssuer(ci1), certmanagermeta.ConditionFalse),
@@ -67,7 +70,8 @@ func TestUpdateIssuers(t *testing.T) {
 				o := object.(*certmanager.Issuer)
 				return o.Spec.SelfSigned == nil && o.Spec.CA != nil && o.Spec.CA.SecretName == "test-issuer-secret"
 			}),
-			funcs.ResourceMatchWithin(DefaultWaitTimeout, newIssuer(i2), func(object k8s.Object) bool {
+			funcs.ResourceDeletedWithin(2*time.Minute, newIssuer(i2)),
+			funcs.ResourceMatchWithin(DefaultWaitTimeout, newIssuer(ui2), func(object k8s.Object) bool {
 				o := object.(*certmanager.Issuer)
 				return o.Namespace == "test-issuer-ns-2"
 			}),
@@ -93,7 +97,7 @@ func TestUpdateIssuers(t *testing.T) {
 		WithTeardown("Cleanup", funcs.AllOf(
 			ApplyCleanupBlueprint(),
 			funcs.ResourceDeletedWithin(2*time.Minute, newIssuer(i1)),
-			funcs.ResourceDeletedWithin(2*time.Minute, newIssuer(i2)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newIssuer(ui2)),
 			funcs.ResourceDeletedWithin(2*time.Minute, newIssuer(i3)),
 			funcs.ResourceDeletedWithin(2*time.Minute, newClusterIssuer(ci1)),
 			funcs.ResourceDeletedWithin(2*time.Minute, newClusterIssuer(ci2)),
