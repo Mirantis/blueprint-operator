@@ -39,10 +39,6 @@ func (spec *AddonSpec) SetNamespace(namespace string) {
 	spec.Namespace = namespace
 }
 
-func (spec *AddonSpec) IsNamespaced() bool {
-	return true
-}
-
 func (spec *AddonSpec) IsClusterScoped() bool {
 	return false
 }
