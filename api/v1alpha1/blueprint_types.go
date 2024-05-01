@@ -8,12 +8,13 @@ import (
 type BlueprintSpec struct {
 	// Components contains all the components that should be installed
 	Components Component `json:"components,omitempty"`
+	// CAs contains all the certificate authorities that should be installed
+	CAs CASpec `json:"certificateAuthorities,omitempty"`
 }
 
 // Component defines the core and addons components that should be installed
 type Component struct {
 	Addons []AddonSpec `json:"addons,omitempty"`
-	CAs    CASpec      `json:"certificateAuthorities,omitempty"`
 }
 
 // BlueprintStatus defines the observed state of Blueprint

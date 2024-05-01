@@ -45,7 +45,7 @@ func createOrUpdateBlueprint(ctx context.Context, new *v1alpha1.Blueprint) error
 		// This is to prevent issue caused by overwriting existing fields
 		// set by controllers on the object
 		existing.Spec.Components.Addons = cp.Spec.Components.Addons
-		existing.Spec.Components.CAs = cp.Spec.Components.CAs
+		existing.Spec.CAs = cp.Spec.CAs
 		return k8sClient.Update(ctx, existing)
 	}
 	return k8sClient.Create(ctx, cp)

@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	bopCertmanager "github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
+	"github.com/mirantiscontainers/boundless-operator/pkg/blueprint"
 	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
 )
 
@@ -52,14 +52,14 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	err = reconcileComponents[*bopCertmanager.Issuer, *boundlessv1alpha1.Issuer](ctx, logger, r.Client, instance,
-		utils.PointSlice(instance.Spec.Components.CAs.Issuers), &bopCertmanager.IssuerList{})
+	err = reconcileComponents[*blueprint.Issuer, *boundlessv1alpha1.Issuer](ctx, logger, r.Client, instance,
+		utils.PointSlice(instance.Spec.CAs.Issuers), &blueprint.IssuerList{})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = reconcileComponents[*bopCertmanager.ClusterIssuer, *boundlessv1alpha1.ClusterIssuer](ctx, logger, r.Client, instance,
-		utils.PointSlice(instance.Spec.Components.CAs.ClusterIssuers), &bopCertmanager.ClusterIssuerList{})
+	err = reconcileComponents[*blueprint.ClusterIssuer, *boundlessv1alpha1.ClusterIssuer](ctx, logger, r.Client, instance,
+		utils.PointSlice(instance.Spec.CAs.ClusterIssuers), &blueprint.ClusterIssuerList{})
 	if err != nil {
 		return ctrl.Result{}, err
 	}

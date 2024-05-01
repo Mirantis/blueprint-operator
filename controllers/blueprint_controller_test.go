@@ -32,7 +32,7 @@ func newBlueprint(caSpec *v1alpha1.CASpec, addons ...v1alpha1.AddonSpec) *v1alph
 		blueprint.Spec.Components.Addons = append(blueprint.Spec.Components.Addons, addon)
 	}
 	if caSpec != nil {
-		blueprint.Spec.Components.CAs = *caSpec
+		blueprint.Spec.CAs = *caSpec
 	}
 
 	return blueprint

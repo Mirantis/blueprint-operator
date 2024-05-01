@@ -65,9 +65,9 @@ func ApplyCleanupBlueprint() features.Func {
 				Namespace: consts.NamespaceBoundlessSystem,
 			},
 			Spec: v1alpha1.BlueprintSpec{
+				CAs: v1alpha1.CASpec{},
 				Components: v1alpha1.Component{
 					Addons: []v1alpha1.AddonSpec{},
-					CAs:    v1alpha1.CASpec{},
 				},
 			},
 		}

@@ -44,52 +44,13 @@ func (spec *AddonSpec) IsClusterScoped() bool {
 }
 
 func (spec *AddonSpec) MakeComponent() *Addon {
-	addon := Addon{
+	return &Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
 			Namespace: consts.NamespaceBoundlessSystem,
 		},
-		Spec: AddonSpec{
-			Name:      spec.Name,
-			Kind:      spec.Kind,
-			Enabled:   spec.Enabled,
-			DryRun:    spec.DryRun,
-			Namespace: spec.Namespace,
-		},
+		Spec: *spec,
 	}
-
-	if spec.Chart != nil {
-		addon.Spec.Chart = &ChartInfo{
-			Name:    spec.Chart.Name,
-			Repo:    spec.Chart.Repo,
-			Version: spec.Chart.Version,
-			Set:     spec.Chart.Set,
-			Values:  spec.Chart.Values,
-		}
-	}
-
-	if spec.Manifest != nil {
-
-		if spec.Manifest.Values == nil {
-			addon.Spec.Manifest = &ManifestInfo{
-				URL:           spec.Manifest.URL,
-				FailurePolicy: spec.Manifest.FailurePolicy,
-				Timeout:       spec.Manifest.Timeout,
-			}
-		} else {
-			addon.Spec.Manifest = &ManifestInfo{
-				URL:           spec.Manifest.URL,
-				FailurePolicy: spec.Manifest.FailurePolicy,
-				Timeout:       spec.Manifest.Timeout,
-				Values: &Values{
-					Patches: spec.Manifest.Values.Patches,
-					Images:  spec.Manifest.Values.Images,
-				},
-			}
-		}
-	}
-
-	return &addon
 }
 
 type ChartInfo struct {

@@ -4,7 +4,7 @@ import (
 	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	bopCertmanager "github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
+	"github.com/mirantiscontainers/boundless-operator/pkg/blueprint"
 )
 
 // CASpec defines the desired state of Certificate Authorities
@@ -38,8 +38,8 @@ func (i *Issuer) IsClusterScoped() bool {
 	return false
 }
 
-func (i *Issuer) MakeComponent() *bopCertmanager.Issuer {
-	return &bopCertmanager.Issuer{Issuer: certmanager.Issuer{
+func (i *Issuer) MakeComponent() *blueprint.Issuer {
+	return &blueprint.Issuer{Issuer: certmanager.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.Name,
 			Namespace: i.Namespace,
@@ -69,8 +69,8 @@ func (ci *ClusterIssuer) IsClusterScoped() bool {
 	return true
 }
 
-func (ci *ClusterIssuer) MakeComponent() *bopCertmanager.ClusterIssuer {
-	return &bopCertmanager.ClusterIssuer{ClusterIssuer: certmanager.ClusterIssuer{
+func (ci *ClusterIssuer) MakeComponent() *blueprint.ClusterIssuer {
+	return &blueprint.ClusterIssuer{ClusterIssuer: certmanager.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ci.Name,
 		},
