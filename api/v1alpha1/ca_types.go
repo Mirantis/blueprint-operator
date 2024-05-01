@@ -38,7 +38,7 @@ func (i *Issuer) IsClusterScoped() bool {
 	return false
 }
 
-func (i *Issuer) MakeComponent() *blueprint.Issuer {
+func (i *Issuer) MakeObject() *blueprint.Issuer {
 	return &blueprint.Issuer{Issuer: certmanager.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.Name,
@@ -69,7 +69,7 @@ func (ci *ClusterIssuer) IsClusterScoped() bool {
 	return true
 }
 
-func (ci *ClusterIssuer) MakeComponent() *blueprint.ClusterIssuer {
+func (ci *ClusterIssuer) MakeObject() *blueprint.ClusterIssuer {
 	return &blueprint.ClusterIssuer{ClusterIssuer: certmanager.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ci.Name,

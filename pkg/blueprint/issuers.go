@@ -11,11 +11,11 @@ type Issuer struct {
 	certmanager.Issuer `json:",inline"`
 }
 
-func (i *Issuer) GetComponentName() string {
+func (i *Issuer) GetObjectName() string {
 	return fmt.Sprintf("%s/%s", i.Namespace, i.Name)
 }
 
-func (i *Issuer) GetComponentNamespace() string {
+func (i *Issuer) GetObjectNamespace() string {
 	return i.Namespace
 }
 
@@ -52,11 +52,11 @@ type ClusterIssuer struct {
 	certmanager.ClusterIssuer `json:",inline"`
 }
 
-func (i *ClusterIssuer) GetComponentName() string {
+func (i *ClusterIssuer) GetObjectName() string {
 	return i.Name
 }
 
-func (i *ClusterIssuer) GetComponentNamespace() string {
+func (i *ClusterIssuer) GetObjectNamespace() string {
 	return ""
 }
 

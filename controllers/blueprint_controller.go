@@ -46,19 +46,19 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	err := reconcileComponents[*boundlessv1alpha1.Addon, *boundlessv1alpha1.AddonSpec](ctx, logger, r.Client, instance,
+	err := reconcileObjects[*boundlessv1alpha1.Addon, *boundlessv1alpha1.AddonSpec](ctx, logger, r.Client, instance,
 		utils.PointSlice(instance.Spec.Components.Addons), &boundlessv1alpha1.AddonList{})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = reconcileComponents[*blueprint.Issuer, *boundlessv1alpha1.Issuer](ctx, logger, r.Client, instance,
+	err = reconcileObjects[*blueprint.Issuer, *boundlessv1alpha1.Issuer](ctx, logger, r.Client, instance,
 		utils.PointSlice(instance.Spec.CAs.Issuers), &blueprint.IssuerList{})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	err = reconcileComponents[*blueprint.ClusterIssuer, *boundlessv1alpha1.ClusterIssuer](ctx, logger, r.Client, instance,
+	err = reconcileObjects[*blueprint.ClusterIssuer, *boundlessv1alpha1.ClusterIssuer](ctx, logger, r.Client, instance,
 		utils.PointSlice(instance.Spec.CAs.ClusterIssuers), &blueprint.ClusterIssuerList{})
 	if err != nil {
 		return ctrl.Result{}, err

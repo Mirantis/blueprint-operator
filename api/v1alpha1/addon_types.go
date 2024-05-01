@@ -43,7 +43,7 @@ func (spec *AddonSpec) IsClusterScoped() bool {
 	return false
 }
 
-func (spec *AddonSpec) MakeComponent() *Addon {
+func (spec *AddonSpec) MakeObject() *Addon {
 	return &Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
@@ -208,11 +208,11 @@ type Addon struct {
 	Status AddonStatus `json:"status,omitempty"`
 }
 
-func (a *Addon) GetComponentName() string {
+func (a *Addon) GetObjectName() string {
 	return a.Spec.Name
 }
 
-func (a *Addon) GetComponentNamespace() string {
+func (a *Addon) GetObjectNamespace() string {
 	return a.Spec.Namespace
 }
 
