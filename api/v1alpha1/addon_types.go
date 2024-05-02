@@ -1,15 +1,10 @@
 package v1alpha1
 
 import (
-	"fmt"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // AddonSpec defines the desired state of Addon
@@ -25,32 +20,6 @@ type AddonSpec struct {
 	Namespace string        `json:"namespace,omitempty"`
 	Chart     *ChartInfo    `json:"chart,omitempty"`
 	Manifest  *ManifestInfo `json:"manifest,omitempty"`
-}
-
-func (spec *AddonSpec) GetName() string {
-	return spec.Name
-}
-
-func (spec *AddonSpec) GetNamespace() string {
-	return spec.Namespace
-}
-
-func (spec *AddonSpec) SetNamespace(namespace string) {
-	spec.Namespace = namespace
-}
-
-func (spec *AddonSpec) IsClusterScoped() bool {
-	return false
-}
-
-func (spec *AddonSpec) MakeObject() *Addon {
-	return &Addon{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      spec.Name,
-			Namespace: consts.NamespaceBoundlessSystem,
-		},
-		Spec: *spec,
-	}
 }
 
 type ChartInfo struct {
@@ -208,32 +177,6 @@ type Addon struct {
 	Status AddonStatus `json:"status,omitempty"`
 }
 
-func (a *Addon) GetObjectName() string {
-	return a.Spec.Name
-}
-
-func (a *Addon) GetObjectNamespace() string {
-	return a.Spec.Namespace
-}
-
-func (a *Addon) GetObject() client.Object {
-	return a
-}
-
-func (a *Addon) SetObject(obj client.Object) error {
-	addon, ok := obj.(*Addon)
-	if !ok {
-		return fmt.Errorf("object is not an Addon")
-	}
-
-	a.TypeMeta = addon.TypeMeta
-	a.ObjectMeta = addon.ObjectMeta
-	a.Spec = addon.Spec
-	a.Status = addon.Status
-
-	return nil
-}
-
 //+kubebuilder:object:root=true
 
 // AddonList contains a list of Addon
@@ -241,14 +184,6 @@ type AddonList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Addon `json:"items"`
-}
-
-func (l *AddonList) GetItems() []*Addon {
-	return utils.PointSlice(l.Items)
-}
-
-func (l *AddonList) GetObjectList() client.ObjectList {
-	return l
 }
 
 func init() {

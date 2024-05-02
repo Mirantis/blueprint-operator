@@ -265,6 +265,30 @@ func ClusterIssuerHaveStatusWithin(d time.Duration, ci *certmanager.ClusterIssue
 	}
 }
 
+// CertificateHaveStatusWithin fails a test if the supplied certificate does not
+// have (i.e. become) the supplied status within the supplied duration.
+func CertificateHaveStatusWithin(d time.Duration, cert *certmanager.Certificate, desired certmanagermeta.ConditionStatus) features.Func {
+	return func(ctx context.Context, t *testing.T, config *envconf.Config) context.Context {
+		statusMatcherFunc := func(object k8s.Object) bool {
+			c := object.(*certmanager.Certificate)
+			if len(c.Status.Conditions) == 0 {
+				t.Errorf("Certificate %s has empty conditions list", c.Name)
+				return false
+			}
+
+			for _, condition := range c.Status.Conditions {
+				if condition.Type == certmanager.CertificateConditionReady {
+					return condition.Status == desired
+				}
+			}
+
+			return false
+		}
+
+		return resourceHaveStatusWithin(d, cert, desired, statusMatcherFunc)(ctx, t, config)
+	}
+}
+
 // DeploymentBecomesAvailableWithin fails a test if the supplied Deployment is
 // not Available within the supplied duration.
 func DeploymentBecomesAvailableWithin(d time.Duration, namespace, name string) features.Func {
