@@ -3,8 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
+
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
+	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
 )
 
 // BlueprintReconciler reconciles a Blueprint object
@@ -48,9 +50,36 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	addonsToUninstall, err := r.getInstalledAddons(ctx, logger)
+	err := r.reconcileAddons(ctx, logger, instance)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	err = reconcileObjects(ctx, logger, r.Client,
+		convertToObjects(instance.Spec.Resources.CertManagement.Issuers, issuerObject), listIssuers)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to reconcile Issuers: %w", err)
+	}
+
+	err = reconcileObjects(ctx, logger, r.Client,
+		convertToObjects(instance.Spec.Resources.CertManagement.ClusterIssuers, clusterIssuerObject), listClusterIssuers)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to reconcile ClusterIssuers: %w", err)
+	}
+
+	err = reconcileObjects(ctx, logger, r.Client,
+		convertToObjects(instance.Spec.Resources.CertManagement.Certificates, certificateObject), listCertificates)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to reconcile Resources: %w", err)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.Logger, instance *boundlessv1alpha1.Blueprint) error {
+	addonsToUninstall, err := r.getInstalledAddons(ctx, logger)
+	if err != nil {
+		return err
 	}
 
 	for _, addonSpec := range instance.Spec.Components.Addons {
@@ -63,7 +92,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		err = r.createOrUpdateAddon(ctx, logger, addon)
 		if err != nil {
 			logger.Error(err, "Failed to reconcile addonSpec", "Name", addonSpec.Name, "Spec.Namespace", addonSpec.Namespace)
-			return ctrl.Result{}, err
+			return err
 		}
 
 		// if the addon is in the spec , we shouldn't uninstall it
@@ -73,11 +102,11 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if len(addonsToUninstall) > 0 {
 		err = r.deleteAddons(ctx, logger, addonsToUninstall)
 		if err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // getInstalledAddons returns a map of addons that are presently installed in the cluster
@@ -203,6 +232,86 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	}
 
 	return addon
+}
+
+func issuerObject(issuer boundlessv1alpha1.Issuer) client.Object {
+	return &certmanager.Issuer{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "cert-manager.io/v1",
+			Kind:       "Issuer",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      issuer.Name,
+			Namespace: issuer.Namespace,
+		},
+		Spec: issuer.Spec,
+	}
+}
+
+func clusterIssuerObject(issuer boundlessv1alpha1.ClusterIssuer) client.Object {
+	return &certmanager.ClusterIssuer{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "cert-manager.io/v1",
+			Kind:       "ClusterIssuer",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: issuer.Name,
+		},
+		Spec: issuer.Spec,
+	}
+}
+
+func certificateObject(certificate boundlessv1alpha1.Certificate) client.Object {
+	return &certmanager.Certificate{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "cert-manager.io/v1",
+			Kind:       "Certificate",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      certificate.Name,
+			Namespace: certificate.Namespace,
+		},
+		Spec: certificate.Spec,
+	}
+}
+
+func listIssuers(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
+	issuerList := &certmanager.IssuerList{}
+	if err := apiClient.List(ctx, issuerList); err != nil {
+		return nil, err
+	}
+
+	return convertToObjects(utils.PointSlice(issuerList.Items), directConverter[*certmanager.Issuer]), nil
+}
+
+func listClusterIssuers(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
+	clusterIssuerList := &certmanager.ClusterIssuerList{}
+	if err := apiClient.List(ctx, clusterIssuerList); err != nil {
+		return nil, err
+	}
+
+	return convertToObjects(utils.PointSlice(clusterIssuerList.Items), directConverter[*certmanager.ClusterIssuer]), nil
+}
+
+func listCertificates(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
+	certificateList := &certmanager.CertificateList{}
+	if err := apiClient.List(ctx, certificateList); err != nil {
+		return nil, err
+	}
+
+	return convertToObjects(utils.PointSlice(certificateList.Items), directConverter[*certmanager.Certificate]), nil
+}
+
+func directConverter[T client.Object](object T) client.Object {
+	return object
+}
+
+func convertToObjects[T any](items []T, converter func(T) client.Object) []client.Object {
+	objects := make([]client.Object, len(items))
+	for i, item := range items {
+		objects[i] = converter(item)
+	}
+	return objects
 }
 
 // SetupWithManager sets up the controller with the Manager.

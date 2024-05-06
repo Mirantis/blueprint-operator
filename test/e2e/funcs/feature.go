@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmanagermeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -189,6 +191,19 @@ func ResourceDeletedWithin(d time.Duration, o k8s.Object) features.Func {
 	}
 }
 
+func resourceHaveStatusWithin(d time.Duration, obj client.Object, desired interface{}, statusMatcherFunc func(object k8s.Object) bool) features.Func {
+	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
+		start := time.Now()
+		if err := wait.For(conditions.New(c.Client().Resources()).ResourceMatch(obj, statusMatcherFunc), wait.WithTimeout(d), wait.WithInterval(DefaultPollInterval)); err != nil {
+			t.Fatalf("component %s did not have desired status type '%s' in %s: %v", identifier(obj), desired, since(start), err)
+			return ctx
+		}
+
+		t.Logf("component %s have desired status type '%s' after %s", identifier(obj), desired, since(start))
+		return ctx
+	}
+}
+
 // AddonHaveStatusWithin fails a test if the supplied addon do not
 // have (i.e. become) the supplied status within the supplied duration.
 func AddonHaveStatusWithin(d time.Duration, addon *v1alpha1.Addon, desired v1alpha1.StatusType) features.Func {
@@ -198,14 +213,79 @@ func AddonHaveStatusWithin(d time.Duration, addon *v1alpha1.Addon, desired v1alp
 			return a.Status.Type == desired
 		}
 
-		start := time.Now()
-		if err := wait.For(conditions.New(c.Client().Resources()).ResourceMatch(addon, statusMatcherFunc), wait.WithTimeout(d), wait.WithInterval(DefaultPollInterval)); err != nil {
-			t.Fatalf("addon %s did not have desired status type '%s' in %s: %v", identifier(addon), desired, since(start), err)
-			return ctx
+		return resourceHaveStatusWithin(d, addon, desired, statusMatcherFunc)(ctx, t, c)
+	}
+}
+
+// IssuerHaveStatusWithin fails a test if the supplied issuer do not
+// have (i.e. become) the supplied status within the supplied duration.
+func IssuerHaveStatusWithin(d time.Duration, issuer *certmanager.Issuer, desired certmanagermeta.ConditionStatus) features.Func {
+	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
+		statusMatcherFunc := func(object k8s.Object) bool {
+			i := object.(*certmanager.Issuer)
+			if len(i.Status.Conditions) == 0 {
+				t.Errorf("Issuer %s has empty conditions list", i.Name)
+				return false
+			}
+
+			for _, condition := range i.Status.Conditions {
+				if condition.Type == certmanager.IssuerConditionReady {
+					return condition.Status == desired
+				}
+			}
+
+			return false
 		}
 
-		t.Logf("addon %s have desired status type '%s' after %s", identifier(addon), desired, since(start))
-		return ctx
+		return resourceHaveStatusWithin(d, issuer, desired, statusMatcherFunc)(ctx, t, c)
+	}
+}
+
+// ClusterIssuerHaveStatusWithin fails a test if the supplied cluster issuer do not
+// have (i.e. become) the supplied status within the supplied duration.
+func ClusterIssuerHaveStatusWithin(d time.Duration, ci *certmanager.ClusterIssuer, desired certmanagermeta.ConditionStatus) features.Func {
+	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
+		statusMatcherFunc := func(object k8s.Object) bool {
+			i := object.(*certmanager.ClusterIssuer)
+			if len(i.Status.Conditions) == 0 {
+				t.Errorf("Cluster issuer %s has empty conditions list", i.Name)
+				return false
+			}
+
+			for _, condition := range i.Status.Conditions {
+				if condition.Type == certmanager.IssuerConditionReady {
+					return condition.Status == desired
+				}
+			}
+
+			return false
+		}
+
+		return resourceHaveStatusWithin(d, ci, desired, statusMatcherFunc)(ctx, t, c)
+	}
+}
+
+// CertificateHaveStatusWithin fails a test if the supplied certificate does not
+// have (i.e. become) the supplied status within the supplied duration.
+func CertificateHaveStatusWithin(d time.Duration, cert *certmanager.Certificate, desired certmanagermeta.ConditionStatus) features.Func {
+	return func(ctx context.Context, t *testing.T, config *envconf.Config) context.Context {
+		statusMatcherFunc := func(object k8s.Object) bool {
+			c := object.(*certmanager.Certificate)
+			if len(c.Status.Conditions) == 0 {
+				t.Errorf("Certificate %s has empty conditions list", c.Name)
+				return false
+			}
+
+			for _, condition := range c.Status.Conditions {
+				if condition.Type == certmanager.CertificateConditionReady {
+					return condition.Status == desired
+				}
+			}
+
+			return false
+		}
+
+		return resourceHaveStatusWithin(d, cert, desired, statusMatcherFunc)(ctx, t, config)
 	}
 }
 
@@ -225,10 +305,10 @@ func DeploymentBecomesAvailableWithin(d time.Duration, namespace, name string) f
 	}
 }
 
-func AddonResourcesCreatedWithin(d time.Duration, addons ...*v1alpha1.Addon) features.Func {
+func ComponentResourcesCreatedWithin(d time.Duration, objects ...runtime.Object) features.Func {
 	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 		list := &unstructured.UnstructuredList{}
-		for _, o := range addons {
+		for _, o := range objects {
 			u := asUnstructured(o)
 			list.Items = append(list.Items, *u)
 			t.Logf("Waiting %s for %s to exist...", d, identifier(u))

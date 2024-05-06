@@ -23,7 +23,7 @@ import (
 // 3. Checks that the existing addons are updated to the new version
 // 4. Checks that the new addons are installed
 func TestUpdateAddons(t *testing.T) {
-	dir := filepath.Join(curDir, "manifests")
+	dir := filepath.Join(curDir, "manifests", "addons")
 
 	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: consts.NamespaceBoundlessSystem}
 	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBoundlessSystem}
@@ -38,7 +38,7 @@ func TestUpdateAddons(t *testing.T) {
 
 	f := features.New("Update Addons").
 		WithSetup("CreatePrerequisiteBlueprint", funcs.AllOf(
-			// create the blueprint with two addons, that will be updated later
+			// create the blueprint with two addons that will be updated later
 			funcs.ApplyResources(FieldManager, dir, "happypath/create.yaml"),
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
 
@@ -52,8 +52,8 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/update.yaml"),
 		)).
 		Assess("ExistingAddonsStillExists", funcs.AllOf(
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
+			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
+			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("ExistingAddonsAreSuccessfullyInstalled", funcs.AllOf(
 			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a1), v1alpha1.TypeComponentAvailable),
@@ -79,7 +79,7 @@ func TestUpdateAddons(t *testing.T) {
 			}),
 		)).
 		Assess("NewAddonsAreCreated", funcs.AllOf(
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a3)),
+			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a3)),
 		)).
 		Assess("NewAddonsAreSuccessfullyInstalled", funcs.AllOf(
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a3), v1alpha1.TypeComponentAvailable),

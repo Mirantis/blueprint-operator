@@ -19,7 +19,7 @@ var curDir, _ = os.Getwd()
 // TestInstallAddons tests the installation of two addons, one Helm addon and one Manifest addon.
 // It checks if the addons are created, installed and their objects are created
 func TestInstallAddons(t *testing.T) {
-	dir := filepath.Join(curDir, "manifests")
+	dir := filepath.Join(curDir, "manifests", "addons")
 
 	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: consts.NamespaceBoundlessSystem}
 	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBoundlessSystem}
@@ -33,8 +33,8 @@ func TestInstallAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
 		)).
 		Assess("TwoAddonsAreCreated", funcs.AllOf(
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
-			funcs.AddonResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
+			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
+			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("HelmAddonsIsSuccessfullyInstalled", funcs.AllOf(
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),

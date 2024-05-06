@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"os"
 
 	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
@@ -41,6 +42,8 @@ func init() {
 
 	utilruntime.Must(boundlessv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(helmv1.AddToScheme(scheme))
+	utilruntime.Must(certmanager.AddToScheme(scheme))
+
 	//+kubebuilder:scaffold:scheme
 	// Register custom metrics
 	metrics.Registry.MustRegister(BlueprintInfo, controllers.AddOnHistVec, controllers.InstallationHistVec, controllers.ManifestHistVec)

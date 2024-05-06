@@ -19,7 +19,7 @@ import (
 // 2. Uninstall 3 addons (by applying a blueprint with 1 addon)
 // 3. Ensure the 3 addons and their objects are removed
 func TestUninstallAddons(t *testing.T) {
-	dir := filepath.Join(curDir, "manifests")
+	dir := filepath.Join(curDir, "manifests", "addons")
 
 	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: consts.NamespaceBoundlessSystem}
 	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBoundlessSystem}

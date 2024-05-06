@@ -8,11 +8,25 @@ import (
 type BlueprintSpec struct {
 	// Components contains all the components that should be installed
 	Components Component `json:"components,omitempty"`
+	// Resources contains all object resources that should be installed
+	Resources Resources `json:"resources,omitempty"`
 }
 
-// Component defines the core and addons components that should be installed
+// Component defines the addons components that should be installed
 type Component struct {
 	Addons []AddonSpec `json:"addons,omitempty"`
+}
+
+// Resources defines the desired state of kubernetes resources that should be managed by BOP
+type Resources struct {
+	CertManagement CertManagement `json:"certManagement,omitempty"`
+}
+
+// CertManagement defines the desired state of cert-manager resources
+type CertManagement struct {
+	Issuers        []Issuer        `json:"issuers,omitempty"`
+	ClusterIssuers []ClusterIssuer `json:"clusterIssuers,omitempty"`
+	Certificates   []Certificate   `json:"certificates,omitempty"`
 }
 
 // BlueprintStatus defines the observed state of Blueprint
