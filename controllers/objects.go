@@ -27,21 +27,20 @@ func listInstalledObjects(ctx context.Context, logger logr.Logger, apiClient cli
 	if err != nil {
 		return nil, err
 	}
-	logger.Info("existing items are", "names", items)
 
-	itemsToUninstall := make(map[string]client.Object)
+	installedItems := make(map[string]client.Object)
 	for _, item := range items {
 		if item.GetLabels()["app.kubernetes.io/part-of"] == "boundless-operator" {
 			logger.V(4).Info("skipping BOP object", "Name", item.GetName(), "Namespace", item.GetNamespace())
 			continue
 		}
 
-		itemsToUninstall[generateName(item)] = item
+		installedItems[generateName(item)] = item
 	}
 
-	logger.V(4).Info("items to uninstall", "names", itemsToUninstall)
+	logger.V(4).Info("installed items", "names", installedItems)
 
-	return itemsToUninstall, nil
+	return installedItems, nil
 }
 
 func deleteObjects(ctx context.Context, logger logr.Logger, apiClient client.Client, objectsToUninstall map[string]client.Object) error {
