@@ -12,7 +12,7 @@ type BlueprintSpec struct {
 	Resources Resources `json:"resources,omitempty"`
 }
 
-// Component defines the core and addons components that should be installed
+// Component defines the addons components that should be installed
 type Component struct {
 	Addons []AddonSpec `json:"addons,omitempty"`
 }
