@@ -56,19 +56,19 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	err = reconcileObjects(ctx, logger, r.Client,
-		convertToObjects(instance.Spec.Resources.Issuers, issuerObject), listIssuers)
+		convertToObjects(instance.Spec.Resources.CertManagement.Issuers, issuerObject), listIssuers)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to reconcile Issuers: %w", err)
 	}
 
 	err = reconcileObjects(ctx, logger, r.Client,
-		convertToObjects(instance.Spec.Resources.ClusterIssuers, clusterIssuerObject), listClusterIssuers)
+		convertToObjects(instance.Spec.Resources.CertManagement.ClusterIssuers, clusterIssuerObject), listClusterIssuers)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to reconcile ClusterIssuers: %w", err)
 	}
 
 	err = reconcileObjects(ctx, logger, r.Client,
-		convertToObjects(instance.Spec.Resources.Certificates, certificateObject), listCertificates)
+		convertToObjects(instance.Spec.Resources.CertManagement.Certificates, certificateObject), listCertificates)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to reconcile Resources: %w", err)
 	}

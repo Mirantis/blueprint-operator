@@ -5,34 +5,35 @@ metadata:
   namespace: boundless-system
 spec:
   resources:
-    issuers:
-      - name: test-issuer-1
-        namespace: test-issuer-ns-1
-        spec:
-          selfSigned: {}
-      - name: test-issuer-2
-        namespace: test-issuer-ns-1
-        spec:
-          selfSigned: {}
-    clusterIssuers:
-      - name: test-cluster-issuer-1
-        spec:
-          selfSigned: {}
-    certificates:
-      - name: test-cert-1
-        namespace: test-issuer-ns-1
-        spec:
-          commonName: test-cert-1
-          isCA: true
-          secretName: test-cert-secret-1
-          issuerRef:
-            name: test-issuer-1
-            kind: Issuer
-      - name: test-cert-2
-        namespace: test-cert-ns-1
-        spec:
-          commonName: test-cert-2
-          secretName: test-cert-secret-2
-          issuerRef:
-            name: test-cluster-issuer-1
-            kind: ClusterIssuer
+    certManagement:
+      issuers:
+        - name: test-issuer-1
+          namespace: test-issuer-ns-1
+          spec:
+            selfSigned: {}
+        - name: test-issuer-2
+          namespace: test-issuer-ns-1
+          spec:
+            selfSigned: {}
+      clusterIssuers:
+        - name: test-cluster-issuer-1
+          spec:
+            selfSigned: {}
+      certificates:
+        - name: test-cert-1
+          namespace: test-issuer-ns-1
+          spec:
+            commonName: test-cert-1
+            isCA: true
+            secretName: test-cert-secret-1
+            issuerRef:
+              name: test-issuer-1
+              kind: Issuer
+        - name: test-cert-2
+          namespace: test-cert-ns-1
+          spec:
+            commonName: test-cert-2
+            secretName: test-cert-secret-2
+            issuerRef:
+              name: test-cluster-issuer-1
+              kind: ClusterIssuer

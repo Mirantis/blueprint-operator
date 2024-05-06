@@ -5,62 +5,63 @@ metadata:
   namespace: boundless-system
 spec:
   resources:
-    issuers:
-      - name: test-issuer-1
-        namespace: test-issuer-ns-1
-        spec:
-          ca: # updated issuer type; use secret instead of self-signed
-            secretName: test-cert-secret-1
-      - name: test-issuer-2
-        namespace: test-issuer-ns-2 # update issuer namespace
-        spec:
-          selfSigned: {}
-      - name: test-issuer-3
-        namespace: test-issuer-ns-1
-        spec:
-          selfSigned: {}
-    clusterIssuers:
-      - name: test-cluster-issuer-1
-        spec:
-          ca: # updated issuer type; use secret instead of self-signed
-            secretName: test-cert-secret-1
-      - name: test-cluster-issuer-2
-        spec:
-          selfSigned: {}
-    certificates:
-        - name: test-cert-1
-          namespace: test-cert-ns-1
+    certManagement:
+      issuers:
+        - name: test-issuer-1
+          namespace: test-issuer-ns-1
           spec:
-            commonName: test-cert-1
-            isCA: true
-            secretName: test-cert-secret-11 # update secret name
-            issuerRef:
-                name: test-cluster-issuer-2 # update issuer name
-                kind: ClusterIssuer
+            ca: # updated issuer type; use secret instead of self-signed
+              secretName: test-cert-secret-1
+        - name: test-issuer-2
+          namespace: test-issuer-ns-2 # update issuer namespace
+          spec:
+            selfSigned: {}
+        - name: test-issuer-3
+          namespace: test-issuer-ns-1
+          spec:
+            selfSigned: {}
+      clusterIssuers:
+        - name: test-cluster-issuer-1
+          spec:
+            ca: # updated issuer type; use secret instead of self-signed
+              secretName: test-cert-secret-1
+        - name: test-cluster-issuer-2
+          spec:
+            selfSigned: {}
+      certificates:
+          - name: test-cert-1
+            namespace: test-cert-ns-1
+            spec:
+              commonName: test-cert-1
+              isCA: true
+              secretName: test-cert-secret-11 # update secret name
+              issuerRef:
+                  name: test-cluster-issuer-2 # update issuer name
+                  kind: ClusterIssuer
 
-        - name: test-cert-2
-          namespace: test-cert-ns-2 # update namespace
-          spec:
-            commonName: test-cert-22 # update common name
-            secretName: test-cert-secret-2
-            issuerRef:
-                name: test-cluster-issuer-2 # update issuer name
-                kind: ClusterIssuer
+          - name: test-cert-2
+            namespace: test-cert-ns-2 # update namespace
+            spec:
+              commonName: test-cert-22 # update common name
+              secretName: test-cert-secret-2
+              issuerRef:
+                  name: test-cluster-issuer-2 # update issuer name
+                  kind: ClusterIssuer
 
-        - name: test-cert-3
-          namespace: test-issuer-ns-2
-          spec:
-            commonName: test-cert-3
-            secretName: test-cert-secret-3
-            issuerRef:
-                name: test-issuer-2
-                kind: Issuer
+          - name: test-cert-3
+            namespace: test-issuer-ns-2
+            spec:
+              commonName: test-cert-3
+              secretName: test-cert-secret-3
+              issuerRef:
+                  name: test-issuer-2
+                  kind: Issuer
 
-        - name: test-cert-4
-          namespace: test-cert-ns-1
-          spec:
-            commonName: test-cert-4
-            secretName: test-cert-secret-4
-            issuerRef:
-                name: test-cluster-issuer-2
-                kind: ClusterIssuer
+          - name: test-cert-4
+            namespace: test-cert-ns-1
+            spec:
+              commonName: test-cert-4
+              secretName: test-cert-secret-4
+              issuerRef:
+                  name: test-cluster-issuer-2
+                  kind: ClusterIssuer
