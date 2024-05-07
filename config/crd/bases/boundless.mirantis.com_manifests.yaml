@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.1
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: manifests.boundless.mirantis.com
 spec:
   group: boundless.mirantis.com
@@ -26,14 +25,19 @@ spec:
         description: Manifest is the Schema for the manifests API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -43,12 +47,12 @@ spec:
               checksum:
                 type: string
               failurePolicy:
-                description: 'This flag tells the controller how to handle the manifest
-                  in case of a failure. Valid values are: - None (default) : No-op;
-                  No action is triggered on manifest failure - Retry : Manifest is
+                description: "This flag tells the controller how to handle the manifest
+                  in case of a failure.\nValid values are:\n- None (default) : No-op;
+                  No action is triggered on manifest failure\n- Retry : Manifest is
                   retried in case of failure. For install, the manifest resources
-                  are deleted and re-installed. For update, the new version of the
-                  manifest is applied on top of existing resources.'
+                  are deleted and re-installed.\n\t\t\t For update, the new version
+                  of the manifest is applied on top of existing resources."
                 type: string
               newChecksum:
                 type: string
@@ -76,26 +80,27 @@ spec:
                   type: object
                 type: array
               timeout:
-                description: Timeout for manifest operations as duration string (300s,
-                  10m, 1h, etc) If manifest is not Available after timeout duration,
-                  it will be handled by specified FailurePolicy
+                description: |-
+                  Timeout for manifest operations as duration string (300s, 10m, 1h, etc)
+                  If manifest is not Available after timeout duration, it will be handled by specified FailurePolicy
                 type: string
               url:
                 type: string
               values:
                 properties:
                   images:
-                    description: Images is a list of (image name, new name, new tag
-                      or digest) for changing image names, tags or digests. This can
-                      also be achieved with a patch, but this operator is simpler
-                      to specify.
+                    description: |-
+                      Images is a list of (image name, new name, new tag or digest)
+                      for changing image names, tags or digests. This can also be achieved with a
+                      patch, but this operator is simpler to specify.
                     items:
                       description: Image contains an image name, a new name, a new
                         tag or digest, which will replace the original name and tag.
                       properties:
                         digest:
-                          description: Digest is the value used to replace the original
-                            image tag. If digest is present NewTag value is ignored.
+                          description: |-
+                            Digest is the value used to replace the original image tag.
+                            If digest is present NewTag value is ignored.
                           type: string
                         name:
                           description: Name is a tag-less image name.
@@ -109,19 +114,21 @@ spec:
                             tag.
                           type: string
                         tagSuffix:
-                          description: TagSuffix is the value used to suffix the original
-                            tag If Digest and NewTag is present an error is thrown
+                          description: |-
+                            TagSuffix is the value used to suffix the original tag
+                            If Digest and NewTag is present an error is thrown
                           type: string
                       type: object
                     type: array
                   patches:
-                    description: Patches is a list of patches, where each one can
-                      be either a Strategic Merge Patch or a JSON patch. Each patch
-                      can be applied to multiple target objects.
+                    description: |-
+                      Patches is a list of patches, where each one can be either a
+                      Strategic Merge Patch or a JSON patch.
+                      Each patch can be applied to multiple target objects.
                     items:
-                      description: Patch contains an inline StrategicMerge or JSON6902
-                        patch, and the target the patch should be applied to. This
-                        is in coherence with https://github.com/kubernetes-sigs/kustomize/blob/api/v0.16.0/api/types/patch.go#L12
+                      description: |-
+                        Patch contains an inline StrategicMerge or JSON6902 patch, and the target the patch should
+                        be applied to. This is in coherence with https://github.com/kubernetes-sigs/kustomize/blob/api/v0.16.0/api/types/patch.go#L12
                       properties:
                         options:
                           additionalProperties:
@@ -129,9 +136,9 @@ spec:
                           description: Options is a list of options for the patch
                           type: object
                         patch:
-                          description: Patch contains an inline StrategicMerge patch
-                            or an inline JSON6902 patch with an array of operation
-                            objects.
+                          description: |-
+                            Patch contains an inline StrategicMerge patch or an inline JSON6902 patch with
+                            an array of operation objects.
                           type: string
                         path:
                           description: Path is a relative file path to the patch file.
@@ -141,8 +148,9 @@ spec:
                             document should be applied to.
                           properties:
                             annotationSelector:
-                              description: AnnotationSelector is a string that follows
-                                the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api
+                              description: |-
+                                AnnotationSelector is a string that follows the label selection expression
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api
                                 It matches with the resource annotations.
                               type: string
                             group:
@@ -150,8 +158,9 @@ spec:
                             kind:
                               type: string
                             labelSelector:
-                              description: LabelSelector is a string that follows
-                                the label selection expression https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api
+                              description: |-
+                                LabelSelector is a string that follows the label selection expression
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api
                                 It matches with the resource labels.
                               type: string
                             name:
