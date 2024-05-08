@@ -115,6 +115,16 @@ func (c *fluxcdComponent) installCRDs(ctx context.Context) error {
 		return fmt.Errorf("failed to apply FluxCD CRDs: %w", err)
 	}
 
+	var names []string
+	for _, res := range resources {
+		names = append(names, res.GetName())
+	}
+
+	// wait for CRDs to be created
+	if err = components.WaitForCRDs(ctx, c.client, c.logger, names); err != nil {
+		return err
+	}
+
 	return nil
 }
 

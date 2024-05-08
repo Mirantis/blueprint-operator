@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -18,6 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	helmController "github.com/fluxcd/helm-controller/api/v2beta2"
+	sourceController "github.com/fluxcd/source-controller/api/v1beta2"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
@@ -63,7 +66,13 @@ var _ = BeforeSuite(func() {
 	err = boundlessv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = helmv1.AddToScheme(scheme.Scheme)
+	err = helmController.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = sourceController.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = certmanager.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme

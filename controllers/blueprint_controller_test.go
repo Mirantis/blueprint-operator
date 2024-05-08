@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,6 +39,9 @@ func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 // Otherwise, the results may not be predictable
 // This is because all these tests runs in a single "environment"
 var _ = Describe("Blueprint controller", Ordered, Serial, func() {
+	BeforeAll(func() {
+		time.Sleep(10 * time.Second)
+	})
 	BeforeEach(func() {
 		// Reset the state by creating empty blueprint
 		blueprint := newBlueprint()

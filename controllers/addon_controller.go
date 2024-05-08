@@ -16,6 +16,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -27,11 +28,10 @@ import (
 )
 
 const (
-	kindManifest            = "manifest"
-	kindChart               = "chart"
-	finalizer               = "boundless.mirantis.com/addon-finalizer"
-	addonIndexName          = "helmchartIndex"
-	helmReleaseNameTemplate = "helm-install-%s"
+	kindManifest   = "manifest"
+	kindChart      = "chart"
+	finalizer      = "boundless.mirantis.com/addon-finalizer"
+	addonIndexName = "helmchartIndex"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -280,11 +280,11 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
-		//Watches(
-		//	&helmv2.HelmRelease{}, // Watch all HelmRelease Objects in the cluster
-		//	handler.EnqueueRequestsFromMapFunc(r.findAddonForHelmRelease), // All HelmRelease trigger this MapFunc, the MapFunc filters which HelmRelease should trigger reconciles to which addons, if any
-		//	//builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}), // By default, any Update to helm release will trigger a run of the MapFunc, limit it to only Resource version updates
-		//).
+		Watches(
+			&helmv2.HelmRelease{}, // Watch all HelmRelease Objects in the cluster
+			handler.EnqueueRequestsFromMapFunc(r.findAddonForHelmRelease), // All HelmRelease trigger this MapFunc, the MapFunc filters which HelmRelease should trigger reconciles to which addons, if any
+			//builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}), // By default, any Update to helm release will trigger a run of the MapFunc, limit it to only Resource version updates
+		).
 		Complete(r)
 }
 

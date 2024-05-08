@@ -58,6 +58,23 @@ func (c *certManager) Install(ctx context.Context) error {
 		return err
 	}
 
+	resources, err := kubernetes.NewManifestReader([]byte(certManagerTemplate)).ReadManifest()
+	if err != nil {
+		return err
+	}
+
+	var names []string
+	for _, res := range resources {
+		if res.GetKind() == "CustomResourceDefinition" {
+			names = append(names, res.GetName())
+		}
+	}
+
+	// wait for CRDs to be created
+	if err = components.WaitForCRDs(ctx, c.client, c.logger, names); err != nil {
+		return err
+	}
+
 	// Wait for all the deployments to be ready
 	c.logger.Info("waiting for ca injector deployment to be ready")
 	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCAInjector, consts.NamespaceBoundlessSystem); err != nil {

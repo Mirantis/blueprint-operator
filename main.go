@@ -2,12 +2,11 @@ package main
 
 import (
 	"flag"
-	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"os"
 
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	helmController "github.com/fluxcd/helm-controller/api/v2beta2"
 	sourceController "github.com/fluxcd/source-controller/api/v1beta2"
-	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -44,7 +43,6 @@ func init() {
 	utilruntime.Must(apiextenv1.AddToScheme(scheme))
 
 	utilruntime.Must(boundlessv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(helmv1.AddToScheme(scheme))
 	utilruntime.Must(certmanager.AddToScheme(scheme))
 
 	utilruntime.Must(helmController.AddToScheme(scheme))
