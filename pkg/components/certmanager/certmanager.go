@@ -10,10 +10,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1 "k8s.io/api/apps/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
