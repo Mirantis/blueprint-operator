@@ -75,5 +75,6 @@ make manifests
 ```
 
 **NOTE:** Run `make --help` for more information on all potential `make` targets
+**NOTE:** Adding a new CR requires you to use operator-sdk(e.g. ./bin/operator-sdk create api --group boundless --version v1alpha1 --kind <CR kind>). Currently this cannot be done using a make command 
 
 More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)

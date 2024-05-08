@@ -69,7 +69,9 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	logger.Info("Reconcile request on Manifest instance")
 	start := time.Now()
 	var err error
-	defer ManifestHistVec.WithLabelValues(req.Name, getMetricStatus(err)).Observe(time.Since(start).Seconds())
+	defer func() {
+		ManifestHistVec.WithLabelValues(req.Name, getMetricStatus(err)).Observe(time.Since(start).Seconds())
+	}()
 
 	key := types.NamespacedName{
 		Namespace: req.Namespace,
