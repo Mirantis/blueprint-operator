@@ -13,7 +13,7 @@ spec:
         chart:
           name: nginx
           repo: https://charts.bitnami.com/bitnami
-          version: 15.9.1 # updated version
+          version: 16.0.7 # updated version
       - name: test-addon-2
         kind: manifest
         enabled: true

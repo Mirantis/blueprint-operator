@@ -14,7 +14,7 @@ spec:
         chart:
           name: nginx
           repo: https://charts.bitnami.com/bitnami
-          version: 15.1.1
+          version: 16.0.0
           values: |
             "service":
               "type": "ClusterIP"

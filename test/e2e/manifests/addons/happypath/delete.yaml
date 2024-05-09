@@ -13,4 +13,4 @@ spec:
         chart:
           name: nginx
           repo: https://charts.bitnami.com/bitnami
-          version: 15.9.1
+          version: 16.0.7

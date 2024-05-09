@@ -78,6 +78,14 @@ func (hc *Controller) CreateHelmRelease(addon *v1alpha1.Addon, targetNamespace s
 					},
 				},
 			},
+			// TODO - This should be configurable from the addon
+			Install: &v2beta2.Install{
+				DisableWait: true,
+			},
+			// TODO - This should be configurable from the addon
+			Upgrade: &v2beta2.Upgrade{
+				DisableWait: true,
+			},
 			DriftDetection: &v2beta2.DriftDetection{
 				Mode: v2beta2.DriftDetectionEnabled,
 			},
