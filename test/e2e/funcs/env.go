@@ -13,6 +13,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/klient/decoder"
+	"sigs.k8s.io/e2e-framework/klient/k8s"
 	"sigs.k8s.io/e2e-framework/klient/k8s/resources"
 	"sigs.k8s.io/e2e-framework/klient/wait"
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
@@ -35,7 +36,7 @@ func AddBoundlessTypeToScheme() env.Func {
 }
 
 // InstallBoundlessOperator installs the boundless operator
-func InstallBoundlessOperator() env.Func {
+func InstallBoundlessOperator(img string) env.Func {
 	return func(ctx context.Context, c *envconf.Config) (context.Context, error) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -44,7 +45,22 @@ func InstallBoundlessOperator() env.Func {
 		wd = strings.Replace(wd, "/test/e2e", "", -1)
 		dir := fmt.Sprintf("%s/deploy/static", wd)
 
-		if err = decoder.ApplyWithManifestDir(ctx, c.Client().Resources(), dir, "*", []resources.CreateOption{}); err != nil {
+		updateImageFunc := decoder.MutateOption(func(o k8s.Object) error {
+			if o.GetObjectKind().GroupVersionKind().Kind == "Deployment" {
+				deployment, ok := o.(*appsv1.Deployment)
+				if !ok {
+					return fmt.Errorf("unexpected type %T not Deployment", o)
+				}
+				for i, container := range deployment.Spec.Template.Spec.Containers {
+					if container.Name == consts.BoundlessContainerName {
+						deployment.Spec.Template.Spec.Containers[i].Image = img
+					}
+				}
+			}
+			return nil
+		})
+
+		if err = decoder.ApplyWithManifestDir(ctx, c.Client().Resources(), dir, "*", []resources.CreateOption{}, updateImageFunc); err != nil {
 			return ctx, fmt.Errorf("failed to install boundless operator: %v", err)
 		}
 
