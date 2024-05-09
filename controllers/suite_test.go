@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -19,8 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	helmController "github.com/fluxcd/helm-controller/api/v2beta2"
-	sourceController "github.com/fluxcd/source-controller/api/v1beta2"
+	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta2"
+	fluxsource "github.com/fluxcd/source-controller/api/v1beta2"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
@@ -66,10 +67,10 @@ var _ = BeforeSuite(func() {
 	err = boundlessv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = helmController.AddToScheme(scheme.Scheme)
+	err = fluxhelm.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = sourceController.AddToScheme(scheme.Scheme)
+	err = fluxsource.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = certmanager.AddToScheme(scheme.Scheme)
@@ -129,10 +130,30 @@ var _ = BeforeSuite(func() {
 	}()
 })
 
+//var _ = AfterSuite(func() {
+//	cancel()
+//	By("tearing down the test environment")
+//	err := testEnv.Stop()
+//	Expect(err).NotTo(HaveOccurred())
+//
+//})
+
 var _ = AfterSuite(func() {
 	cancel()
-	By("tearing down the test environment")
-	err := testEnv.Stop()
+	By("tearing down the test environment,but I do nothing here.")
+	err := (func() (err error) {
+		// Need to sleep if the first stop fails due to a bug:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571
+		sleepTime := 1 * time.Millisecond
+		for i := 0; i < 12; i++ { // Exponentially sleep up to ~4s
+			if err = testEnv.Stop(); err == nil {
+				return
+			}
+			sleepTime *= 2
+			time.Sleep(sleepTime)
+		}
+		return
+	})()
 	Expect(err).NotTo(HaveOccurred())
 })
 
