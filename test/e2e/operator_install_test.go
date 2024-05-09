@@ -16,7 +16,9 @@ func TestOperatorInstall(t *testing.T) {
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, consts.BoundlessOperatorName),
 			)).
 			Assess("HelmControllerIsSuccessfullyInstalled", funcs.AllOf(
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "helm-controller"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceFluxSystem, "helm-controller"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceFluxSystem, "source-controller"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceFluxSystem, "kustomize-controller"),
 			)).
 			Assess("CertManagerIsSuccessfullyInstalled", funcs.AllOf(
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager"),

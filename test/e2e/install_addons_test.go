@@ -36,7 +36,7 @@ func TestInstallAddons(t *testing.T) {
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
-		Assess("HelmAddonsIsSuccessfullyInstalled(SKIPPED)", funcs.AllOf(
+		Assess("HelmAddonsIsSuccessfullyInstalled", funcs.AllOf(
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("ManifestAddonIsSuccessfullyInstalled", funcs.AllOf(
