@@ -7,6 +7,7 @@ import (
 	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/fluxcd/helm-controller/api/v2beta2"
 	"github.com/go-logr/logr"
@@ -86,6 +87,8 @@ func (hc *Controller) CreateHelmRelease(addon *v1alpha1.Addon, targetNamespace s
 			},
 		},
 	}
+
+	controllerutil.SetOwnerReference(addon, &release, hc.client.Scheme())
 
 	if isDryRun {
 		// TODO - Jira Ticket: https://mirantis.jira.com/browse/BOP-585

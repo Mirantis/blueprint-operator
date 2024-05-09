@@ -17,6 +17,7 @@ import (
 	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
+	"github.com/mirantiscontainers/boundless-operator/pkg/components/fluxcd"
 	"github.com/mirantiscontainers/boundless-operator/pkg/components/webhook"
 )
 
@@ -57,7 +58,7 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 	// list of components to install
 	componentList := []components.Component{
-		//fluxcd.NewFluxCDComponent(r.Client, logger),
+		fluxcd.NewFluxCDComponent(r.Client, logger),
 		certmanager.NewCertManagerComponent(r.Client, logger),
 		webhook.NewWebhookComponent(r.Client, logger),
 	}
