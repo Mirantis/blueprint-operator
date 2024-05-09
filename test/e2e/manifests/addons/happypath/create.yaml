@@ -9,8 +9,8 @@ spec:
       - name: test-addon-1
         kind: chart
         enabled: true
-        namespace: test-ns-1
         dryRun: false
+        namespace: test-ns-1
         chart:
           name: nginx
           repo: https://charts.bitnami.com/bitnami
@@ -21,7 +21,7 @@ spec:
       - name: test-addon-2
         kind: manifest
         enabled: true
-        namespace: test-ns-1
         dryRun: false
+        namespace: test-ns-1
         manifest:
           url: "https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml"

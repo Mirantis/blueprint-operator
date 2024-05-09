@@ -9,6 +9,7 @@ spec:
       - name: test-addon-1
         kind: chart
         enabled: true
+        dryRun: false
         namespace: test-ns-1
         chart:
           name: nginx
