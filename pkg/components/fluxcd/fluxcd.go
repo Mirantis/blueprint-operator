@@ -66,7 +66,7 @@ func (c *fluxcdComponent) Uninstall(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	resources, err := manifest.Read(manifestsFiles, "manifests", true)
+	resources, err := manifest.Read(manifestsFiles, "manifests")
 	if err != nil {
 		return fmt.Errorf("failed to read FluxCD manifests: %w", err)
 	}
@@ -78,7 +78,7 @@ func (c *fluxcdComponent) Uninstall(ctx context.Context) error {
 	}
 
 	// Delete CRDs
-	resources, err = manifest.Read(crdsFiles, "crds", true)
+	resources, err = manifest.Read(crdsFiles, "crds")
 	if err != nil {
 		return fmt.Errorf("failed to read FluxCD CRDs: %w", err)
 	}
@@ -106,7 +106,7 @@ func (c *fluxcdComponent) CheckExists(ctx context.Context) (bool, error) {
 
 func (c *fluxcdComponent) installCRDs(ctx context.Context) error {
 	c.logger.V(1).Info("Reading FluxCD CRDs")
-	resources, err := manifest.Read(crdsFiles, "crds", false)
+	resources, err := manifest.Read(crdsFiles, "crds")
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func (c *fluxcdComponent) installFluxCD(ctx context.Context) error {
 		return fmt.Errorf("failed to create namespace flux-system: %w", err)
 	}
 
-	resources, err := manifest.Read(manifestsFiles, "manifests", false)
+	resources, err := manifest.Read(manifestsFiles, "manifests")
 	if err != nil {
 		return fmt.Errorf("failed to read FluxCD manifests: %w", err)
 	}

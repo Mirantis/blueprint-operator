@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
+// Decode reads a stream of YAML documents from the given reader and returns them as a slice of Unstructured objects.
 func Decode(reader io.Reader) ([]*unstructured.Unstructured, error) {
 	decoder := yaml.NewYAMLToJSONDecoder(reader)
 	var objs []*unstructured.Unstructured
