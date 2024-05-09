@@ -33,7 +33,7 @@ func TestUpdateAddons(t *testing.T) {
 	a2dep := metav1.ObjectMeta{Name: "controller", Namespace: "metallb-system"}
 	a3dep := metav1.ObjectMeta{Name: "crossplane", Namespace: "default"}
 
-	helmAddonUpdatedVersion := "15.9.1"
+	helmAddonUpdatedVersion := "16.0.7"
 	manifestAddonUpdatedVersion := "v0.13.12"
 
 	f := features.New("Update Addons").
