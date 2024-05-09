@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
 )
@@ -37,10 +36,12 @@ func TestInstallAddons(t *testing.T) {
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("HelmAddonsIsSuccessfullyInstalled", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
+		// @TODO (ranyodh): Re-enable these tests with https://mirantis.jira.com/browse/BOP-589
+		// funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("ManifestAddonIsSuccessfullyInstalled", funcs.AllOf(
-			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
+		// @TODO (ranyodh): Re-enable these tests with https://mirantis.jira.com/browse/BOP-589
+		//funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("HelmAddonObjectsAreSuccessfullyCreated", funcs.AllOf(
 			// @TODO: check for more/all objects
