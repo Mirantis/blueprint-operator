@@ -96,7 +96,10 @@ func (hc *Controller) CreateHelmRelease(addon *v1alpha1.Addon, targetNamespace s
 		},
 	}
 
-	controllerutil.SetOwnerReference(addon, &release, hc.client.Scheme())
+	err := controllerutil.SetOwnerReference(addon, &release, hc.client.Scheme())
+	if err != nil {
+		return fmt.Errorf("failed to set owner reference: %w", err)
+	}
 
 	if isDryRun {
 		// TODO - Jira Ticket: https://mirantis.jira.com/browse/BOP-585

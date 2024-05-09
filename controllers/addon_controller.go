@@ -280,11 +280,6 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
 		Owns(&helmv2.HelmRelease{}).
-		//Watches(
-		//	&helmv2.HelmRelease{}, // Watch all HelmRelease Objects in the cluster
-		//	handler.EnqueueRequestsFromMapFunc(r.findAddonForHelmRelease), // All HelmRelease trigger this MapFunc, the MapFunc filters which HelmRelease should trigger reconciles to which addons, if any
-		//	//builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}), // By default, any Update to helm release will trigger a run of the MapFunc, limit it to only Resource version updates
-		//).
 		Complete(r)
 }
 
