@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
@@ -27,10 +26,9 @@ import (
 )
 
 const (
-	kindManifest   = "manifest"
-	kindChart      = "chart"
-	finalizer      = "boundless.mirantis.com/addon-finalizer"
-	addonIndexName = "helmchartIndex"
+	kindManifest = "manifest"
+	kindChart    = "chart"
+	finalizer    = "boundless.mirantis.com/addon-finalizer"
 )
 
 // AddonReconciler reconciles a Addon object
@@ -261,55 +259,11 @@ func (r *AddonReconciler) setOwnerReferenceOnManifest(ctx context.Context, logge
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// attaches an index onto the Addon
-	// This is done so we can later easily find the addon associated with a particular helm release
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Addon{}, addonIndexName, func(rawObj client.Object) []string {
-		addon := rawObj.(*boundlessv1alpha1.Addon)
-		if isHelmChartAddon(addon) {
-			relName := addon.Spec.Chart.Name
-			r.SetupLogger.Info("Indexing addon", "Name", addon.Name, "Index", fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, relName))
-			return []string{fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, relName)}
-		}
-		// don't add this index for non helm-chart type addons
-		return nil
-	}); err != nil {
-		return err
-	}
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
 		Owns(&helmv2.HelmRelease{}).
 		Complete(r)
-}
-
-// isHelmChartAddon checks the provided addon's spec and determines whether this addon is a chart kind
-func isHelmChartAddon(addon *boundlessv1alpha1.Addon) bool {
-	return addon.Spec.Chart != nil && addon.Spec.Chart.Name != ""
-}
-
-// findAddonForHelmRelease finds the addons associated with a particular HelmRelease
-// This is done by looking for the addon that was previously indexed in the form releaseNamespace-releaseName
-func (r *AddonReconciler) findAddonForHelmRelease(ctx context.Context, helmRelease client.Object) []reconcile.Request {
-	logger := log.FromContext(ctx)
-	logger.Info("Finding Addon for HelmRelease", "Name", helmRelease.GetName(), "Index", fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, helmRelease.GetName()))
-	attachedAddonList := &boundlessv1alpha1.AddonList{}
-	err := r.List(context.TODO(), attachedAddonList, client.MatchingFields{addonIndexName: fmt.Sprintf("%s-%s", consts.NamespaceBoundlessSystem, helmRelease.GetName())})
-	if err != nil {
-		return []reconcile.Request{}
-	}
-
-	requests := make([]reconcile.Request, len(attachedAddonList.Items))
-	for i, item := range attachedAddonList.Items {
-		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      item.GetName(),
-				Namespace: item.GetNamespace(),
-			},
-		}
-	}
-	logger.Info("Found Addons for HelmRelease", "Name", helmRelease.GetName(), "AddonCount", len(requests))
-	return requests
 }
 
 // updateHelmChartAddonStatus checks the status of the associated helm release and updates the status of the Addon CR accordingly
