@@ -262,7 +262,6 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
-		Owns(&helmv2.HelmRelease{}).
 		Complete(r)
 }
 

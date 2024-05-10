@@ -12,7 +12,6 @@ import (
 
 	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	helmv2 "github.com/fluxcd/helm-controller/api/v2beta2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -208,38 +207,12 @@ func resourceHaveStatusWithin(d time.Duration, obj client.Object, desired interf
 // AddonHaveStatusWithin fails a test if the supplied addon do not
 // have (i.e. become) the supplied status within the supplied duration.
 func AddonHaveStatusWithin(d time.Duration, addon *v1alpha1.Addon, desired v1alpha1.StatusType) features.Func {
-	// TODO (ranyodh): Temporary workaround to check HelmRelease.stats=us instead of Addon.status
-	//  check if addons are installed successfully
-
-	helmrelease := &helmv2.HelmRelease{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "HelmRelease",
-			APIVersion: "helm.toolkit.fluxcd.io/v2beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      addon.Name,
-			Namespace: addon.Namespace,
-		},
-	}
-
-	//  Remove this workaround with https://mirantis.jira.com/browse/BOP-589
 	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-		//statusMatcherFunc := func(object k8s.Object) bool {
-		//	a := object.(*v1alpha1.Addon)
-		//	return a.Status.Type == desired
-		//}
-
-		helmReleaseStatusMatcherFunc := func(object k8s.Object) bool {
-			hr := object.(*helmv2.HelmRelease)
-			for _, condition := range hr.Status.Conditions {
-				if condition.Type == helmv2.ReleasedCondition {
-					return condition.Status == metav1.ConditionTrue
-				}
-			}
-			return false
+		statusMatcherFunc := func(object k8s.Object) bool {
+			a := object.(*v1alpha1.Addon)
+			return a.Status.Type == desired
 		}
-
-		return resourceHaveStatusWithin(d, helmrelease, desired, helmReleaseStatusMatcherFunc)(ctx, t, c)
+		return resourceHaveStatusWithin(d, addon, desired, statusMatcherFunc)(ctx, t, c)
 	}
 }
 

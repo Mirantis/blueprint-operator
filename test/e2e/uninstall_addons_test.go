@@ -35,7 +35,7 @@ func TestUninstallAddons(t *testing.T) {
 			funcs.ApplyResources(FieldManager, dir, "happypath/update.yaml"),
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/update.yaml"),
 
-			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
+			// ensure all addons are installed and available before we start deleting them
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a3), v1alpha1.TypeComponentAvailable),

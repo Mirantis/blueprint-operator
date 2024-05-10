@@ -6,11 +6,9 @@ import (
 	"strings"
 	"time"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"github.com/fluxcd/helm-controller/api/v2beta2"
 	"github.com/go-logr/logr"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -94,11 +92,6 @@ func (hc *Controller) CreateHelmRelease(addon *v1alpha1.Addon, targetNamespace s
 				Duration: 10 * time.Second,
 			},
 		},
-	}
-
-	err := controllerutil.SetOwnerReference(addon, &release, hc.client.Scheme())
-	if err != nil {
-		return fmt.Errorf("failed to set owner reference: %w", err)
 	}
 
 	if isDryRun {

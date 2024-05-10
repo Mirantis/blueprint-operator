@@ -37,11 +37,9 @@ func TestInstallAddons(t *testing.T) {
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("HelmAddonsIsSuccessfullyInstalled", funcs.AllOf(
-			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("ManifestAddonIsSuccessfullyInstalled", funcs.AllOf(
-			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("HelmAddonObjectsAreSuccessfullyCreated", funcs.AllOf(

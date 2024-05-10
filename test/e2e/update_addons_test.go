@@ -43,7 +43,6 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
 
 			// wait for the addons to be installed
-			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
@@ -57,7 +56,6 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("ExistingAddonsAreSuccessfullyInstalled", funcs.AllOf(
-			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
 			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a1), v1alpha1.TypeComponentAvailable),
 			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
@@ -84,7 +82,6 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a3)),
 		)).
 		Assess("NewAddonsAreSuccessfullyInstalled", funcs.AllOf(
-			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
 			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a3), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("NewAddonObjectsSuccessfullyCreated", funcs.AllOf(
