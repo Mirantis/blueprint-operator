@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/k8s"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
+	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
 )
@@ -42,9 +43,9 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
 
 			// wait for the addons to be installed
-			// @TODO (ranyodh): Re-enable these tests with https://mirantis.jira.com/browse/BOP-589
-			//	funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
-			//	funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
+			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		WithSetup("UpdateBlueprint", funcs.AllOf(
 			// update the blueprint to include two new addons and update the existing ones
@@ -56,9 +57,9 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
 		)).
 		Assess("ExistingAddonsAreSuccessfullyInstalled", funcs.AllOf(
-		// @TODO (ranyodh): Re-enable these tests with https://mirantis.jira.com/browse/BOP-589
-		// funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a1), v1alpha1.TypeComponentAvailable),
-		// funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a2), v1alpha1.TypeComponentAvailable),
+			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
+			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(DefaultWaitTimeout, newAddon(a2), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("ExistingHelmAddonIsSuccessfullyUpdated", funcs.AllOf(
 			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a1dep.Namespace, a1dep.Name),
@@ -83,8 +84,8 @@ func TestUpdateAddons(t *testing.T) {
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a3)),
 		)).
 		Assess("NewAddonsAreSuccessfullyInstalled", funcs.AllOf(
-		// @TODO (ranyodh): Re-enable these tests with https://mirantis.jira.com/browse/BOP-589
-		//funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a3), v1alpha1.TypeComponentAvailable),
+			// @TODO (ranyodh): Fix with https://mirantis.jira.com/browse/BOP-589
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a3), v1alpha1.TypeComponentAvailable),
 		)).
 		Assess("NewAddonObjectsSuccessfullyCreated", funcs.AllOf(
 			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a3dep.Namespace, a3dep.Name),
