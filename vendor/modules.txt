@@ -25,6 +25,22 @@ github.com/evanphx/json-patch
 # github.com/evanphx/json-patch/v5 v5.7.0
 ## explicit; go 1.18
 github.com/evanphx/json-patch/v5
+# github.com/fluxcd/helm-controller/api v0.37.4
+## explicit; go 1.20
+github.com/fluxcd/helm-controller/api/v2beta2
+# github.com/fluxcd/pkg/apis/acl v0.1.0
+## explicit; go 1.18
+github.com/fluxcd/pkg/apis/acl
+# github.com/fluxcd/pkg/apis/kustomize v1.3.0
+## explicit; go 1.20
+github.com/fluxcd/pkg/apis/kustomize
+# github.com/fluxcd/pkg/apis/meta v1.3.0
+## explicit; go 1.20
+github.com/fluxcd/pkg/apis/meta
+# github.com/fluxcd/source-controller/api v1.2.5
+## explicit; go 1.20
+github.com/fluxcd/source-controller/api/v1
+github.com/fluxcd/source-controller/api/v1beta2
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
@@ -105,10 +121,6 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/k3s-io/helm-controller v0.15.4 => github.com/mirantiscontainers/helm-controller v0.12.2-0.20240226220425-c45beeae2ba4
-## explicit; go 1.16
-github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io
-github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1
 # github.com/mailru/easyjson v0.7.7
 ## explicit; go 1.12
 github.com/mailru/easyjson/buffer
@@ -831,4 +843,3 @@ sigs.k8s.io/structured-merge-diff/v4/value
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v2
 sigs.k8s.io/yaml/goyaml.v3
-# github.com/k3s-io/helm-controller => github.com/mirantiscontainers/helm-controller v0.12.2-0.20240226220425-c45beeae2ba4

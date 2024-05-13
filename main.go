@@ -2,10 +2,11 @@ package main
 
 import (
 	"flag"
-	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"os"
 
-	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	helmController "github.com/fluxcd/helm-controller/api/v2beta2"
+	sourceController "github.com/fluxcd/source-controller/api/v1beta2"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -14,6 +15,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -41,9 +43,10 @@ func init() {
 	utilruntime.Must(apiextenv1.AddToScheme(scheme))
 
 	utilruntime.Must(boundlessv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(helmv1.AddToScheme(scheme))
 	utilruntime.Must(certmanager.AddToScheme(scheme))
 
+	utilruntime.Must(helmController.AddToScheme(scheme))
+	utilruntime.Must(sourceController.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 	// Register custom metrics
 	metrics.Registry.MustRegister(BlueprintInfo, controllers.AddOnHistVec, controllers.InstallationHistVec, controllers.ManifestHistVec)
@@ -62,7 +65,7 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&webhook, "webhook", false, "Run as webhook controller")
 	opts := zap.Options{
-		Development: true,
+		Development: false,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
@@ -114,9 +117,10 @@ func main() {
 	} else {
 		setupLog.Info("Running as operator controller")
 		if err = (&controllers.AddonReconciler{
-			Client:   mgr.GetClient(),
-			Scheme:   mgr.GetScheme(),
-			Recorder: mgr.GetEventRecorderFor("addon controller"),
+			Client:      mgr.GetClient(),
+			Scheme:      mgr.GetScheme(),
+			Recorder:    mgr.GetEventRecorderFor("addon controller"),
+			SetupLogger: setupLog,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Addon")
 			os.Exit(1)

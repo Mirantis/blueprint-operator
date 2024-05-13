@@ -212,7 +212,6 @@ func AddonHaveStatusWithin(d time.Duration, addon *v1alpha1.Addon, desired v1alp
 			a := object.(*v1alpha1.Addon)
 			return a.Status.Type == desired
 		}
-
 		return resourceHaveStatusWithin(d, addon, desired, statusMatcherFunc)(ctx, t, c)
 	}
 }

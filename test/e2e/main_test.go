@@ -32,17 +32,19 @@ func TestMain(m *testing.M) {
 	}
 	testenv.SetEnvironment(env.NewWithConfig(cfg))
 
+	operatorImage := testenv.GetOperatorImage()
+
 	testenv.Setup(
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
 
 		// load image into kind cluster
-		envfuncs.LoadDockerImageToCluster(kindClusterName, testenv.GetOperatorImage()),
+		envfuncs.LoadDockerImageToCluster(kindClusterName, operatorImage),
 
 		// add boundless types to scheme
 		funcs.AddBoundlessTypeToScheme(),
 
 		// install boundless operator
-		funcs.InstallBoundlessOperator(),
+		funcs.InstallBoundlessOperator(operatorImage),
 	)
 
 	testenv.AfterEachFeature(

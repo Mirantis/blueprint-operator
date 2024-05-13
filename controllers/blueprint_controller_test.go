@@ -75,7 +75,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 				Chart: &v1alpha1.ChartInfo{
 					Name:    "nginx",
 					Repo:    "https://charts.bitnami.com/bitnami",
-					Version: "15.1.1",
+					Version: "16.0.0",
 				},
 			}
 

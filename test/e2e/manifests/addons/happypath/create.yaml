@@ -9,17 +9,19 @@ spec:
       - name: test-addon-1
         kind: chart
         enabled: true
+        dryRun: false
         namespace: test-ns-1
         chart:
           name: nginx
           repo: https://charts.bitnami.com/bitnami
-          version: 15.1.1
+          version: 16.0.0
           values: |
             "service":
               "type": "ClusterIP"
       - name: test-addon-2
         kind: manifest
         enabled: true
+        dryRun: false
         namespace: test-ns-1
         manifest:
           url: "https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml"

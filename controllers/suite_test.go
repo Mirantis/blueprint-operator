@@ -4,8 +4,8 @@ import (
 	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
-	helmv1 "github.com/k3s-io/helm-controller/pkg/apis/helm.cattle.io/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -18,6 +18,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta2"
+	fluxsource "github.com/fluxcd/source-controller/api/v1beta2"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
@@ -63,7 +67,13 @@ var _ = BeforeSuite(func() {
 	err = boundlessv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = helmv1.AddToScheme(scheme.Scheme)
+	err = fluxhelm.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = fluxsource.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = certmanager.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
@@ -122,8 +132,20 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	cancel()
-	By("tearing down the test environment")
-	err := testEnv.Stop()
+	By("tearing down the test environment,but I do nothing here.")
+	err := (func() (err error) {
+		// Need to sleep if the first stop fails due to a bug:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571
+		sleepTime := 1 * time.Millisecond
+		for i := 0; i < 12; i++ { // Exponentially sleep up to ~4s
+			if err = testEnv.Stop(); err == nil {
+				return
+			}
+			sleepTime *= 2
+			time.Sleep(sleepTime)
+		}
+		return
+	})()
 	Expect(err).NotTo(HaveOccurred())
 })
 

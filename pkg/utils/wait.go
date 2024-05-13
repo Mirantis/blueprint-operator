@@ -37,7 +37,7 @@ func WaitForDeploymentReady(ctx context.Context, log logr.Logger, runtimeClient 
 
 		availableCondition, err := getConditionOfType(appsv1.DeploymentAvailable, dep.Status.Conditions)
 		if err != nil {
-			return false, err
+			return false, nil
 		}
 
 		if dep.Status.AvailableReplicas == dep.Status.Replicas && availableCondition.Status == corev1.ConditionTrue {

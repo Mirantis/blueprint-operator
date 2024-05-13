@@ -2,12 +2,11 @@ module github.com/mirantiscontainers/boundless-operator
 
 go 1.21
 
-replace github.com/k3s-io/helm-controller => github.com/mirantiscontainers/helm-controller v0.12.2-0.20240226220425-c45beeae2ba4
-
 require (
 	github.com/cert-manager/cert-manager v1.14.4
+	github.com/fluxcd/helm-controller/api v0.37.4
+	github.com/fluxcd/source-controller/api v1.2.5
 	github.com/go-logr/logr v1.4.1
-	github.com/k3s-io/helm-controller v0.15.4
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	github.com/prometheus/client_golang v1.19.0
@@ -30,6 +29,9 @@ require (
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/evanphx/json-patch v5.7.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.7.0 // indirect
+	github.com/fluxcd/pkg/apis/acl v0.1.0 // indirect
+	github.com/fluxcd/pkg/apis/kustomize v1.3.0 // indirect
+	github.com/fluxcd/pkg/apis/meta v1.3.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
