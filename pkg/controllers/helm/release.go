@@ -114,7 +114,7 @@ func (hc *Controller) DeleteHelmRelease(addon *v1alpha1.Addon) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	existing, err := hc.getExistingHelmRelease(ctx, release.Namespace, release.Name)
+	existing, err := hc.getHelmReleaseIfExists(ctx, release.Namespace, release.Name)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (hc *Controller) createOrUpdateRelease(release v2beta2.HelmRelease) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	existing, err := hc.getExistingHelmRelease(ctx, release.Namespace, release.Name)
+	existing, err := hc.getHelmReleaseIfExists(ctx, release.Namespace, release.Name)
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func (hc *Controller) createOrUpdateRepo(repo v1beta2.HelmRepository) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	existing, err := hc.getExistingHelmRepo(ctx, repo.Namespace, repo.Name)
+	existing, err := hc.getHelmRepoIfExists(ctx, repo.Namespace, repo.Name)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (hc *Controller) createOrUpdateRepo(repo v1beta2.HelmRepository) error {
 
 }
 
-func (hc *Controller) getExistingHelmRelease(ctx context.Context, namespace, name string) (*v2beta2.HelmRelease, error) {
+func (hc *Controller) getHelmReleaseIfExists(ctx context.Context, namespace, name string) (*v2beta2.HelmRelease, error) {
 	key := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
@@ -221,7 +221,7 @@ func (hc *Controller) getExistingHelmRelease(ctx context.Context, namespace, nam
 	return existing, nil
 }
 
-func (hc *Controller) getExistingHelmRepo(ctx context.Context, namespace, name string) (*v1beta2.HelmRepository, error) {
+func (hc *Controller) getHelmRepoIfExists(ctx context.Context, namespace, name string) (*v1beta2.HelmRepository, error) {
 	key := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,

@@ -18,10 +18,10 @@ func DetermineReleaseStatus(release *v2beta2.HelmRelease) int {
 
 	cond := getReleasedCondition(release)
 	if cond != nil {
-		if cond.Type == v2beta2.ReleasedCondition && cond.Status == metav1.ConditionTrue {
+		if cond.Status == metav1.ConditionTrue {
 			return ReleaseStatusSuccess
 		}
-		if cond.Type == v2beta2.ReleasedCondition && cond.Status == metav1.ConditionFalse && cond.Reason == v2beta2.InstallFailedReason {
+		if cond.Status == metav1.ConditionFalse && cond.Reason == v2beta2.InstallFailedReason {
 			return ReleaseStatusFailed
 		}
 	}

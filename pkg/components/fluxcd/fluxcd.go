@@ -25,6 +25,11 @@ var (
 	manifestsFiles embed.FS
 )
 
+const (
+	fluxCDNamespace    = "flux-system"
+	helmControllerName = "helm-controller"
+)
+
 type fluxcdComponent struct {
 	applier *kubernetes.Applier
 	client  client.Client
@@ -40,10 +45,12 @@ func NewFluxCDComponent(client client.Client, logger logr.Logger) components.Com
 	}
 }
 
+// Name returns the name of the component
 func (c *fluxcdComponent) Name() string {
 	return "fluxcd"
 }
 
+// Install installs the fluxcd component
 func (c *fluxcdComponent) Install(ctx context.Context) error {
 	c.logger.Info("Installing fluxcd")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -61,6 +68,7 @@ func (c *fluxcdComponent) Install(ctx context.Context) error {
 	return nil
 }
 
+// Uninstall uninstalls the fluxcd component
 func (c *fluxcdComponent) Uninstall(ctx context.Context) error {
 	c.logger.Info("Uninstalling fluxcd")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -91,8 +99,9 @@ func (c *fluxcdComponent) Uninstall(ctx context.Context) error {
 	return nil
 }
 
+// CheckExists checks if the fluxcd component exists
 func (c *fluxcdComponent) CheckExists(ctx context.Context) (bool, error) {
-	key := client.ObjectKey{Namespace: "flux-system", Name: "helm-controller"}
+	key := client.ObjectKey{Namespace: fluxCDNamespace, Name: helmControllerName}
 
 	if err := c.client.Get(ctx, key, &v1.Deployment{}); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -129,7 +138,7 @@ func (c *fluxcdComponent) installCRDs(ctx context.Context) error {
 }
 
 func (c *fluxcdComponent) installFluxCD(ctx context.Context) error {
-	err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, "flux-system")
+	err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, helmControllerName)
 	if err != nil {
 		return fmt.Errorf("failed to create namespace flux-system: %w", err)
 	}
