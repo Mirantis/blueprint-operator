@@ -56,6 +56,11 @@ func (c *fluxcdComponent) Install(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
+	// create namespace if not exists
+	if err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, fluxCDNamespace); err != nil {
+		return fmt.Errorf("failed to create namespace flux-system: %w", err)
+	}
+
 	if err := c.installCRDs(ctx); err != nil {
 		return fmt.Errorf("failed to install fluxcd CRDs: %w", err)
 	}
