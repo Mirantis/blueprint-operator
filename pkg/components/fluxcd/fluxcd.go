@@ -143,11 +143,6 @@ func (c *fluxcdComponent) installCRDs(ctx context.Context) error {
 }
 
 func (c *fluxcdComponent) installFluxCD(ctx context.Context) error {
-	err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, helmControllerName)
-	if err != nil {
-		return fmt.Errorf("failed to create namespace flux-system: %w", err)
-	}
-
 	resources, err := manifest.Read(manifestsFiles, "manifests")
 	if err != nil {
 		return fmt.Errorf("failed to read FluxCD manifests: %w", err)
