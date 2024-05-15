@@ -140,14 +140,8 @@ func (r *BlueprintReconciler) deleteAddons(ctx context.Context, logger logr.Logg
 }
 
 func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger logr.Logger, addon *boundlessv1alpha1.Addon) error {
-	err := utils.CreateNamespaceIfNotExist(r.Client, ctx, logger, addon.Spec.Namespace)
-	if err != nil {
-		return err
-	}
-
 	existing := &boundlessv1alpha1.Addon{}
-	err = r.Get(ctx, client.ObjectKey{Name: addon.GetName(), Namespace: addon.GetNamespace()}, existing)
-	if err != nil {
+	if err := r.Get(ctx, client.ObjectKey{Name: addon.GetName(), Namespace: addon.GetNamespace()}, existing); err != nil {
 		if client.IgnoreNotFound(err) != nil {
 			return err
 		}
@@ -160,11 +154,9 @@ func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger lo
 			addon.SetResourceVersion(existing.GetResourceVersion())
 			// TODO : Copy all the fields from the existing
 			addon.SetFinalizers(existing.GetFinalizers())
-			err = r.Update(ctx, addon)
-			if err != nil {
+			if err := r.Update(ctx, addon); err != nil {
 				return fmt.Errorf("failed to update add-on %s: %w", existing.Name, err)
 			}
-
 			return nil
 		} else {
 			// the addon spec has moved namespaces, we need to delete and re-create it
@@ -180,8 +172,7 @@ func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger lo
 	}
 
 	logger.Info("Creating add-on", "Name", addon.GetName(), "Spec.Namespace", addon.Spec.Namespace)
-	err = r.Create(ctx, addon)
-	if err != nil {
+	if err := r.Create(ctx, addon); err != nil {
 		return fmt.Errorf("failed to create add-on %s: %w", addon.GetName(), err)
 	}
 	return nil

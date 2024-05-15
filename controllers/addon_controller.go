@@ -14,15 +14,19 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
 	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/helm"
 	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
 	"github.com/mirantiscontainers/boundless-operator/pkg/event"
+	k8s "github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
 )
 
 const (
@@ -54,7 +58,7 @@ type AddonReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
+// Modify the Reconcile function to compare the state specified by
 // the Addon object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -70,7 +74,9 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		AddOnHistVec.WithLabelValues(req.Name, getMetricStatus(err)).Observe(time.Since(start).Seconds())
 	}()
 
-	r.helmController = helm.NewHelmChartController(r.Client, logger)
+	// Initialize k8s client
+	k8sClient := k8s.NewClient(logger, r.Client)
+	r.helmController = helm.NewHelmChartController(r.Client, k8sClient, logger)
 	r.manifestController = manifest.NewManifestController(r.Client, logger)
 
 	instance := &boundlessv1alpha1.Addon{}
@@ -82,8 +88,6 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		logger.Error(err, "Failed to get addon instance", "Name", req.Name, "Requeue", true)
 		return ctrl.Result{}, err
 	}
-
-	logger.V(1).Info("Reconcile Addon Generation ID", "GenID", instance.Generation)
 
 	kind := instance.Spec.Kind
 	if !slices.Contains([]string{kindChart, kindManifest}, kind) {
@@ -123,7 +127,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	} else {
 		// The object is being deleted
 		if controllerutil.ContainsFinalizer(instance, finalizer) {
-			if err = r.deleteAddon(instance); err != nil {
+			if err = r.deleteAddon(ctx, instance); err != nil {
 				// if fail to delete the addon here, return with error
 				// so that it can be retried
 				return ctrl.Result{}, err
@@ -145,7 +149,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	case kindChart:
 		chart := instance.Spec.Chart
 		logger.Info("Creating Addon HelmChart resource", "Name", chart.Name, "Version", chart.Version)
-		if err = r.helmController.CreateHelmRelease(instance, instance.Spec.Namespace, instance.Spec.DryRun); err != nil {
+		if err = r.helmController.CreateHelmRelease(ctx, instance, instance.Spec.Namespace, instance.Spec.DryRun); err != nil {
 			logger.Error(err, "failed to install addon", "Name", chart.Name, "Version", chart.Version)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Chart Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{}, err
@@ -164,11 +168,12 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 
 		if err = r.updateHelmChartAddonStatus(ctx, logger, req.NamespacedName, release, instance); err != nil {
+			logger.Error(err, "Failed to update Helm Chart Addon status", "Name", releaseName)
 			return ctrl.Result{}, err
 		}
 
 	case kindManifest:
-		if err = r.manifestController.CreateManifest(consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
+		if err = r.manifestController.CreateManifest(ctx, consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{}, err
@@ -200,16 +205,16 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return ctrl.Result{}, nil
 }
 
-func (r *AddonReconciler) deleteAddon(addon *boundlessv1alpha1.Addon) error {
+func (r *AddonReconciler) deleteAddon(ctx context.Context, addon *boundlessv1alpha1.Addon) error {
 	switch addon.Spec.Kind {
 	case kindChart:
-		if err := r.helmController.DeleteHelmRelease(addon); err != nil {
+		if err := r.helmController.DeleteHelmRelease(ctx, addon); err != nil {
 			r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Chart Addon %s/%s: %s", addon.Spec.Namespace, addon.Name, err)
 			return err
 		}
 	case kindManifest:
 		// our finalizer is present, so lets delete the helm chart
-		if err := r.manifestController.DeleteManifest(consts.NamespaceBoundlessSystem, addon.Spec.Name, addon.Spec.Manifest.URL); err != nil {
+		if err := r.manifestController.DeleteManifest(ctx, consts.NamespaceBoundlessSystem, addon.Spec.Name, addon.Spec.Manifest.URL); err != nil {
 			r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Manifest Addon %s/%s : %s", addon.Spec.Namespace, addon.Name, err)
 			return err
 		}
@@ -262,6 +267,11 @@ func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&boundlessv1alpha1.Addon{}).
 		Owns(&boundlessv1alpha1.Manifest{}).
+		Watches(
+			&helmv2.HelmRelease{},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
+		).
 		Complete(r)
 }
 

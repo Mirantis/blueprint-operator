@@ -1,6 +1,8 @@
 package helm
 
 import (
+	"slices"
+
 	"github.com/fluxcd/helm-controller/api/v2beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -8,31 +10,35 @@ import (
 type JobStatus int
 
 const (
-	ReleaseStatusSuccess int = iota
-	ReleaseStatusFailed
-	ReleaseStatusProgressing
+	ReleaseStatusSuccess     string = "Success"
+	ReleaseStatusFailed      string = "Failed"
+	ReleaseStatusProgressing string = "Progressing"
 )
 
 // DetermineReleaseStatus determines the status of the release based on status fields
-func DetermineReleaseStatus(release *v2beta2.HelmRelease) int {
+func DetermineReleaseStatus(release *v2beta2.HelmRelease) string {
 
-	cond := getReleasedCondition(release)
-	if cond != nil {
-		if cond.Status == metav1.ConditionTrue {
-			return ReleaseStatusSuccess
-		}
-		if cond.Status == metav1.ConditionFalse && cond.Reason == v2beta2.InstallFailedReason {
-			return ReleaseStatusFailed
+	failedReasons := []string{
+		v2beta2.InstallFailedReason,
+		v2beta2.UpgradeFailedReason,
+		v2beta2.RollbackFailedReason,
+		v2beta2.UninstallFailedReason,
+	}
+
+	// Check if the release has a "Released" condition
+	// If the condition is true, the release was successful
+	// If the condition is false and the reason is InstallFailed, the release failed
+	// Otherwise, the release is still in progress
+	for _, cond := range release.Status.Conditions {
+		if cond.Type == v2beta2.ReleasedCondition {
+			if cond.Status == metav1.ConditionTrue {
+				return ReleaseStatusSuccess
+			}
+			if cond.Status == metav1.ConditionFalse && slices.Contains(failedReasons, cond.Reason) {
+				return ReleaseStatusFailed
+			}
 		}
 	}
+
 	return ReleaseStatusProgressing
-}
-
-func getReleasedCondition(release *v2beta2.HelmRelease) *metav1.Condition {
-	for i := range release.Status.Conditions {
-		if release.Status.Conditions[i].Type == v2beta2.ReleasedCondition {
-			return &release.Status.Conditions[i]
-		}
-	}
-	return nil
 }
