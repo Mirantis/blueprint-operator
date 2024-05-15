@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	coreV1 "k8s.io/api/core/v1"
-
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,7 +19,8 @@ import (
 )
 
 const (
-	serviceWebhook = "boundless-operator-webhook-service"
+	serviceWebhook          = "boundless-operator-webhook-service"
+	webhookServerSecretName = "boundless-webhook-server-cert"
 )
 
 // webhook is a component that manages validation webhooks in the cluster.
@@ -59,6 +59,18 @@ func (c *webhook) Install(ctx context.Context) error {
 		return fmt.Errorf("failed to install webhooks: %w", err)
 	}
 
+	// Create certificate resources
+	c.logger.V(2).Info("Creating certificate resources for webhook")
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certificateTemplate))); err != nil {
+		c.logger.Info("failed to create Certificate resources")
+		return err
+	}
+
+	// Wait for the secret to be created before creating the webhook resources
+	if err := utils.WaitForSecret(ctx, c.client, webhookServerSecretName, consts.NamespaceBoundlessSystem); err != nil {
+		return err
+	}
+
 	cfg := webhookConfig{
 		Image: operatorImage,
 	}
@@ -70,14 +82,6 @@ func (c *webhook) Install(ctx context.Context) error {
 
 	c.logger.V(2).Info("applying webhook resources with image: %s", operatorImage)
 	if err := applier.Apply(ctx, kubernetes.NewManifestReader(rendered)); err != nil {
-		return err
-	}
-
-	c.logger.Info("webhook resources created successfully")
-
-	// Create certificate resources
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certificateTemplate))); err != nil {
-		c.logger.Info("failed to create Certificate resources")
 		return err
 	}
 
@@ -125,7 +129,7 @@ func (c *webhook) CheckExists(ctx context.Context) (bool, error) {
 		Name:      serviceWebhook,
 	}
 
-	if err := c.client.Get(ctx, key, &coreV1.Service{}); err != nil {
+	if err := c.client.Get(ctx, key, &corev1.Service{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}

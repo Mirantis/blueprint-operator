@@ -48,6 +48,34 @@ func WaitForDeploymentReady(ctx context.Context, log logr.Logger, runtimeClient 
 	})
 }
 
+// WaitForSecret waits for provided Secret to be created
+func WaitForSecret(ctx context.Context, runtimeClient client.Client, secretName string, namespace string) error {
+	// Define a function for the condition we're waiting for
+	conditionFunc := func(ctx context.Context) (done bool, err error) {
+		secret := &corev1.Secret{}
+		err = runtimeClient.Get(ctx, client.ObjectKey{Name: secretName, Namespace: namespace}, secret)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// Secret is not yet available
+				return false, nil
+			}
+			// Unexpected error
+			return false, err
+		}
+		// Secret is available
+		return true, nil
+	}
+
+	// Wait for the condition
+	timeout := 1 * time.Minute
+	interval := 5 * time.Second
+	if err := wait.PollUntilContextTimeout(ctx, interval, timeout, true, conditionFunc); err != nil {
+		return fmt.Errorf("failed to wait for Secret to be available: %w", err)
+	}
+
+	return nil
+}
+
 func getConditionOfType(desiredType appsv1.DeploymentConditionType, conditions []appsv1.DeploymentCondition) (appsv1.DeploymentCondition, error) {
 	for _, condition := range conditions {
 		if condition.Type == desiredType {
