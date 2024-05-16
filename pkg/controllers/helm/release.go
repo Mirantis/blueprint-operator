@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fluxcd/helm-controller/api/v2beta2"
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/go-logr/logr"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
-
-	"github.com/fluxcd/source-controller/api/v1beta2"
 
 	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
@@ -29,15 +28,15 @@ const (
 )
 
 var (
-	upgradeFailureStrategyRollback = v2beta2.RollbackRemediationStrategy
+	upgradeFailureStrategyRollback = helmv2.RollbackRemediationStrategy
 
 	helmReleaseTypeMeta = metav1.TypeMeta{
-		APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
+		APIVersion: "helm.toolkit.fluxcd.io/v2",
 		Kind:       "HelmRelease",
 	}
 
 	helmRepositoryTypeMeta = metav1.TypeMeta{
-		APIVersion: "source.toolkit.fluxcd.io/v1beta2",
+		APIVersion: "source.toolkit.fluxcd.io/v1",
 		Kind:       "HelmRepository",
 	}
 )
@@ -62,13 +61,13 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	releaseName := addon.Spec.Name
 	chartSpec := addon.Spec.Chart
 
-	repo := &v1beta2.HelmRepository{
+	repo := &sourcev1.HelmRepository{
 		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      repoName,
 			Namespace: consts.NamespaceBoundlessSystem,
 		},
-		Spec: v1beta2.HelmRepositorySpec{
+		Spec: sourcev1.HelmRepositorySpec{
 			URL: chartSpec.Repo,
 			Interval: metav1.Duration{
 				Duration: helmRepoInterval,
@@ -82,43 +81,43 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		values = &apiextensionsv1.JSON{Raw: v}
 	}
 
-	release := &v2beta2.HelmRelease{
+	release := &helmv2.HelmRelease{
 		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      releaseName,
 			Namespace: consts.NamespaceBoundlessSystem,
 		},
-		Spec: v2beta2.HelmReleaseSpec{
+		Spec: helmv2.HelmReleaseSpec{
 			TargetNamespace: targetNamespace,
 			ReleaseName:     releaseName,
-			Chart: v2beta2.HelmChartTemplate{
-				Spec: v2beta2.HelmChartTemplateSpec{
+			Chart: &helmv2.HelmChartTemplate{
+				Spec: helmv2.HelmChartTemplateSpec{
 					Chart:   chartSpec.Name,
 					Version: chartSpec.Version,
-					SourceRef: v2beta2.CrossNamespaceObjectReference{
+					SourceRef: helmv2.CrossNamespaceObjectReference{
 						Name: repoName,
 						Kind: "HelmRepository",
 					},
 					ReconcileStrategy: "Revision",
 				},
 			},
-			Install: &v2beta2.Install{
+			Install: &helmv2.Install{
 				DisableWait:     true,
 				CreateNamespace: true,
-				Remediation: &v2beta2.InstallRemediation{
+				Remediation: &helmv2.InstallRemediation{
 					Retries: installationRetries,
 				},
 			},
-			Upgrade: &v2beta2.Upgrade{
+			Upgrade: &helmv2.Upgrade{
 				DisableWait:   true,
 				CleanupOnFail: true,
-				Remediation: &v2beta2.UpgradeRemediation{
+				Remediation: &helmv2.UpgradeRemediation{
 					Retries:  upgradeRetries,
 					Strategy: &upgradeFailureStrategyRollback,
 				},
 			},
-			DriftDetection: &v2beta2.DriftDetection{
-				Mode: v2beta2.DriftDetectionEnabled,
+			DriftDetection: &helmv2.DriftDetection{
+				Mode: helmv2.DriftDetectionEnabled,
 			},
 			Values: values,
 			Interval: metav1.Duration{
@@ -141,7 +140,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 
 // DeleteHelmRelease deletes a HelmRelease object in the given namespace
 func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Addon) error {
-	release := &v2beta2.HelmRelease{
+	release := &helmv2.HelmRelease{
 		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      addon.Spec.Chart.Name,
@@ -149,7 +148,7 @@ func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		},
 	}
 
-	repo := &v1beta2.HelmRepository{
+	repo := &sourcev1.HelmRepository{
 		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getRepoName(addon),
@@ -168,7 +167,7 @@ func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	return nil
 }
 
-func (hc *Controller) applyHelmRelease(ctx context.Context, repo *v1beta2.HelmRepository, release *v2beta2.HelmRelease) error {
+func (hc *Controller) applyHelmRelease(ctx context.Context, repo *sourcev1.HelmRepository, release *helmv2.HelmRelease) error {
 
 	hc.logger.Info("Applying helm repo", "HelmRepo", release.GetName())
 	if err := hc.k8sClient.Apply(ctx, repo); err != nil {

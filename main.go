@@ -5,8 +5,8 @@ import (
 	"os"
 
 	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	helmController "github.com/fluxcd/helm-controller/api/v2beta2"
-	sourceController "github.com/fluxcd/source-controller/api/v1beta2"
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	apiextenv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -45,8 +45,8 @@ func init() {
 	utilruntime.Must(boundlessv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(certmanager.AddToScheme(scheme))
 
-	utilruntime.Must(helmController.AddToScheme(scheme))
-	utilruntime.Must(sourceController.AddToScheme(scheme))
+	utilruntime.Must(helmv2.AddToScheme(scheme))
+	utilruntime.Must(sourcev1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 	// Register custom metrics
 	metrics.Registry.MustRegister(BlueprintInfo, controllers.AddOnHistVec, controllers.InstallationHistVec, controllers.ManifestHistVec)
