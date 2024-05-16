@@ -2,6 +2,8 @@ module github.com/mirantiscontainers/boundless-operator
 
 go 1.22.0
 
+toolchain go1.22.3
+
 require (
 	github.com/cert-manager/cert-manager v1.14.4
 	github.com/fluxcd/helm-controller/api v1.0.1
