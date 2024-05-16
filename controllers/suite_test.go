@@ -132,7 +132,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	cancel()
-	By("tearing down the test environment,but I do nothing here.")
+	By("tearing down the test environment")
 	err := (func() (err error) {
 		// Need to sleep if the first stop fails due to a bug:
 		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571

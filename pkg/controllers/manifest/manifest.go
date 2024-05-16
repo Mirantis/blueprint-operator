@@ -36,7 +36,7 @@ func NewManifestController(client client.Client, logger logr.Logger) *Controller
 	}
 }
 
-func (mc *Controller) CreateManifest(namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
+func (mc *Controller) CreateManifest(ctx context.Context, namespace, name string, manifestSpec *boundlessv1alpha1.ManifestInfo) error {
 
 	dataBytes, err := kustomize.Render(mc.logger, manifestSpec.URL, manifestSpec.Values)
 	if err != nil {
@@ -73,16 +73,16 @@ func (mc *Controller) CreateManifest(namespace, name string, manifestSpec *bound
 		m.Spec.Values = manifestSpec.Values
 	}
 
-	return mc.createOrUpdateManifest(m)
+	return mc.createOrUpdateManifest(ctx, m)
 
 }
 
-func (mc *Controller) createOrUpdateManifest(m boundlessv1alpha1.Manifest) error {
+func (mc *Controller) createOrUpdateManifest(ctx context.Context, m boundlessv1alpha1.Manifest) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	existing, err := mc.getExistingManifest(m.Namespace, m.Name)
+	existing, err := mc.getExistingManifest(ctx, m.Namespace, m.Name)
 	if err != nil {
 		return err
 	}
@@ -144,8 +144,8 @@ func (mc *Controller) checkIfManifestNeedsUpdate(m boundlessv1alpha1.Manifest, e
 	return existing.Spec.Checksum != m.Spec.Checksum || existing.Spec.FailurePolicy != m.Spec.FailurePolicy || existing.Spec.Timeout != m.Spec.Timeout
 }
 
-func (mc *Controller) getExistingManifest(namespace, name string) (*boundlessv1alpha1.Manifest, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+func (mc *Controller) getExistingManifest(ctx context.Context, namespace, name string) (*boundlessv1alpha1.Manifest, error) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
 	key := types.NamespacedName{
@@ -172,12 +172,12 @@ func (mc *Controller) getCheckSumUrl(kustomizeBytes []byte) (string, error) {
 	return hex.EncodeToString(sum[:]), nil
 }
 
-func (mc *Controller) DeleteManifest(namespace, name, url string) error {
+func (mc *Controller) DeleteManifest(ctx context.Context, namespace, name, url string) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	existing, err := mc.getExistingManifest(namespace, name)
+	existing, err := mc.getExistingManifest(ctx, namespace, name)
 	if err != nil {
 		return err
 	}

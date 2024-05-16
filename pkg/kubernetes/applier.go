@@ -11,6 +11,7 @@ import (
 )
 
 // Applier is used to create/update/delete one or more objects from a YAML manifest file to the cluster
+// @TODO: Remove this in favor of Client in client.go which provides server side apply
 type Applier struct {
 	log    logr.Logger
 	client client.Client

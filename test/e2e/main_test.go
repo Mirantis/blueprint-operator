@@ -3,7 +3,6 @@ package e2e
 import (
 	"os"
 	"testing"
-	"time"
 
 	"sigs.k8s.io/e2e-framework/pkg/env"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
@@ -45,14 +44,6 @@ func TestMain(m *testing.M) {
 
 		// install boundless operator
 		funcs.InstallBoundlessOperator(operatorImage),
-	)
-
-	testenv.AfterEachFeature(
-		// When we run cleanup after a test feature that applies empty Blueprint,
-		// we need to wait for the kube controller to reconcile the deletion of the addons.
-		// The checks that we do in the test does not guarantee that the controller has finished
-		// deleting addons
-		funcs.SleepFor(10 * time.Second),
 	)
 
 	testenv.Finish(
