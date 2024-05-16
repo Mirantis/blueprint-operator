@@ -30,6 +30,16 @@ const (
 
 var (
 	upgradeFailureStrategyRollback = v2beta2.RollbackRemediationStrategy
+
+	helmReleaseTypeMeta = metav1.TypeMeta{
+		APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
+		Kind:       "HelmRelease",
+	}
+
+	helmRepositoryTypeMeta = metav1.TypeMeta{
+		APIVersion: "source.toolkit.fluxcd.io/v1beta2",
+		Kind:       "HelmRepository",
+	}
 )
 
 type Controller struct {
@@ -53,10 +63,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	chartSpec := addon.Spec.Chart
 
 	repo := &v1beta2.HelmRepository{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "source.toolkit.fluxcd.io/v1beta2",
-			Kind:       "HelmRepository",
-		},
+		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      repoName,
 			Namespace: consts.NamespaceBoundlessSystem,
@@ -76,10 +83,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	}
 
 	release := &v2beta2.HelmRelease{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
-			Kind:       "HelmRelease",
-		},
+		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      releaseName,
 			Namespace: consts.NamespaceBoundlessSystem,
@@ -138,10 +142,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 // DeleteHelmRelease deletes a HelmRelease object in the given namespace
 func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Addon) error {
 	release := &v2beta2.HelmRelease{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
-			Kind:       "HelmRelease",
-		},
+		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      addon.Spec.Chart.Name,
 			Namespace: consts.NamespaceBoundlessSystem,
@@ -149,10 +150,7 @@ func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	}
 
 	repo := &v1beta2.HelmRepository{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "source.toolkit.fluxcd.io/v1beta2",
-			Kind:       "HelmRepository",
-		},
+		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getRepoName(addon),
 			Namespace: consts.NamespaceBoundlessSystem,
