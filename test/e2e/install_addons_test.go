@@ -24,7 +24,7 @@ func TestInstallAddons(t *testing.T) {
 	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: consts.NamespaceBoundlessSystem}
 	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBoundlessSystem}
 
-	a1dep := metav1.ObjectMeta{Name: "nginx", Namespace: "test-ns-1"}
+	a1dep := metav1.ObjectMeta{Name: "test-addon-1-nginx", Namespace: "test-ns-1"}
 	a2dep := metav1.ObjectMeta{Name: "controller", Namespace: "metallb-system"}
 
 	f := features.New("Install Addons").
