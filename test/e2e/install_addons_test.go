@@ -59,3 +59,40 @@ func TestInstallAddons(t *testing.T) {
 
 	testenv.Test(t, f)
 }
+
+// TestInstallAddons_MultipleAddonsWithSameChart tests the installation of two addons with the same chart.
+func TestInstallAddons_MultipleAddonsWithSameChart(t *testing.T) {
+	dir := filepath.Join(curDir, "manifests", "addons")
+
+	a1 := metav1.ObjectMeta{Name: "same-chart-1", Namespace: consts.NamespaceBoundlessSystem}
+	a2 := metav1.ObjectMeta{Name: "same-chart-2", Namespace: consts.NamespaceBoundlessSystem}
+
+	a1dep := metav1.ObjectMeta{Name: "same-chart-1-nginx", Namespace: "test-ns-1"}
+	a2dep := metav1.ObjectMeta{Name: "same-chart-2-nginx", Namespace: "test-ns-1"}
+
+	f := features.New("Install Multiple Addons With Same Chart").
+		WithSetup("CreateBlueprint", funcs.AllOf(
+			funcs.ApplyResources(FieldManager, dir, "happypath/multiaddon.yaml"),
+			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/multiaddon.yaml"),
+		)).
+		Assess("TwoHelmAddonsUsingSameAreCreated", funcs.AllOf(
+			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a1)),
+			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, newAddon(a2)),
+		)).
+		Assess("HelmAddonsUsingSameChartAreSuccessfullyInstalled", funcs.AllOf(
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a1), v1alpha1.TypeComponentAvailable),
+			funcs.AddonHaveStatusWithin(2*time.Minute, newAddon(a2), v1alpha1.TypeComponentAvailable),
+		)).
+		Assess("HelmAddonObjectsAreSuccessfullyCreated", funcs.AllOf(
+			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a1dep.Namespace, a1dep.Name),
+			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, a2dep.Namespace, a2dep.Name),
+		)).
+		WithTeardown("Cleanup", funcs.AllOf(
+			ApplyCleanupBlueprint(),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a1)),
+			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a2)),
+		)).
+		Feature()
+
+	testenv.Test(t, f)
+}

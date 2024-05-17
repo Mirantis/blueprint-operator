@@ -1,0 +1,26 @@
+apiVersion: boundless.mirantis.com/v1alpha1
+kind: Blueprint
+metadata:
+  name: boundless-cluster
+  namespace: boundless-system
+spec:
+  components:
+    addons:
+      - name: same-chart-1
+        kind: chart
+        enabled: true
+        dryRun: false
+        namespace: test-ns-1
+        chart:
+          name: nginx
+          repo: https://charts.bitnami.com/bitnami
+          version: 16.0.0
+      - name: same-chart-2
+        kind: chart
+        enabled: true
+        dryRun: false
+        namespace: test-ns-1
+        chart:
+          name: nginx
+          repo: https://charts.bitnami.com/bitnami
+          version: 16.0.0
