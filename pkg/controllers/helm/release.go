@@ -23,6 +23,23 @@ import (
 const (
 	helmRepoInterval       = 5 * time.Minute
 	driftDetectionInterval = 30 * time.Second
+
+	installationRetries = 3
+	upgradeRetries      = 3
+)
+
+var (
+	upgradeFailureStrategyRollback = v2beta2.RollbackRemediationStrategy
+
+	helmReleaseTypeMeta = metav1.TypeMeta{
+		APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
+		Kind:       "HelmRelease",
+	}
+
+	helmRepositoryTypeMeta = metav1.TypeMeta{
+		APIVersion: "source.toolkit.fluxcd.io/v1beta2",
+		Kind:       "HelmRepository",
+	}
 )
 
 type Controller struct {
@@ -41,14 +58,14 @@ func NewHelmChartController(client client.Client, k8sClient *k8s.Client, logger 
 
 // CreateHelmRelease creates a HelmRelease object in the given namespace
 func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Addon, targetNamespace string, isDryRun bool) error {
+	repoName := getRepoName(addon)
+	releaseName := addon.Spec.Name
 	chartSpec := addon.Spec.Chart
+
 	repo := &v1beta2.HelmRepository{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "source.toolkit.fluxcd.io/v1beta2",
-			Kind:       "HelmRepository",
-		},
+		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getRepoName(addon),
+			Name:      repoName,
 			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: v1beta2.HelmRepositorySpec{
@@ -66,35 +83,39 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	}
 
 	release := &v2beta2.HelmRelease{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
-			Kind:       "HelmRelease",
-		},
+		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      chartSpec.Name,
+			Name:      releaseName,
 			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: v2beta2.HelmReleaseSpec{
 			TargetNamespace: targetNamespace,
-			ReleaseName:     chartSpec.Name,
+			ReleaseName:     releaseName,
 			Chart: v2beta2.HelmChartTemplate{
 				Spec: v2beta2.HelmChartTemplateSpec{
 					Chart:   chartSpec.Name,
 					Version: chartSpec.Version,
 					SourceRef: v2beta2.CrossNamespaceObjectReference{
-						Name: getRepoName(addon),
+						Name: repoName,
 						Kind: "HelmRepository",
 					},
+					ReconcileStrategy: "Revision",
 				},
 			},
-			// TODO - This should be configurable from the addon
 			Install: &v2beta2.Install{
 				DisableWait:     true,
 				CreateNamespace: true,
+				Remediation: &v2beta2.InstallRemediation{
+					Retries: installationRetries,
+				},
 			},
-			// TODO - This should be configurable from the addon
 			Upgrade: &v2beta2.Upgrade{
-				DisableWait: true,
+				DisableWait:   true,
+				CleanupOnFail: true,
+				Remediation: &v2beta2.UpgradeRemediation{
+					Retries:  upgradeRetries,
+					Strategy: &upgradeFailureStrategyRollback,
+				},
 			},
 			DriftDetection: &v2beta2.DriftDetection{
 				Mode: v2beta2.DriftDetectionEnabled,
@@ -120,19 +141,28 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 
 // DeleteHelmRelease deletes a HelmRelease object in the given namespace
 func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Addon) error {
-	release := v2beta2.HelmRelease{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "helm.toolkit.fluxcd.io/v2beta2",
-			Kind:       "HelmRelease",
-		},
+	release := &v2beta2.HelmRelease{
+		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      addon.Spec.Chart.Name,
 			Namespace: consts.NamespaceBoundlessSystem,
 		},
 	}
 
-	if err := hc.k8sClient.Delete(ctx, &release); err != nil {
+	repo := &v1beta2.HelmRepository{
+		TypeMeta: helmRepositoryTypeMeta,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      getRepoName(addon),
+			Namespace: consts.NamespaceBoundlessSystem,
+		},
+	}
+
+	if err := hc.k8sClient.Delete(ctx, release); err != nil {
 		return fmt.Errorf("failed to delete helm release: %w", err)
+	}
+
+	if err := hc.k8sClient.Delete(ctx, repo); err != nil {
+		return fmt.Errorf("failed to delete helm repository: %w", err)
 	}
 
 	return nil

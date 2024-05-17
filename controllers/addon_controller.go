@@ -154,7 +154,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 			return ctrl.Result{}, err
 		}
 
-		releaseName := instance.Spec.Chart.Name
+		releaseName := instance.Spec.Name
 		releaseKey := types.NamespacedName{Namespace: consts.NamespaceBoundlessSystem, Name: releaseName}
 
 		release := &helmv2.HelmRelease{}

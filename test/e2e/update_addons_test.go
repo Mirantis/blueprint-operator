@@ -29,7 +29,7 @@ func TestUpdateAddons(t *testing.T) {
 	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBoundlessSystem}
 	a3 := metav1.ObjectMeta{Name: "test-addon-3", Namespace: consts.NamespaceBoundlessSystem}
 
-	a1dep := metav1.ObjectMeta{Name: "nginx", Namespace: "test-ns-1"}
+	a1dep := metav1.ObjectMeta{Name: "test-addon-1-nginx", Namespace: "test-ns-1"}
 	a2dep := metav1.ObjectMeta{Name: "controller", Namespace: "metallb-system"}
 	a3dep := metav1.ObjectMeta{Name: "crossplane", Namespace: "default"}
 
