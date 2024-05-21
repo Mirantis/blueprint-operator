@@ -65,7 +65,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: ghcr.io/mirantiscontainers/boundless-operator:latest
+        image: ghcr.io/mirantiscontainers/blueprint-operator:latest
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

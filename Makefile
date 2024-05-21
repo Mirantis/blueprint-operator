@@ -2,13 +2,9 @@ PACKAGES := $(shell go list ./... | grep -v /test)
 
 VERSION ?= latest
 
-# IMAGE_TAG_BASE defines the docker.io namespace and part of the image name for remote images.
-# This variable is used to construct full image tags for bundle and catalog images.
-#
-# For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
-# mirantis.com/boundless-operator-bundle:$VERSION and mirantis.com/boundless-operator-catalog:$VERSION.
+# IMAGE_TAG_BASE defines registry and org name of the blueprint operator image.
 IMAGE_REPO ?= ghcr.io/mirantiscontainers
-IMAGE_TAG_BASE ?= $(IMAGE_REPO)/boundless-operator
+IMAGE_TAG_BASE ?= $(IMAGE_REPO)/blueprint-operator
 
 # Set the Operator SDK version to use. By default, what is installed on the system is used.
 # This is useful for CI or a project to utilize a specific version of the operator-sdk toolkit.
@@ -147,7 +143,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 .PHONY: build-operator-manifest
 build-operator-manifest: kustomize manifests ## builds mke operator manifest file
-	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/boundless-operator=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
 	@$(KUSTOMIZE) build config/default > ./deploy/static/boundless-operator.yaml
 
 ##@ Build Dependencies
