@@ -3,23 +3,23 @@ package helm
 import (
 	"testing"
 
-	helmapiv2 "github.com/fluxcd/helm-controller/api/v2beta2"
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestDetermineReleaseStatus(t *testing.T) {
 	tests := []struct {
 		name     string
-		release  *helmapiv2.HelmRelease
+		release  *helmv2.HelmRelease
 		expected string
 	}{
 		{
 			name: "ReleaseStatusSuccess",
-			release: &helmapiv2.HelmRelease{
-				Status: helmapiv2.HelmReleaseStatus{
+			release: &helmv2.HelmRelease{
+				Status: helmv2.HelmReleaseStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:   helmapiv2.ReleasedCondition,
+							Type:   helmv2.ReleasedCondition,
 							Status: metav1.ConditionTrue,
 						},
 					},
@@ -29,13 +29,13 @@ func TestDetermineReleaseStatus(t *testing.T) {
 		},
 		{
 			name: "ReleaseStatusFailed",
-			release: &helmapiv2.HelmRelease{
-				Status: helmapiv2.HelmReleaseStatus{
+			release: &helmv2.HelmRelease{
+				Status: helmv2.HelmReleaseStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:   helmapiv2.ReleasedCondition,
+							Type:   helmv2.ReleasedCondition,
 							Status: metav1.ConditionFalse,
-							Reason: helmapiv2.InstallFailedReason,
+							Reason: helmv2.InstallFailedReason,
 						},
 					},
 				},
@@ -44,13 +44,13 @@ func TestDetermineReleaseStatus(t *testing.T) {
 		},
 		{
 			name: "ReleaseStatusFailed",
-			release: &helmapiv2.HelmRelease{
-				Status: helmapiv2.HelmReleaseStatus{
+			release: &helmv2.HelmRelease{
+				Status: helmv2.HelmReleaseStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:   helmapiv2.ReleasedCondition,
+							Type:   helmv2.ReleasedCondition,
 							Status: metav1.ConditionFalse,
-							Reason: helmapiv2.UpgradeFailedReason,
+							Reason: helmv2.UpgradeFailedReason,
 						},
 					},
 				},
@@ -59,13 +59,13 @@ func TestDetermineReleaseStatus(t *testing.T) {
 		},
 		{
 			name: "ReleaseStatusFailed",
-			release: &helmapiv2.HelmRelease{
-				Status: helmapiv2.HelmReleaseStatus{
+			release: &helmv2.HelmRelease{
+				Status: helmv2.HelmReleaseStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:   helmapiv2.ReleasedCondition,
+							Type:   helmv2.ReleasedCondition,
 							Status: metav1.ConditionFalse,
-							Reason: helmapiv2.RollbackFailedReason,
+							Reason: helmv2.RollbackFailedReason,
 						},
 					},
 				},
@@ -74,13 +74,13 @@ func TestDetermineReleaseStatus(t *testing.T) {
 		},
 		{
 			name: "ReleaseStatusFailed",
-			release: &helmapiv2.HelmRelease{
-				Status: helmapiv2.HelmReleaseStatus{
+			release: &helmv2.HelmRelease{
+				Status: helmv2.HelmReleaseStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:   helmapiv2.ReleasedCondition,
+							Type:   helmv2.ReleasedCondition,
 							Status: metav1.ConditionFalse,
-							Reason: helmapiv2.UninstallFailedReason,
+							Reason: helmv2.UninstallFailedReason,
 						},
 					},
 				},
@@ -89,8 +89,8 @@ func TestDetermineReleaseStatus(t *testing.T) {
 		},
 		{
 			name: "ReleaseStatusFailed",
-			release: &helmapiv2.HelmRelease{
-				Status: helmapiv2.HelmReleaseStatus{
+			release: &helmv2.HelmRelease{
+				Status: helmv2.HelmReleaseStatus{
 					Conditions: []metav1.Condition{},
 				},
 			},
@@ -98,11 +98,11 @@ func TestDetermineReleaseStatus(t *testing.T) {
 		},
 		{
 			name: "ReleaseStatusProgressing",
-			release: &helmapiv2.HelmRelease{
-				Status: helmapiv2.HelmReleaseStatus{
+			release: &helmv2.HelmRelease{
+				Status: helmv2.HelmReleaseStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:   helmapiv2.ReleasedCondition,
+							Type:   helmv2.ReleasedCondition,
 							Status: metav1.ConditionFalse,
 						},
 					},
