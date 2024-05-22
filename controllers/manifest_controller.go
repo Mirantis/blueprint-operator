@@ -45,9 +45,9 @@ type ManifestReconciler struct {
 	Recorder record.EventRecorder
 }
 
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/finalizers,verbs=update
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=manifests/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=manifests/finalizers,verbs=update
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=deployments/status,verbs=get

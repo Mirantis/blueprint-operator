@@ -54,7 +54,7 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - addons
   verbs:
@@ -66,13 +66,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - addons/finalizers
   verbs:
   - update
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - addons/status
   verbs:
@@ -80,7 +80,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - blueprints
   verbs:
@@ -92,13 +92,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - blueprints/finalizers
   verbs:
   - update
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - blueprints/status
   verbs:
@@ -106,7 +106,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - installations
   verbs:
@@ -118,13 +118,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - installations/finalizers
   verbs:
   - update
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - installations/status
   verbs:
@@ -132,7 +132,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - manifests
   verbs:
@@ -144,13 +144,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - manifests/finalizers
   verbs:
   - update
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - manifests/status
   verbs:

@@ -46,11 +46,11 @@ type AddonReconciler struct {
 	SetupLogger logr.Logger
 }
 
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=addons/finalizers,verbs=update
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=manifests/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=addons,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=addons/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=addons/finalizers,verbs=update
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=manifests,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=manifests/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch
 //+kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch

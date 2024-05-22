@@ -1,6 +1,6 @@
-// Package v1alpha1 contains API Schema definitions for the boundless v1alpha1 API group
+// Package v1alpha1 contains API Schema definitions for the blueprint v1alpha1 API group
 // +kubebuilder:object:generate=true
-// +groupName=boundless.mirantis.com
+// +groupName=blueprint.mirantis.com
 package v1alpha1
 
 import (
@@ -10,7 +10,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "boundless.mirantis.com", Version: "v1alpha1"}
+	GroupVersion = schema.GroupVersion{Group: "blueprint.mirantis.com", Version: "v1alpha1"}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}

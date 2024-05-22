@@ -134,7 +134,7 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/boundless-operator=${IMG}
+	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
@@ -144,7 +144,9 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 .PHONY: build-operator-manifest
 build-operator-manifest: kustomize manifests ## builds mke operator manifest file
 	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
-	@$(KUSTOMIZE) build config/default > ./deploy/static/boundless-operator.yaml
+	@$(KUSTOMIZE) build config/default > ./deploy/static/blueprint-operator.yaml
+	# TODO: remove this once all references to boundless-operator.yaml are eliminated
+	cd deploy/static && ln -sf blueprint-operator.yaml boundless-operator.yaml
 
 ##@ Build Dependencies
 

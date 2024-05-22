@@ -5,8 +5,8 @@ metadata:
     app.kubernetes.io/name: clusterrolebinding
     app.kubernetes.io/instance: admin-rolebinding
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: boundless-operator
-    app.kubernetes.io/part-of: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
+    app.kubernetes.io/part-of: blueprint-operator
     app.kubernetes.io/managed-by: kustomize
   name: admin-rolebinding
 roleRef:
@@ -25,8 +25,8 @@ metadata:
     app.kubernetes.io/name: clusterrolebinding
     app.kubernetes.io/instance: manager-rolebinding
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: boundless-operator
-    app.kubernetes.io/part-of: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
+    app.kubernetes.io/part-of: blueprint-operator
     app.kubernetes.io/managed-by: kustomize
   name: manager-rolebinding
 roleRef:
