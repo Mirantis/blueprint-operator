@@ -26,7 +26,7 @@ func TestOperatorInstall(t *testing.T) {
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager-cainjector"),
 			)).
 			Assess("WebhookIsSuccessfullyInstalled", funcs.AllOf(
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "boundless-operator-webhook"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "blueprint-operator-webhook"),
 			)).
 			Feature(),
 	)

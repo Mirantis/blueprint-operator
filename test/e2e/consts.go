@@ -6,4 +6,4 @@ import "time"
 const DefaultWaitTimeout = time.Minute * 2
 
 // FieldManager is the server-side apply field manager used when applying manifests.
-const FieldManager = "boundless-e2e-tests"
+const FieldManager = "blueprint-e2e-tests"

@@ -18,7 +18,7 @@ var (
 
 // The caller (e.g. make e2e) must ensure these exist.
 const (
-	defaultOperatorImage = "ghcr.io/mirantiscontainers/boundless-operator:latest"
+	defaultOperatorImage = "ghcr.io/mirantiscontainers/blueprint-operator:latest"
 )
 
 func TestMain(m *testing.M) {
