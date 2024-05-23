@@ -31,7 +31,7 @@ import (
 const (
 	kindManifest = "manifest"
 	kindChart    = "chart"
-	finalizer    = "boundless.mirantis.com/addon-finalizer"
+	finalizer    = "blueprint.mirantis.com/addon-finalizer"
 )
 
 // AddonReconciler reconciles a Addon object

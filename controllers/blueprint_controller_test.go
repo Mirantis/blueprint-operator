@@ -19,7 +19,7 @@ var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: co
 func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 	blueprint := &v1alpha1.Blueprint{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "boundless.mirantis.com/v1alpha1",
+			APIVersion: "blueprint.mirantis.com/v1alpha1",
 			Kind:       "Blueprint",
 		},
 		ObjectMeta: metav1.ObjectMeta{
