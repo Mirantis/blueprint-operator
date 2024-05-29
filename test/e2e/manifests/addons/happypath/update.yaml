@@ -29,5 +29,5 @@ spec:
         namespace: default
         chart:
           name: crossplane
-          repo: https://charts.crossplane.io/master/
-          version: 1.15.0-rc.0.9.ged19cd5d
+          repo: https://charts.crossplane.io/stable/
+          version: 1.15.0
