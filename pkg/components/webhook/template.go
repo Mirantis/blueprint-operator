@@ -8,10 +8,10 @@ metadata:
     app.kubernetes.io/name: serviceaccount
     app.kubernetes.io/instance: controller-manager
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: boundless-operator
-    app.kubernetes.io/part-of: boundless-operator
-  name: boundless-webhook-service-account
-  namespace: boundless-system
+    app.kubernetes.io/created-by: blueprint-operator
+    app.kubernetes.io/part-of: blueprint-operator
+  name: blueprint-webhook-service-account
+  namespace: blueprint-system
 
 ---
 apiVersion: v1
@@ -19,45 +19,45 @@ kind: Service
 metadata:
   labels:
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/created-by: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
     app.kubernetes.io/instance: webhook-service
     app.kubernetes.io/name: service
-    app.kubernetes.io/part-of: boundless-operator
-  name: boundless-operator-webhook-service
-  namespace: boundless-system
+    app.kubernetes.io/part-of: blueprint-operator
+  name: blueprint-operator-webhook-service
+  namespace: blueprint-system
 spec:
   ports:
     - port: 443
       protocol: TCP
       targetPort: 9443
   selector:
-    app.kubernetes.io/name: boundless-operator-webhook
+    app.kubernetes.io/name: blueprint-operator-webhook
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: boundless-system/boundless-operator-serving-cert
+    cert-manager.io/inject-ca-from: blueprint-system/blueprint-operator-serving-cert
   labels:
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/created-by: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
     app.kubernetes.io/instance: mutating-webhook-configuration
     app.kubernetes.io/name: mutatingwebhookconfiguration
-    app.kubernetes.io/part-of: boundless-operator
-  name: boundless-operator-mutating-webhook-configuration
+    app.kubernetes.io/part-of: blueprint-operator
+  name: blueprint-operator-mutating-webhook-configuration
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: boundless-operator-webhook-service
-        namespace: boundless-system
-        path: /mutate-boundless-mirantis-com-v1alpha1-blueprint
+        name: blueprint-operator-webhook-service
+        namespace: blueprint-system
+        path: /mutate-blueprint-mirantis-com-v1alpha1-blueprint
     failurePolicy: Fail
     name: mblueprint.kb.io
     rules:
       - apiGroups:
-          - boundless.mirantis.com
+          - blueprint.mirantis.com
         apiVersions:
           - v1alpha1
         operations:
@@ -71,27 +71,27 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: boundless-system/boundless-operator-serving-cert
+    cert-manager.io/inject-ca-from: blueprint-system/blueprint-operator-serving-cert
   labels:
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/created-by: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
     app.kubernetes.io/instance: validating-webhook-configuration
     app.kubernetes.io/name: validatingwebhookconfiguration
-    app.kubernetes.io/part-of: boundless-operator
-  name: boundless-operator-validating-webhook-configuration
+    app.kubernetes.io/part-of: blueprint-operator
+  name: blueprint-operator-validating-webhook-configuration
 webhooks:
   - admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: boundless-operator-webhook-service
-        namespace: boundless-system
-        path: /validate-boundless-mirantis-com-v1alpha1-blueprint
+        name: blueprint-operator-webhook-service
+        namespace: blueprint-system
+        path: /validate-blueprint-mirantis-com-v1alpha1-blueprint
     failurePolicy: Fail
     name: vblueprint.kb.io
     rules:
       - apiGroups:
-          - boundless.mirantis.com
+          - blueprint.mirantis.com
         apiVersions:
           - v1alpha1
         operations:
@@ -104,23 +104,23 @@ webhooks:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: boundless-operator-webhook
-  namespace: boundless-system
+  name: blueprint-operator-webhook
+  namespace: blueprint-system
   labels:
     app.kubernetes.io/name: deployment
-    app.kubernetes.io/instance: boundless-operator
+    app.kubernetes.io/instance: blueprint-operator
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/created-by: boundless-operator
-    app.kubernetes.io/part-of: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
+    app.kubernetes.io/part-of: blueprint-operator
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: boundless-operator-webhook
+      app.kubernetes.io/name: blueprint-operator-webhook
   replicas: 1
   template:
     metadata:
         labels:
-            app.kubernetes.io/name: boundless-operator-webhook
+            app.kubernetes.io/name: blueprint-operator-webhook
     spec:
       securityContext:
         seccompProfile:
@@ -131,7 +131,7 @@ spec:
           args:
             - --webhook
           image: {{.Image}}
-          name: boundless-operator-webhook
+          name: blueprint-operator-webhook
           ports:
             - containerPort: 9443
               name: webhook-server
@@ -161,8 +161,8 @@ spec:
         - name: webhook-certs
           secret:
             defaultMode: 420
-            secretName: boundless-webhook-server-cert
-      serviceAccountName: boundless-webhook-service-account
+            secretName: blueprint-webhook-server-cert
+      serviceAccountName: blueprint-webhook-service-account
       terminationGracePeriodSeconds: 10
 
 `

@@ -24,7 +24,7 @@ func (r *Blueprint) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-//+kubebuilder:webhook:path=/mutate-boundless-mirantis-com-v1alpha1-blueprint,mutating=true,failurePolicy=fail,sideEffects=None,groups=boundless.mirantis.com,resources=blueprints,verbs=create;update,versions=v1alpha1,name=mblueprint.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-blueprint-mirantis-com-v1alpha1-blueprint,mutating=true,failurePolicy=fail,sideEffects=None,groups=blueprint.mirantis.com,resources=blueprints,verbs=create;update,versions=v1alpha1,name=mblueprint.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Blueprint{}
 
@@ -34,7 +34,7 @@ func (r *Blueprint) Default() {
 }
 
 // change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-boundless-mirantis-com-v1alpha1-blueprint,mutating=false,failurePolicy=fail,sideEffects=None,groups=boundless.mirantis.com,resources=blueprints,verbs=create;update,versions=v1alpha1,name=vblueprint.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-blueprint-mirantis-com-v1alpha1-blueprint,mutating=false,failurePolicy=fail,sideEffects=None,groups=blueprint.mirantis.com,resources=blueprints,verbs=create;update,versions=v1alpha1,name=vblueprint.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Blueprint{}
 

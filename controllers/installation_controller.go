@@ -32,11 +32,11 @@ type InstallationReconciler struct {
 	SetupLogger logr.Logger
 }
 
-var installationFinalizer = "boundless.mirantis.com/installation-finalizer"
+var installationFinalizer = "blueprint.mirantis.com/installation-finalizer"
 
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=installations,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=installations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=installations/finalizers,verbs=update
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=installations,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=installations/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=installations/finalizers,verbs=update
 
 // Reconcile reconciles the Installation resource and installs the necessary components
 // such as helm controller and cert manager.

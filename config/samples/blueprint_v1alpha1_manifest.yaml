@@ -1,12 +1,12 @@
-apiVersion: boundless.mirantis.com/v1alpha1
+apiVersion: blueprint.mirantis.com/v1alpha1
 kind: Manifest
 metadata:
   labels:
     app.kubernetes.io/name: manifest
     app.kubernetes.io/instance: manifest-sample
-    app.kubernetes.io/part-of: boundless-operator
+    app.kubernetes.io/part-of: blueprint-operator
     app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/created-by: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
   name: manifest-sample
 spec:
   # TODO(user): Add fields here

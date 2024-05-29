@@ -2,7 +2,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: manifests.boundless.mirantis.com
+  name: manifests.blueprint.mirantis.com
 spec:
   conversion:
     strategy: Webhook

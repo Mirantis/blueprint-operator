@@ -3,6 +3,6 @@ resources:
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-- name: ghcr.io/mirantiscontainers/boundless-operator
-  newName: ghcr.io/mirantiscontainers/boundless-operator
+- name: ghcr.io/mirantiscontainers/blueprint-operator
+  newName: ghcr.io/mirantiscontainers/blueprint-operator
   newTag: latest

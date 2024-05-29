@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultFieldOwner = client.FieldOwner("boundless-operator")
+	defaultFieldOwner = client.FieldOwner("blueprint-operator")
 )
 
 // Client is a wrapper around the controller-runtime client.Client

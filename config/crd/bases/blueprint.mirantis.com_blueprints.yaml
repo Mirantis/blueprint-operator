@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: blueprints.boundless.mirantis.com
+  name: blueprints.blueprint.mirantis.com
 spec:
-  group: boundless.mirantis.com
+  group: blueprint.mirantis.com
   names:
     kind: Blueprint
     listKind: BlueprintList

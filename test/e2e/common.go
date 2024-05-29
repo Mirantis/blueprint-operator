@@ -22,7 +22,7 @@ func newAddon(a metav1.ObjectMeta) *v1alpha1.Addon {
 	return &v1alpha1.Addon{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Addon",
-			APIVersion: "boundless.mirantis.com/v1alpha1",
+			APIVersion: "blueprint.mirantis.com/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      a.Name,
@@ -76,10 +76,10 @@ func ApplyCleanupBlueprint() features.Func {
 		dep := &v1alpha1.Blueprint{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Blueprint",
-				APIVersion: "boundless.mirantis.com/v1alpha1",
+				APIVersion: "blueprint.mirantis.com/v1alpha1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "boundless-cluster",
+				Name:      "blueprint-cluster",
 				Namespace: consts.NamespaceBoundlessSystem,
 			},
 			Spec: v1alpha1.BlueprintSpec{

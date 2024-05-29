@@ -8,17 +8,17 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: boundless-operator
-repo: github.com/mirantiscontainers/boundless-operator
+projectName: blueprint-operator
+repo: github.com/mirantiscontainers/blueprint-operator
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: mirantis.com
-  group: boundless
+  group: blueprint
   kind: Addon
-  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/blueprint-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
       defaulting: true
@@ -29,9 +29,9 @@ resources:
     namespaced: true
   controller: true
   domain: mirantis.com
-  group: boundless
+  group: blueprint
   kind: Blueprint
-  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/blueprint-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
       defaulting: true
@@ -42,26 +42,26 @@ resources:
     namespaced: true
   controller: true
   domain: mirantis.com
-  group: boundless
+  group: blueprint
   kind: Ingress
-  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/blueprint-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: mirantis.com
-  group: boundless
+  group: blueprint
   kind: Manifest
-  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/blueprint-operator/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
   domain: mirantis.com
-  group: boundless
+  group: blueprint
   kind: Installation
-  path: github.com/mirantiscontainers/boundless-operator/api/v1alpha1
+  path: github.com/mirantiscontainers/blueprint-operator/api/v1alpha1
   version: v1alpha1
 version: "3"

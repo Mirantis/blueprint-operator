@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	serviceWebhook          = "boundless-operator-webhook-service"
-	webhookServerSecretName = "boundless-webhook-server-cert"
+	serviceWebhook          = "blueprint-operator-webhook-service"
+	webhookServerSecretName = "blueprint-webhook-server-cert"
 )
 
 // webhook is a component that manages validation webhooks in the cluster.

@@ -25,9 +25,9 @@ type BlueprintReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=blueprints,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=blueprints/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=boundless.mirantis.com,resources=blueprints/finalizers,verbs=update
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=blueprints,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=blueprints/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=blueprints/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

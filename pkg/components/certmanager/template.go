@@ -4335,7 +4335,7 @@ kind: ServiceAccount
 automountServiceAccountToken: true
 metadata:
   name: cert-manager-cainjector
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: cainjector
     app.kubernetes.io/name: cainjector
@@ -4349,7 +4349,7 @@ kind: ServiceAccount
 automountServiceAccountToken: true
 metadata:
   name: cert-manager
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: cert-manager
     app.kubernetes.io/name: cert-manager
@@ -4363,7 +4363,7 @@ kind: ServiceAccount
 automountServiceAccountToken: true
 metadata:
   name: cert-manager-webhook
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: webhook
     app.kubernetes.io/name: webhook
@@ -4376,7 +4376,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cert-manager-webhook
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: webhook
     app.kubernetes.io/name: webhook
@@ -4764,7 +4764,7 @@ roleRef:
   name: cert-manager-cainjector
 subjects:
   - name: cert-manager-cainjector
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4784,7 +4784,7 @@ roleRef:
   name: cert-manager-controller-issuers
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4804,7 +4804,7 @@ roleRef:
   name: cert-manager-controller-clusterissuers
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4824,7 +4824,7 @@ roleRef:
   name: cert-manager-controller-certificates
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4844,7 +4844,7 @@ roleRef:
   name: cert-manager-controller-orders
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4864,7 +4864,7 @@ roleRef:
   name: cert-manager-controller-challenges
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4884,7 +4884,7 @@ roleRef:
   name: cert-manager-controller-ingress-shim
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4904,7 +4904,7 @@ roleRef:
   name: cert-manager-controller-approve:cert-manager-io
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/rbac.yaml
@@ -4924,7 +4924,7 @@ roleRef:
   name: cert-manager-controller-certificatesigningrequests
 subjects:
   - name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
     kind: ServiceAccount
 ---
 # Source: cert-manager/templates/webhook-rbac.yaml
@@ -4946,7 +4946,7 @@ subjects:
 - apiGroup: ""
   kind: ServiceAccount
   name: cert-manager-webhook
-  namespace: boundless-system
+  namespace: blueprint-system
 ---
 # Source: cert-manager/templates/cainjector-rbac.yaml
 # leader election rules
@@ -5001,7 +5001,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: cert-manager-webhook:dynamic-serving
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: webhook
     app.kubernetes.io/name: webhook
@@ -5040,7 +5040,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: cert-manager-cainjector
-    namespace: boundless-system
+    namespace: blueprint-system
 ---
 # Source: cert-manager/templates/rbac.yaml
 # grant cert-manager permission to manage the leaderelection configmap in the
@@ -5064,14 +5064,14 @@ subjects:
   - apiGroup: ""
     kind: ServiceAccount
     name: cert-manager
-    namespace: boundless-system
+    namespace: blueprint-system
 ---
 # Source: cert-manager/templates/webhook-rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: cert-manager-webhook:dynamic-serving
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: webhook
     app.kubernetes.io/name: webhook
@@ -5086,14 +5086,14 @@ subjects:
 - apiGroup: ""
   kind: ServiceAccount
   name: cert-manager-webhook
-  namespace: boundless-system
+  namespace: blueprint-system
 ---
 # Source: cert-manager/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   name: cert-manager
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: cert-manager
     app.kubernetes.io/name: cert-manager
@@ -5117,7 +5117,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cert-manager-webhook
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: webhook
     app.kubernetes.io/name: webhook
@@ -5141,7 +5141,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cert-manager-cainjector
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: cainjector
     app.kubernetes.io/name: cainjector
@@ -5189,7 +5189,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cert-manager
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: cert-manager
     app.kubernetes.io/name: cert-manager
@@ -5246,7 +5246,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cert-manager-webhook
-  namespace: boundless-system
+  namespace: blueprint-system
   labels:
     app: webhook
     app.kubernetes.io/name: webhook
@@ -5281,7 +5281,7 @@ spec:
           - --secure-port=10250
           - --dynamic-serving-ca-secret-namespace=$(POD_NAMESPACE)
           - --dynamic-serving-ca-secret-name=cert-manager-webhook-ca
-          - --dynamic-serving-dns-names=cert-manager-webhook,cert-manager-webhook.boundless-system,cert-manager-webhook.boundless-system.svc
+          - --dynamic-serving-dns-names=cert-manager-webhook,cert-manager-webhook.blueprint-system,cert-manager-webhook.blueprint-system.svc
           ports:
           - name: https
             protocol: TCP
@@ -5328,7 +5328,7 @@ metadata:
     app.kubernetes.io/component: "webhook"
     app.kubernetes.io/version: "v1.9.1"
   annotations:
-    cert-manager.io/inject-ca-from-secret: "boundless-system/cert-manager-webhook-ca"
+    cert-manager.io/inject-ca-from-secret: "blueprint-system/cert-manager-webhook-ca"
 webhooks:
   - name: webhook.cert-manager.io
     rules:
@@ -5354,7 +5354,7 @@ webhooks:
     clientConfig:
       service:
         name: cert-manager-webhook
-        namespace: boundless-system
+        namespace: blueprint-system
         path: /mutate
 ---
 # Source: cert-manager/templates/webhook-validating-webhook.yaml
@@ -5369,7 +5369,7 @@ metadata:
     app.kubernetes.io/component: "webhook"
     app.kubernetes.io/version: "v1.9.1"
   annotations:
-    cert-manager.io/inject-ca-from-secret: "boundless-system/cert-manager-webhook-ca"
+    cert-manager.io/inject-ca-from-secret: "blueprint-system/cert-manager-webhook-ca"
 webhooks:
   - name: webhook.cert-manager.io
     namespaceSelector:
@@ -5381,7 +5381,7 @@ webhooks:
       - key: "name"
         operator: "NotIn"
         values:
-        - boundless-system
+        - blueprint-system
     rules:
       - apiGroups:
           - "cert-manager.io"
@@ -5404,6 +5404,6 @@ webhooks:
     clientConfig:
       service:
         name: cert-manager-webhook
-        namespace: boundless-system
+        namespace: blueprint-system
         path: /validate
 `

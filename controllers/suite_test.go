@@ -93,7 +93,7 @@ var _ = BeforeSuite(func() {
 	// the envtest does not delete namespace from the test environment.
 	// So, we can't delete and create namespace for individual tests
 	// The tests needs to be written considering this limitation
-	By("creating boundless-system namespace")
+	By("creating blueprint-system namespace")
 	createBoundlessNamespace(ctx)
 
 	err = (&BlueprintReconciler{

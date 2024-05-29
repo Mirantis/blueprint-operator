@@ -88,7 +88,7 @@ E2E_TEST_FLAGS="-test.run ^TestOperatorInstall" make e2e
 
 # To run tests with a specific version of the operator.
 # Ensure that the image already exists in the registry.
-E2E_TEST_FLAGS="-img mirantiscontainers/boundless-operator:dev" make e2e
+E2E_TEST_FLAGS="-img mirantiscontainers/blueprint-operator:dev" make e2e
 ```
 
 ### Running e2e in CI

@@ -59,7 +59,7 @@ func InstallBoundlessOperator(img string) env.Func {
 			return nil
 		})
 
-		if err = decoder.ApplyWithManifestDir(ctx, c.Client().Resources(), dir, "*", []resources.CreateOption{}, updateImageFunc); err != nil {
+		if err = decoder.ApplyWithManifestDir(ctx, c.Client().Resources(), dir, "blueprint-operator.yaml", []resources.CreateOption{}, updateImageFunc); err != nil {
 			return ctx, fmt.Errorf("failed to install boundless operator: %v", err)
 		}
 

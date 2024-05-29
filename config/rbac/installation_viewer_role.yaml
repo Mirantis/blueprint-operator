@@ -6,13 +6,13 @@ metadata:
     app.kubernetes.io/name: clusterrole
     app.kubernetes.io/instance: installation-viewer-role
     app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: boundless-operator
-    app.kubernetes.io/part-of: boundless-operator
+    app.kubernetes.io/created-by: blueprint-operator
+    app.kubernetes.io/part-of: blueprint-operator
     app.kubernetes.io/managed-by: kustomize
   name: installation-viewer-role
 rules:
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - installations
   verbs:
@@ -20,7 +20,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - boundless.mirantis.com
+  - blueprint.mirantis.com
   resources:
   - installations/status
   verbs:

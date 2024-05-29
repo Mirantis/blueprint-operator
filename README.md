@@ -1,4 +1,4 @@
-# boundless-operator
+# blueprint-operator
 // TODO(user): Add simple overview of use/purpose
 
 ## Description
@@ -18,13 +18,13 @@ kubectl apply -f config/samples/
 2. Build and push your image to the location specified by `IMG`:
 
 ```sh
-make docker-build docker-push IMG=<some-registry>/boundless-operator:tag
+make docker-build docker-push IMG=<some-registry>/blueprint-operator:tag
 ```
 
 3. Deploy the controller to the cluster with the image specified by `IMG`:
 
 ```sh
-make deploy IMG=<some-registry>/boundless-operator:tag
+make deploy IMG=<some-registry>/blueprint-operator:tag
 ```
 
 **Note**: If no IMG is specified, the latest image is used.
@@ -75,6 +75,6 @@ make manifests
 ```
 
 **NOTE:** Run `make --help` for more information on all potential `make` targets
-**NOTE:** Adding a new CR requires you to use operator-sdk(e.g. ./bin/operator-sdk create api --group boundless --version v1alpha1 --kind <CR kind>). Currently this cannot be done using a make command 
+**NOTE:** Adding a new CR requires you to use operator-sdk(e.g. ./bin/operator-sdk create api --group blueprint --version v1alpha1 --kind <CR kind>). Currently this cannot be done using a make command 
 
 More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
