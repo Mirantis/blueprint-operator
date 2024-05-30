@@ -156,7 +156,7 @@ jobs:
       - name: Load environment
         uses: c-py/action-dotenv-to-setenv@v4
         with:
-          env-file: .githu1/development.env
+          env-file: .github/development.env
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3.0.0
