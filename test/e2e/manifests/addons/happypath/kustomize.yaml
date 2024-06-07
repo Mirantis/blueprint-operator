@@ -1,0 +1,45 @@
+apiVersion: blueprint.mirantis.com/v1alpha1
+kind: Blueprint
+metadata:
+  name: blueprint-cluster
+  namespace: blueprint-system
+spec:
+  components:
+    addons:
+      - name: metallb-kustomize
+        kind: manifest
+        enabled: true
+        namespace: kustomize-ns-1
+        manifest:
+          url: "https://raw.githubusercontent.com/metallb/metallb/v0.13.10/config/manifests/metallb-native.yaml"
+          values:
+            images:
+              - name: quay.io/metallb/speaker:v0.13.10
+                newName: quay.io/metallb/speaker
+                newTag: v0.13.12
+              - name: quay.io/metallb/controller:v0.13.10
+                newName: quay.io/metallb/controller
+                newTag: v0.13.12
+            patches:
+              - patch: |-
+                  apiVersion: apps/v1
+                  kind: Deployment
+                  metadata:
+                    name: controller
+                    namespace: metallb-system
+                  spec:
+                    template:
+                      spec:
+                        containers:
+                        - name: controller
+                          livenessProbe:
+                            failureThreshold: 2
+  
+  
+  
+  
+  
+  
+  
+  
+  

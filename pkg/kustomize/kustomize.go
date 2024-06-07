@@ -2,14 +2,17 @@ package kustomize
 
 import (
 	"fmt"
+
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/api/krusty"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
+	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/yaml"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	kustypes "sigs.k8s.io/kustomize/api/types"
+
+	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 )
 
 // Render uses the manifest url and values from the blueprint and generates kustomization.yaml.
@@ -24,54 +27,27 @@ func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([
 		},
 	}
 
+	var labels []kustypes.Label
 	var resources []string
 	var images []kustypes.Image
 	var patches []kustypes.Patch
-	var labels []kustypes.Label
 
 	// This shall add the following label to all manifest objects
-	label := kustypes.Label{
-		Pairs: map[string]string{
-			"com.mirantis.blueprint/controlled-by": "blueprint",
-		},
-		IncludeSelectors: true,
-	}
-
-	labels = append(labels, label)
-
+	labels = append(labels, kustypes.Label{Pairs: map[string]string{"com.mirantis.blueprint/controlled-by": "blueprint"}, IncludeSelectors: true})
 	resources = append(resources, url)
 
 	if values != nil {
-		if len(values.Images) > 0 {
-			for i := range values.Images {
-				image := kustypes.Image{
-					Name:      values.Images[i].Name,
-					NewName:   values.Images[i].NewName,
-					TagSuffix: values.Images[i].TagSuffix,
-					NewTag:    values.Images[i].NewTag,
-					Digest:    values.Images[i].Digest,
-				}
-				images = append(images, image)
-			}
+		for _, p := range values.Patches {
+			patches = append(kus.Patches, kustypes.Patch{
+				Path:    p.Path,
+				Patch:   p.Patch,
+				Options: p.Options,
+				Target:  convertSelector(p.Target),
+			})
 		}
 
-		if len(values.Patches) > 0 {
-			for i := range values.Patches {
-				patch := kustypes.Patch{
-					Path:    values.Patches[i].Path,
-					Patch:   values.Patches[i].Patch,
-					Options: values.Patches[i].Options,
-				}
-				if values.Patches[i].Target != nil {
-					target := &kustypes.Selector{
-						ResId:              values.Patches[i].Target.ResId,
-						AnnotationSelector: values.Patches[i].Target.AnnotationSelector,
-						LabelSelector:      values.Patches[i].Target.LabelSelector,
-					}
-					patch.Target = target
-				}
-				patches = append(patches, patch)
-			}
+		for _, i := range values.Images {
+			images = append(images, convertImage(i))
 		}
 	}
 
@@ -111,4 +87,34 @@ func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([
 
 	return objects, nil
 
+}
+
+func convertSelector(target *boundlessv1alpha1.Selector) *kustypes.Selector {
+	if target == nil {
+		return nil
+	}
+
+	return &kustypes.Selector{
+		ResId: resid.ResId{
+			Gvk: resid.Gvk{
+				Group:   target.Group,
+				Version: target.Version,
+				Kind:    target.Kind,
+			},
+			Namespace: target.Namespace,
+			Name:      target.Name,
+		},
+		AnnotationSelector: target.AnnotationSelector,
+		LabelSelector:      target.LabelSelector,
+	}
+}
+
+func convertImage(image boundlessv1alpha1.Image) kustypes.Image {
+	return kustypes.Image{
+		Name:      image.Name,
+		NewName:   image.NewName,
+		TagSuffix: image.TagSuffix,
+		NewTag:    image.NewTag,
+		Digest:    image.Digest,
+	}
 }

@@ -1,10 +1,8 @@
 package v1alpha1
 
 import (
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/kustomize/kyaml/resid"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // AddonSpec defines the desired state of Addon
@@ -91,37 +89,67 @@ type Patch struct {
 // Selector specifies a set of resources. Any resource that matches intersection of all conditions is included in this
 // set.
 type Selector struct {
-	// ResId refers to a GVKN/Ns of a resource.
-	resid.ResId `json:",inline,omitempty" yaml:",inline,omitempty"`
+	// Group is the API group to select resources from.
+	// Together with Version and Kind it is capable of unambiguously identifying and/or selecting resources.
+	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+	// +optional
+	Group string `json:"group,omitempty"`
+
+	// Version of the API Group to select resources from.
+	// Together with Group and Kind it is capable of unambiguously identifying and/or selecting resources.
+	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+	// +optional
+	Version string `json:"version,omitempty"`
+
+	// Kind of the API Group to select resources from.
+	// Together with Group and Version it is capable of unambiguously identifying and/or selecting resources.
+	// https://github.com/kubernetes/community/blob/master/contributors/design-proposals/api-machinery/api-group.md
+	// +optional
+	Kind string `json:"kind,omitempty"`
+
+	// Namespace to select resources from.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// Name to match resources with.
+	// +optional
+	Name string `json:"name,omitempty"`
 
 	// AnnotationSelector is a string that follows the label selection expression
 	// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api
 	// It matches with the resource annotations.
+	// +optional
 	AnnotationSelector string `json:"annotationSelector,omitempty" yaml:"annotationSelector,omitempty"`
 
 	// LabelSelector is a string that follows the label selection expression
 	// https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#api
 	// It matches with the resource labels.
+	// +optional
 	LabelSelector string `json:"labelSelector,omitempty" yaml:"labelSelector,omitempty"`
 }
 
 // Image contains an image name, a new name, a new tag or digest, which will replace the original name and tag.
 type Image struct {
 	// Name is a tag-less image name.
+	// +required
 	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 
 	// NewName is the value used to replace the original name.
+	// +optional
 	NewName string `json:"newName,omitempty" yaml:"newName,omitempty"`
 
 	// TagSuffix is the value used to suffix the original tag
 	// If Digest and NewTag is present an error is thrown
+	// +optional
 	TagSuffix string `json:"tagSuffix,omitempty" yaml:"tagSuffix,omitempty"`
 
 	// NewTag is the value used to replace the original tag.
+	// +optional
 	NewTag string `json:"newTag,omitempty" yaml:"newTag,omitempty"`
 
 	// Digest is the value used to replace the original image tag.
 	// If digest is present NewTag value is ignored.
+	// +optional
 	Digest string `json:"digest,omitempty" yaml:"digest,omitempty"`
 }
 
