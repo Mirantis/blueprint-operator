@@ -132,25 +132,25 @@ type Selector struct {
 type Image struct {
 	// Name is a tag-less image name.
 	// +required
-	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	Name string `json:"name"`
 
 	// NewName is the value used to replace the original name.
 	// +optional
-	NewName string `json:"newName,omitempty" yaml:"newName,omitempty"`
+	NewName string `json:"newName,omitempty"`
 
 	// TagSuffix is the value used to suffix the original tag
 	// If Digest and NewTag is present an error is thrown
 	// +optional
-	TagSuffix string `json:"tagSuffix,omitempty" yaml:"tagSuffix,omitempty"`
+	TagSuffix string `json:"tagSuffix,omitempty"`
 
 	// NewTag is the value used to replace the original tag.
 	// +optional
-	NewTag string `json:"newTag,omitempty" yaml:"newTag,omitempty"`
+	NewTag string `json:"newTag,omitempty"`
 
 	// Digest is the value used to replace the original image tag.
 	// If digest is present NewTag value is ignored.
 	// +optional
-	Digest string `json:"digest,omitempty" yaml:"digest,omitempty"`
+	Digest string `json:"digest,omitempty"`
 }
 
 // StatusType is a type of condition that may apply to a particular component.
