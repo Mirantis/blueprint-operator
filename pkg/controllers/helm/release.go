@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
@@ -61,6 +62,11 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	releaseName := addon.Spec.Name
 	chartSpec := addon.Spec.Chart
 
+	helmRepoType := sourcev1.HelmRepositoryTypeDefault
+	if strings.HasPrefix(chartSpec.Repo, "oci://") {
+		helmRepoType = sourcev1.HelmRepositoryTypeOCI
+	}
+
 	repo := &sourcev1.HelmRepository{
 		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
@@ -68,7 +74,8 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 			Namespace: consts.NamespaceBoundlessSystem,
 		},
 		Spec: sourcev1.HelmRepositorySpec{
-			URL: chartSpec.Repo,
+			URL:  chartSpec.Repo,
+			Type: helmRepoType,
 			Interval: metav1.Duration{
 				Duration: helmRepoInterval,
 			},
