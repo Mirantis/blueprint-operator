@@ -125,6 +125,11 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
       containers:
         - command:
             - /manager
