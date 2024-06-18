@@ -6299,9 +6299,9 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       tolerations:
-        - key: "node-role.kubernetes.io/master"
-          operator: "Exists"
-        - effect: "NoSchedule"
-          operator: "Exists"
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
       serviceAccountName: blueprint-operator-controller-manager
       terminationGracePeriodSeconds: 10
