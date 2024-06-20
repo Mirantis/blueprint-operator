@@ -5172,6 +5172,8 @@ spec:
         operator: "Exists"
       - effect: "NoSchedule"
         operator: "Exists"
+      - effect: "NoExecute"
+        operator: "Exists"
       containers:
         - name: cert-manager
           image: "quay.io/jetstack/cert-manager-cainjector:v1.9.1"
@@ -5228,6 +5230,8 @@ spec:
       - key: "node-role.kubernetes.io/master"
         operator: "Exists"
       - effect: "NoSchedule"
+        operator: "Exists"
+      - effect: "NoExecute"
         operator: "Exists"
       containers:
         - name: cert-manager
@@ -5286,6 +5290,8 @@ spec:
       - key: "node-role.kubernetes.io/master"
         operator: "Exists"
       - effect: "NoSchedule"
+        operator: "Exists"
+      - effect: "NoExecute"
         operator: "Exists"
       containers:
         - name: cert-manager

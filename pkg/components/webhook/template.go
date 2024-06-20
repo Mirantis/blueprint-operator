@@ -130,6 +130,8 @@ spec:
         operator: "Exists"
       - effect: "NoSchedule"
         operator: "Exists"
+      - effect: "NoExecute"
+        operator: "Exists"
       containers:
         - command:
             - /manager
