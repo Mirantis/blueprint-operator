@@ -63,6 +63,9 @@ spec:
       labels:
         app: notification-controller
     spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - args:
             - --watch-all-namespaces

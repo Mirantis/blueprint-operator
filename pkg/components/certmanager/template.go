@@ -5167,6 +5167,9 @@ spec:
       serviceAccountName: cert-manager-cainjector
       securityContext:
         runAsNonRoot: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - name: cert-manager
           image: "quay.io/jetstack/cert-manager-cainjector:v1.9.1"
@@ -5219,6 +5222,9 @@ spec:
       serviceAccountName: cert-manager
       securityContext:
         runAsNonRoot: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - name: cert-manager
           image: "quay.io/jetstack/cert-manager-controller:v1.9.1"
@@ -5272,6 +5278,9 @@ spec:
       serviceAccountName: cert-manager-webhook
       securityContext:
         runAsNonRoot: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - name: cert-manager
           image: "quay.io/jetstack/cert-manager-webhook:v1.9.1"

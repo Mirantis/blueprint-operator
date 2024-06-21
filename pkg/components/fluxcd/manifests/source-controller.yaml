@@ -47,6 +47,9 @@ spec:
       labels:
         app: source-controller
     spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - args:
             - --events-addr=http://notification-controller.flux-system.svc.cluster.local./

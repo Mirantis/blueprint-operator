@@ -125,6 +125,9 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - command:
             - /manager
