@@ -28,12 +28,8 @@ spec:
         app: kustomize-controller
     spec:
       tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-      - effect: "NoSchedule"
-        operator: "Exists"
-      - effect: "NoExecute"
-        operator: "Exists"
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - args:
             - --events-addr=http://notification-controller.flux-system.svc.cluster.local./

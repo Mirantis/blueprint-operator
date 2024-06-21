@@ -5168,12 +5168,8 @@ spec:
       securityContext:
         runAsNonRoot: true
       tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-      - effect: "NoSchedule"
-        operator: "Exists"
-      - effect: "NoExecute"
-        operator: "Exists"
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - name: cert-manager
           image: "quay.io/jetstack/cert-manager-cainjector:v1.9.1"
@@ -5227,12 +5223,8 @@ spec:
       securityContext:
         runAsNonRoot: true
       tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-      - effect: "NoSchedule"
-        operator: "Exists"
-      - effect: "NoExecute"
-        operator: "Exists"
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - name: cert-manager
           image: "quay.io/jetstack/cert-manager-controller:v1.9.1"
@@ -5287,12 +5279,8 @@ spec:
       securityContext:
         runAsNonRoot: true
       tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Exists"
-      - effect: "NoSchedule"
-        operator: "Exists"
-      - effect: "NoExecute"
-        operator: "Exists"
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
         - name: cert-manager
           image: "quay.io/jetstack/cert-manager-webhook:v1.9.1"

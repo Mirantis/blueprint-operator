@@ -6301,9 +6301,5 @@ spec:
       serviceAccountName: blueprint-operator-controller-manager
       terminationGracePeriodSeconds: 10
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
       - effect: NoSchedule
-        operator: Exists
-      - effect: NoExecute
-        operator: Exists
+        key: node-role.kubernetes.io/master
