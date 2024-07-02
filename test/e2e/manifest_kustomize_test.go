@@ -60,6 +60,7 @@ func TestManifestKustomize(t *testing.T) {
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
 			ApplyCleanupBlueprint(),
+			funcs.DeleteResources(dir, "happypath/kustomize.yaml"),
 			funcs.ResourceDeletedWithin(2*time.Minute, newAddon(a1)),
 		)).
 		Feature()
