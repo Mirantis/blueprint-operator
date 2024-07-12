@@ -96,10 +96,6 @@ func TestInstallCerts(t *testing.T) {
 		)).
 		WithTeardown("Cleanup", funcs.AllOf(
 			ApplyCleanupBlueprint(),
-			//SetFinalizersCerts(cert1),
-			//SetFinalizersCerts(cert2),
-			//SetFinalizersIssuer(i1),
-			//SetFinalizersIssuer(i2),
 			funcs.ResourceDeletedWithin(2*time.Minute, i1),
 			funcs.ResourceDeletedWithin(2*time.Minute, i2),
 			funcs.ResourceDeletedWithin(2*time.Minute, ci1),
