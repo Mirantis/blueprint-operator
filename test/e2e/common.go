@@ -40,9 +40,7 @@ func newIssuer(i metav1.ObjectMeta) *certmanager.Issuer {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.Name,
 			Namespace: i.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
-			},
+			Labels:    i.Labels,
 		},
 	}
 }
@@ -68,9 +66,7 @@ func newCertificate(cert metav1.ObjectMeta) *certmanager.Certificate {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cert.Name,
 			Namespace: cert.Namespace,
-			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
-			},
+			Labels:    cert.Labels,
 		},
 	}
 }
@@ -123,3 +119,33 @@ func AssessCertificate(d time.Duration, cert *certmanager.Certificate, desiredSp
 		}),
 	)
 }
+
+//func SetFinalizersCerts(cert *certmanager.Certificate) features.Func {
+//	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
+//		existingCert := &certmanager.Certificate{}
+//		if err := c.Client().Resources().Get(ctx, cert.Name, cert.Namespace, existingCert); err != nil {
+//			t.Fatalf("failed to get cert1: %v", err)
+//		}
+//
+//		cert.SetFinalizers(existingCert.GetFinalizers())
+//		if err := c.Client().Resources().Update(ctx, cert); err != nil {
+//			t.Fatalf("failed to update resource. %v", err)
+//		}
+//		return ctx
+//	}
+//}
+//
+//func SetFinalizersIssuer(issuer *certmanager.Issuer) features.Func {
+//	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
+//		existingIssuer := &certmanager.Issuer{}
+//		if err := c.Client().Resources().Get(ctx, issuer.Name, issuer.Namespace, existingIssuer); err != nil {
+//			t.Fatalf("failed to get issuer: %v", err)
+//		}
+//
+//		issuer.SetFinalizers(existingIssuer.GetFinalizers())
+//		if err := c.Client().Resources().Update(ctx, issuer); err != nil {
+//			t.Fatalf("failed to update issuer. %v", err)
+//		}
+//		return ctx
+//	}
+//}
