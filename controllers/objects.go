@@ -45,6 +45,16 @@ func listInstalledObjects(ctx context.Context, logger logr.Logger, apiClient cli
 
 func deleteObjects(ctx context.Context, logger logr.Logger, apiClient client.Client, objectsToUninstall map[string]client.Object) error {
 	for _, o := range objectsToUninstall {
+		// Only delete the resources(cert/issuer) that are managed by BOP.
+		// This check can be removed once we add the label in all
+		// the objects created by BOP (https://mirantis.jira.com/browse/BOP-919).
+		if o.GetObjectKind().GroupVersionKind().Kind == "Certificate" || o.GetObjectKind().GroupVersionKind().Kind == "Issuer" {
+			if o.GetLabels()["app.kubernetes.io/managed-by"] != "blueprint-operator" {
+				logger.Info("Skipping deletion of ", "Kind", o.GetObjectKind().GroupVersionKind().Kind)
+				continue
+			}
+		}
+
 		logger.Info("Removing object", "Name", o.GetName(), "Namespace", o.GetNamespace())
 		if err := apiClient.Delete(ctx, o, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
 			logger.Error(err, "Failed to remove object", "Name", o.GetName())

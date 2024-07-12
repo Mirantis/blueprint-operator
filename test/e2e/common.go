@@ -40,6 +40,7 @@ func newIssuer(i metav1.ObjectMeta) *certmanager.Issuer {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.Name,
 			Namespace: i.Namespace,
+			Labels:    i.Labels,
 		},
 	}
 }
@@ -65,6 +66,7 @@ func newCertificate(cert metav1.ObjectMeta) *certmanager.Certificate {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cert.Name,
 			Namespace: cert.Namespace,
+			Labels:    cert.Labels,
 		},
 	}
 }
