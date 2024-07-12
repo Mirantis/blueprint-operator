@@ -20,12 +20,30 @@ import (
 func TestInstallCerts(t *testing.T) {
 	dir := filepath.Join(curDir, "manifests", "certs")
 
-	i1 := newIssuer(metav1.ObjectMeta{Name: "test-issuer-1", Namespace: "test-issuer-ns-1"})
-	i2 := newIssuer(metav1.ObjectMeta{Name: "test-issuer-2", Namespace: "test-issuer-ns-1"})
+	i1 := newIssuer(metav1.ObjectMeta{
+		Name:      "test-issuer-1",
+		Namespace: "test-issuer-ns-1",
+		Labels: map[string]string{
+			"app.kubernetes.io/part-of": "blueprint-operator",
+		},
+	})
+	i2 := newIssuer(metav1.ObjectMeta{
+		Name:      "test-issuer-2",
+		Namespace: "test-issuer-ns-1",
+		Labels: map[string]string{
+			"app.kubernetes.io/part-of": "blueprint-operator",
+		},
+	})
 
 	ci1 := newClusterIssuer(metav1.ObjectMeta{Name: "test-cluster-issuer-1"})
 
-	cert1 := newCertificate(metav1.ObjectMeta{Name: "test-cert-1", Namespace: "test-issuer-ns-1"})
+	cert1 := newCertificate(metav1.ObjectMeta{
+		Name:      "test-cert-1",
+		Namespace: "test-issuer-ns-1",
+		Labels: map[string]string{
+			"app.kubernetes.io/part-of": "blueprint-operator",
+		},
+	})
 	cert1Specs := certmanager.CertificateSpec{
 		CommonName: "test-cert-1",
 		IsCA:       true,
@@ -35,7 +53,13 @@ func TestInstallCerts(t *testing.T) {
 			Kind: "Issuer",
 		},
 	}
-	cert2 := newCertificate(metav1.ObjectMeta{Name: "test-cert-2", Namespace: "test-cert-ns-1"})
+	cert2 := newCertificate(metav1.ObjectMeta{
+		Name:      "test-cert-2",
+		Namespace: "test-cert-ns-1",
+		Labels: map[string]string{
+			"app.kubernetes.io/part-of": "blueprint-operator",
+		},
+	})
 	cert2Specs := certmanager.CertificateSpec{
 		CommonName: "test-cert-2",
 		IsCA:       false,
