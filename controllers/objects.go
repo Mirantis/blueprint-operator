@@ -30,7 +30,7 @@ func listInstalledObjects(ctx context.Context, logger logr.Logger, apiClient cli
 
 	installedItems := make(map[string]client.Object)
 	for _, item := range items {
-		if item.GetLabels()["app.kubernetes.io/part-of"] == "blueprint-operator" {
+		if item.GetLabels()["app.kubernetes.io/managed-by"] == "blueprint-operator" {
 			logger.V(4).Info("skipping BOP object", "Name", item.GetName(), "Namespace", item.GetNamespace())
 			continue
 		}

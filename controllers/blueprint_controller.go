@@ -236,7 +236,7 @@ func issuerObject(issuer boundlessv1alpha1.Issuer) client.Object {
 			Name:      issuer.Name,
 			Namespace: issuer.Namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": "blueprint-operator",
+				"app.kubernetes.io/managed-by": "blueprint-operator",
 			},
 		},
 		Spec: issuer.Spec,
@@ -252,7 +252,7 @@ func clusterIssuerObject(issuer boundlessv1alpha1.ClusterIssuer) client.Object {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: issuer.Name,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": "blueprint-operator",
+				"app.kubernetes.io/managed-by": "blueprint-operator",
 			},
 		},
 		Spec: issuer.Spec,
@@ -269,7 +269,7 @@ func certificateObject(certificate boundlessv1alpha1.Certificate) client.Object 
 			Name:      certificate.Name,
 			Namespace: certificate.Namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/part-of": "blueprint-operator",
+				"app.kubernetes.io/managed-by": "blueprint-operator",
 			},
 		},
 		Spec: certificate.Spec,

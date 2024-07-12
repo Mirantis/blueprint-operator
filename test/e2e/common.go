@@ -40,6 +40,9 @@ func newIssuer(i metav1.ObjectMeta) *certmanager.Issuer {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      i.Name,
 			Namespace: i.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "blueprint-operator",
+			},
 		},
 	}
 }
@@ -65,6 +68,9 @@ func newCertificate(cert metav1.ObjectMeta) *certmanager.Certificate {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cert.Name,
 			Namespace: cert.Namespace,
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": "blueprint-operator",
+			},
 		},
 	}
 }
