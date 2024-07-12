@@ -48,9 +48,11 @@ func deleteObjects(ctx context.Context, logger logr.Logger, apiClient client.Cli
 		// Only delete the resources(cert/issuer) that are managed by BOP.
 		// This check can be removed once we add the label in all
 		// the objects created by BOP (https://mirantis.jira.com/browse/BOP-919).
-		if o.GetObjectKind().GroupVersionKind().Kind == "Certificate" || o.GetObjectKind().GroupVersionKind().Kind == "Issuer" && o.GetLabels()["app.kubernetes.io/managed-by"] != "blueprint-operator" {
-			logger.Info("Skipping deletion of ", "Kind", o.GetObjectKind().GroupVersionKind().Kind)
-			continue
+		if o.GetObjectKind().GroupVersionKind().Kind == "Certificate" || o.GetObjectKind().GroupVersionKind().Kind == "Issuer" {
+			if o.GetLabels()["app.kubernetes.io/managed-by"] != "blueprint-operator" {
+				logger.Info("Skipping deletion of ", "Kind", o.GetObjectKind().GroupVersionKind().Kind)
+				continue
+			}
 		}
 
 		logger.Info("Removing object", "Name", o.GetName(), "Namespace", o.GetNamespace())
