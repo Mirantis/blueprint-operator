@@ -129,6 +129,8 @@ spec:
                                 TagSuffix is the value used to suffix the original tag
                                 If Digest and NewTag is present an error is thrown
                               type: string
+                          required:
+                          - name
                           type: object
                         type: array
                       patches:

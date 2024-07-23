@@ -205,6 +205,12 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/segmentio/analytics-go/v3 v3.3.0
+## explicit; go 1.17
+github.com/segmentio/analytics-go/v3
+# github.com/segmentio/backo-go v1.0.0
+## explicit
+github.com/segmentio/backo-go
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag

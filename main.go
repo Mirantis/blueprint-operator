@@ -26,6 +26,8 @@ import (
 	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/boundless-operator/controllers"
 	//+kubebuilder:scaffold:imports
+
+	analytics "github.com/segmentio/analytics-go/v3"
 )
 
 var (
@@ -160,6 +162,34 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
+
+	setupLog.Info("RAUNAK")
+	client := analytics.New(os.Getenv("d5AwqHlK6LdD0SWuJ16RG15tRNkPQR9i"))
+
+	err = client.Enqueue(analytics.Identify{
+		UserId: "test-user",
+		Traits: analytics.NewTraits().
+			Set("ClusterID", "test-id"),
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to enqueue analytics identify event")
+	}
+
+	// Enqueues a track event that will be sent asynchronously.
+	err = client.Enqueue(analytics.Track{
+		UserId: "test-user",
+		Event:  "test-snippet",
+		Properties: map[string]interface{}{
+			"test-property": "test-value",
+		},
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to enqueue analytics track event")
+
+	}
+
+	// Flushes any queued messages and closes the client.
+	client.Close()
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
