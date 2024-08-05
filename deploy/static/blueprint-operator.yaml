@@ -142,6 +142,8 @@ spec:
                                 TagSuffix is the value used to suffix the original tag
                                 If Digest and NewTag is present an error is thrown
                               type: string
+                          required:
+                          - name
                           type: object
                         type: array
                       patches:
@@ -384,6 +386,8 @@ spec:
                                           TagSuffix is the value used to suffix the original tag
                                           If Digest and NewTag is present an error is thrown
                                         type: string
+                                    required:
+                                    - name
                                     type: object
                                   type: array
                                 patches:
@@ -5734,6 +5738,8 @@ spec:
                             TagSuffix is the value used to suffix the original tag
                             If Digest and NewTag is present an error is thrown
                           type: string
+                      required:
+                      - name
                       type: object
                     type: array
                   patches:
@@ -6222,6 +6228,7 @@ spec:
       labels:
         control-plane: controller-manager
     spec:
+      hostNetwork: true
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -6268,7 +6275,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: ghcr.io/mirantiscontainers/blueprint-operator:latest
+        image: ghcr.io/mirantis/boundless-operator:thomastest2
         livenessProbe:
           httpGet:
             path: /healthz
@@ -6305,3 +6312,4 @@ spec:
         key: node-role.kubernetes.io/master
       - effect: NoSchedule
         key: node.cloudprovider.kubernetes.io/uninitialized
+        value: "true"

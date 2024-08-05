@@ -58,14 +58,18 @@ spec:
   template:
     metadata:
       annotations:
-        prometheus.io/port: "8080"
+        prometheus.io/port: "8084"
         prometheus.io/scrape: "true"
       labels:
         app: notification-controller
     spec:
+      hostNetwork: true
       tolerations:
       - key: node-role.kubernetes.io/master
         effect: NoSchedule
+      - key: node.cloudprovider.kubernetes.io/uninitialized
+        effect: NoSchedule
+        value: "true"
       containers:
         - args:
             - --watch-all-namespaces
@@ -101,7 +105,7 @@ spec:
             - containerPort: 9292
               name: http-webhook
               protocol: TCP
-            - containerPort: 8080
+            - containerPort: 8084
               name: http-prom
               protocol: TCP
             - containerPort: 9440
