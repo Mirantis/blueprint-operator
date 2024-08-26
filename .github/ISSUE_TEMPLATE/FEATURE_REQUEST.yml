@@ -1,0 +1,38 @@
+name: 🛠️ Feature Request
+description: Suggest an idea to help us improve 
+labels:
+  - "enhancement"
+
+body:
+  - type: textarea
+    attributes:
+      label: Description
+      description: |
+        Let us know of the feature you'd like, in a few sentences or less.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Suggested Solution
+      description: |
+        Describe the solution you'd like. 
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Alternatives
+      description: |
+        Describe alternatives you've considered.
+        Have you considered any alternatives to this feature? If so, let us know here:
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: |
+        Do you have anything else you want to add about this feature you would hope for? Let us know here.
+    validations:
+      required: false
