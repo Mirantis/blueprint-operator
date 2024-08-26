@@ -37,76 +37,10 @@ The Blueprint Operator offers several key features to ensure reliable and effici
 
 - Rollback Support: Supports automatic rollback after a configurable number of retries, providing resilience against failed deployments.
 
-- Tooling Support: Includes a CLI for managing Blueprints and clusters, bundling all required dependencies (e.g., k0s CLI, Helm). The end user only needs to install the Blueprint CLI, simplifying the setup process.
+- Tooling Support: Includes a CLI for managing Blueprints and clusters, bundling all required dependencies (e.g., k0s CLI, Helm). The end user only needs to install the [Blueprint CLI](https://github.com/MirantisContainers/blueprint-cli), simplifying the setup process.  This is still in progress.
 
-Example Blueprint YAML
-```yaml
-apiVersion: blueprint.mirantis.com/v1alpha1
-kind: Blueprint
-metadata:
-  labels:
-    app.kubernetes.io/name: mkecluster
-    app.kubernetes.io/instance: mkecluster-sample
-    app.kubernetes.io/part-of: mke-operator
-    app.kubernetes.io/created-by: mke-operator
-  name: mkecluster-sample
-spec:
-  kubernetes:
-    provider: k0s
-    version: 1.27.4+k0s.0
-    config:
-    infra:
-      hosts:
-        - ssh:
-            address: 34.222.160.225
-            keyPath: ./example/aws-tf/aws_private.pem
-            port: 22
-            user: ubuntu
-          role: controller
-        - ssh:
-            address: 35.86.246.238
-            keyPath: ./example/aws-tf/aws_private.pem
-            port: 22
-            user: ubuntu
-          role: worker
-  components:
-    core:
-      - name: calico
-        kind: cni
-        namespace: calico
-        config: |
-    addons:
-      - name: my-grafana
-        kind: AddOn
-        namespace: monitoring
-        chart:
-          name: grafana
-          repo: https://grafana.github.io/helm-charts
-          version: 6.58.7
-          config: |
-            ingress:
-              enabled: true
-      - name: lensappiq
-        kind: AddOn
-        namespace: appiq
-        chart:
-          name: shipa
-          repo: ...
-          version: 1.0
-          config: |
-            ingress:
-              enabled: true
-      - name: metal-lb
-        kind: AddOn
-        namespace: monitoring
-        manifest:
-          uri: file:///x/y/z/metallb-manifest
-      - name: cilium
-        kind: AddOn
-        namespace: cilium
-        operator-hub:
-          url:// # TODO: check if it needs to be a URI
-```
+Here is an example [Blueprint YAML](https://mirantiscontainers.github.io/blueprint/docs/blueprint-reference/) .
+
 
 The Blueprint Operator is a powerful tool for managing Kubernetes clusters and their components, providing users with the flexibility, control, and reliability needed to manage complex environments effectively.
 
