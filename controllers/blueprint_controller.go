@@ -88,6 +88,11 @@ func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.L
 			addonSpec.Namespace = instance.Namespace
 		}
 
+		if !addonSpec.Enabled {
+			// No create/update the addon if it is not enabled
+			continue
+		}
+
 		logger.Info("Reconciling addonSpec", "Name", addonSpec.Name, "Spec.Namespace", addonSpec.Namespace)
 		addon := addonResource(&addonSpec)
 		err = r.createOrUpdateAddon(ctx, logger, addon)
