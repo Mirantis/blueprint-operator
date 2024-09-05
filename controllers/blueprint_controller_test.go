@@ -71,6 +71,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			helmAddon = v1alpha1.AddonSpec{
 				Name:      addonName,
 				Namespace: addonNamespace,
+				Enabled:   true,
 				Kind:      "chart",
 				Chart: &v1alpha1.ChartInfo{
 					Name:    "nginx",
