@@ -20,6 +20,11 @@ jobs:
     needs: [vet, test, build, e2e]
     secrets: inherit
     uses: ./.github/workflows/push-to-ghcr.yml
+  push-manifest:
+    if: ${{ always() && contains(join(needs.*.result, ','), 'success') }} # if all `needs` jobs are successful
+    needs: [vet, test, build, e2e]
+    secrets: inherit
+    uses: ./.github/workflows/push-manifest.yml
   cleanup:
     if: ${{ always() }} # always run this job
     needs: [push-to-ghcr]

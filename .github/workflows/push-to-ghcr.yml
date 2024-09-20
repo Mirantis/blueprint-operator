@@ -140,7 +140,7 @@ jobs:
         working-directory: .
         run: docker load --input /tmp/${{ env.IMAGE }}.tar
 
-      - name: Push SHA image to ${{ env.REGISTRY }}
+      - name: Push Dev image to ${{ env.REGISTRY }}
         working-directory: .
         run: |
           docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:dev
