@@ -16,14 +16,6 @@ jobs:
         with:
           env-file: .github/development.env
 
-      - name: Push latest image to ${{ env.REGISTRY }}
-        working-directory: .
-        run: |
-          SEMVER=${GITHUB_REF#refs/*/}
-          echo ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
-          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
-          docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
-
       - name: Publish the manifest to the public blueprint repository
         uses: softprops/action-gh-release@v1
         with:
