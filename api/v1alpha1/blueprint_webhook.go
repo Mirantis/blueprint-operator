@@ -2,13 +2,12 @@ package v1alpha1
 
 import (
 	"fmt"
-	"strings"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"strings"
 )
 
 const (
@@ -59,9 +58,6 @@ func (r *Blueprint) ValidateDelete() (admission.Warnings, error) {
 }
 
 func validate(spec BlueprintSpec) (admission.Warnings, error) {
-	if spec.Version == "" {
-		spec.Version = "latest"
-	}
 	if len(spec.Components.Addons) > 0 {
 		for _, val := range spec.Components.Addons {
 			if strings.EqualFold(kindChart, val.Kind) {

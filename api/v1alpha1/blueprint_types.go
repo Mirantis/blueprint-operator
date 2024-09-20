@@ -6,8 +6,6 @@ import (
 
 // BlueprintSpec defines the desired state of Blueprint
 type BlueprintSpec struct {
-	// Version is the version of the blueprint operator
-	Version string `json:"version,omitempty"`
 	// Components contains all the components that should be installed
 	Components Component `json:"components,omitempty"`
 	// Resources contains all object resources that should be installed
