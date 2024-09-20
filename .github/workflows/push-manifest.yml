@@ -1,0 +1,69 @@
+name: Push manifest
+
+on:
+  workflow_call:
+
+jobs:
+  push-semver:
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Load environment
+        uses: c-py/action-dotenv-to-setenv@v4
+        with:
+          env-file: .github/development.env
+
+      - name: Push latest image to ${{ env.REGISTRY }}
+        working-directory: .
+        run: |
+          SEMVER=${GITHUB_REF#refs/*/}
+          echo ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
+          docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
+
+      - name: Publish the manifest to the public blueprint repository
+        uses: softprops/action-gh-release@v1
+        with:
+          name: $SEMVER
+          tag_name: $SEMVERtoken: ${{ secrets.PAT_CI_BOUNDLESS }}
+          repository: mirantiscontainers/blueprint
+          files: |
+            **/deploy/static/blueprint-operator.yaml
+
+      - name: Publish the manifest to the private operator repository
+        uses: softprops/action-gh-release@v1
+        with:
+          name: $SEMVER
+          tag_name: $SEMVERtoken: ${{ secrets.PAT_CI_BOUNDLESS }}
+          repository: nwneisen/blueprint-operator
+          files: |
+            **/deploy/static/blueprint-operator.yaml
+
+  push-dev:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Load environment
+        uses: c-py/action-dotenv-to-setenv@v4
+        with:
+          env-file: .github/development.env
+
+      - name: Publish the manifest to the private operator repository
+        uses: softprops/action-gh-release@v1
+        with:
+          name: dev
+          tag_name: dev
+          make_latest: false
+          body: "This is the dev build that always represents the latest commit on the main branch. These binaries change frequiently and are not meant for production use."
+          tag_name: $SEMVERtoken: ${{ secrets.PAT_CI_BOUNDLESS }}
+          repository: nwneisen/blueprint-operator
+          files: |
+            **/deploy/static/blueprint-operator.yaml
+
+
