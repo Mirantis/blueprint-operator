@@ -29,17 +29,17 @@ jobs:
         with:
           name: $SEMVER
           tag_name: $SEMVER
-          repository: nwneisen/blueprint
+          repository: mirantiscontainers/blueprint
           token: ${{ secrets.PAT_CI_BOUNDLESS }}
           files: |
             **/deploy/static/blueprint-operator.yaml
 
-      - name: Publish the manifest to the private operator repository
+      - name: Publish the manifest to the private blueprint-operator repository
         uses: softprops/action-gh-release@v1
         with:
           name: $SEMVER
           tag_name: $SEMVER
-          repository: nwneisen/blueprint-operator
+          repository: mirantiscontainers/blueprint-operator
           token: ${{ secrets.PAT_CI_BOUNDLESS }}
           files: |
             **/deploy/static/blueprint-operator.yaml
@@ -64,7 +64,7 @@ jobs:
           make_latest: false
           body: "This is the dev build that always represents the latest commit on the main branch. These binaries change frequiently and are not meant for production use."
           token: ${{ secrets.PAT_CI_BOUNDLESS }}
-          repository: nwneisen/blueprint-operator
+          repository: mirantiscontainers/blueprint-operator
           files: |
             **/deploy/static/blueprint-operator.yaml
 

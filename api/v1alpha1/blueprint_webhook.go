@@ -59,9 +59,6 @@ func (r *Blueprint) ValidateDelete() (admission.Warnings, error) {
 }
 
 func validate(spec BlueprintSpec) (admission.Warnings, error) {
-	if spec.Version == "" {
-		spec.Version = "latest"
-	}
 	if len(spec.Components.Addons) > 0 {
 		for _, val := range spec.Components.Addons {
 			if strings.EqualFold(kindChart, val.Kind) {
