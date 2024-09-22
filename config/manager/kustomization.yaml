@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: ghcr.io/mirantiscontainers/blueprint-operator
   newName: ghcr.io/mirantiscontainers/blueprint-operator
-  newTag: test
+  newTag: latest
