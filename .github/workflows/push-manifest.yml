@@ -16,6 +16,15 @@ jobs:
         with:
           env-file: .github/development.env
 
+      - name: Determine the build version
+        run: |
+          SEMVER=${GITHUB_REF#refs/*/}
+          echo "SEMVER=$SEMVER" >> $GITHUB_ENV
+
+      - name: Generate the manifest
+        run: |
+          VERSION=$SEMVER make build-operator-manifest
+
       - name: Publish the manifest to the public blueprint repository
         uses: softprops/action-gh-release@v1
         with:
@@ -40,6 +49,16 @@ jobs:
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
+      # This needs to be done first so that the tag is removed in the following steps
+      - name: Delete tag and release
+        continue-on-error: true
+        uses: dev-drprasad/delete-tag-and-release@v1.0
+        with:
+          tag_name: dev
+          github_token: ${{ secrets.PAT_CI_BOUNDLESS }}
+          delete_release: true
+          repo: mirantiscontainers/blueprint-operator
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -47,6 +66,10 @@ jobs:
         uses: c-py/action-dotenv-to-setenv@v4
         with:
           env-file: .github/development.env
+
+      - name: Generate the manifest
+        run: |
+          VERSION=dev make build-operator-manifest
 
       - name: Publish the manifest to the private operator repository
         uses: softprops/action-gh-release@v1
