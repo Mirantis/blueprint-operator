@@ -143,10 +143,9 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 .PHONY: build-operator-manifest
 build-operator-manifest: kustomize manifests ## builds mke operator manifest file
-	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
-	@$(KUSTOMIZE) build config/default > ./deploy/static/blueprint-operator.yaml
-	# TODO: remove this once all references to boundless-operator.yaml are eliminated
-	cd deploy/static && ln -sf blueprint-operator.yaml boundless-operator.yaml
+	@cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
+	@mkdir -p deploy/static
+	@$(KUSTOMIZE) build config/default > deploy/static/blueprint-operator.yaml
 
 ##@ Build Dependencies
 
