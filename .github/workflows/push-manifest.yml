@@ -37,6 +37,8 @@ jobs:
 
       - name: Publish the manifest to the private blueprint-operator repository
         uses: softprops/action-gh-release@v1
+        env:
+          SEMVER: ${{ needs.push-semver.env.SEMVER }}
         with:
           name: $SEMVER
           tag_name: $SEMVER
