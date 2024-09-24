@@ -49,6 +49,10 @@ spec:
                       properties:
                         chart:
                           properties:
+                            dependsOn:
+                              items:
+                                type: string
+                              type: array
                             name:
                               type: string
                             repo:
