@@ -7,6 +7,7 @@ import (
 	"time"
 
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/go-logr/logr"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -88,6 +89,14 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		values = &apiextensionsv1.JSON{Raw: v}
 	}
 
+	var dependsOn []meta.NamespacedObjectReference
+	for _, addonName := range chartSpec.DependsOn {
+		dependsOn = append(dependsOn, meta.NamespacedObjectReference{
+			Name:      addonName,
+			Namespace: consts.NamespaceBoundlessSystem,
+		})
+	}
+
 	release := &helmv2.HelmRelease{
 		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
@@ -130,6 +139,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 			Interval: metav1.Duration{
 				Duration: driftDetectionInterval,
 			},
+			DependsOn: dependsOn,
 		},
 	}
 
