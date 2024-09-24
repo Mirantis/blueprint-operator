@@ -199,11 +199,12 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 
 	if spec.Chart != nil {
 		addon.Spec.Chart = &boundlessv1alpha1.ChartInfo{
-			Name:    spec.Chart.Name,
-			Repo:    spec.Chart.Repo,
-			Version: spec.Chart.Version,
-			Set:     spec.Chart.Set,
-			Values:  spec.Chart.Values,
+			Name:      spec.Chart.Name,
+			Repo:      spec.Chart.Repo,
+			Version:   spec.Chart.Version,
+			Set:       spec.Chart.Set,
+			Values:    spec.Chart.Values,
+			DependsOn: spec.Chart.DependsOn,
 		}
 	}
 
