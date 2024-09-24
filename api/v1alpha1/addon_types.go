@@ -30,8 +30,9 @@ type ChartInfo struct {
 	// +kubebuilder:validation:Required
 	Version string `json:"version"`
 
-	Set    map[string]intstr.IntOrString `json:"set,omitempty"`
-	Values string                        `json:"values,omitempty"`
+	DependsOn []string                      `json:"dependsOn,omitempty"`
+	Set       map[string]intstr.IntOrString `json:"set,omitempty"`
+	Values    string                        `json:"values,omitempty"`
 }
 
 type ManifestInfo struct {

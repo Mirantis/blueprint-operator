@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -59,30 +60,43 @@ func (r *Blueprint) ValidateDelete() (admission.Warnings, error) {
 }
 
 func validate(spec BlueprintSpec) (admission.Warnings, error) {
-	if len(spec.Components.Addons) > 0 {
-		for _, val := range spec.Components.Addons {
-			if strings.EqualFold(kindChart, val.Kind) {
-				if val.Manifest != nil {
-					blueprintlog.Info("received manifest object.", "Kind", kindChart)
-					return nil, fmt.Errorf("manifest object is not allowed for addon kind %s", kindChart)
-				}
-				if val.Chart == nil {
-					blueprintlog.Info("received empty chart object.", "Kind", kindChart)
-					return nil, fmt.Errorf("chart object can't be empty for addon kind %s", kindChart)
+	if len(spec.Components.Addons) == 0 {
+		return nil, nil
+	}
+
+	var addonNames []string
+	for _, a := range spec.Components.Addons {
+		addonNames = append(addonNames, a.Name)
+	}
+
+	for _, val := range spec.Components.Addons {
+		if strings.EqualFold(kindChart, val.Kind) {
+			if val.Manifest != nil {
+				blueprintlog.Info("received manifest object.", "Kind", kindChart)
+				return nil, fmt.Errorf("manifest object is not allowed for addon kind %s", kindChart)
+			}
+			if val.Chart == nil {
+				blueprintlog.Info("received empty chart object.", "Kind", kindChart)
+				return nil, fmt.Errorf("chart object can't be empty for addon kind %s", kindChart)
+			}
+			if len(val.Chart.DependsOn) > 0 {
+				for _, dep := range val.Chart.DependsOn {
+					if !slices.Contains(addonNames, dep) {
+						return nil, fmt.Errorf("addon %s depends on %s which is not present in the list of addons", val.Name, dep)
+					}
 				}
 			}
+		}
 
-			if strings.EqualFold(kindManifest, val.Kind) {
-				if val.Chart != nil {
-					blueprintlog.Info("received chart object.", "Kind", kindManifest)
-					return nil, fmt.Errorf("chart object is not allowed for addon kind %s", kindManifest)
-				}
-				if val.Manifest == nil {
-					blueprintlog.Info("received empty manifest object.", "Kind", kindManifest)
-					return nil, fmt.Errorf("manifest object can't be empty for addon kind %s", kindManifest)
-				}
+		if strings.EqualFold(kindManifest, val.Kind) {
+			if val.Chart != nil {
+				blueprintlog.Info("received chart object.", "Kind", kindManifest)
+				return nil, fmt.Errorf("chart object is not allowed for addon kind %s", kindManifest)
 			}
-
+			if val.Manifest == nil {
+				blueprintlog.Info("received empty manifest object.", "Kind", kindManifest)
+				return nil, fmt.Errorf("manifest object can't be empty for addon kind %s", kindManifest)
+			}
 		}
 	}
 
