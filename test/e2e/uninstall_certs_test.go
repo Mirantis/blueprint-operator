@@ -1,17 +1,18 @@
 package e2e
 
 import (
-	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"path/filepath"
 	"testing"
 	"time"
+
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 
 	certmanagermeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
 // TestUninstallCerts tests the uninstallation of issuers, cluster issuers, and certificates:

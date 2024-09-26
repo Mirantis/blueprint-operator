@@ -12,7 +12,7 @@ import (
 
 	kustypes "sigs.k8s.io/kustomize/api/types"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	boundlessv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
 
 // Render uses the manifest url and values from the blueprint and generates kustomization.yaml.

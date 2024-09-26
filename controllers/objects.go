@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
 )
 
 type ItemsLister func(ctx context.Context, apiClient client.Client) ([]client.Object, error)

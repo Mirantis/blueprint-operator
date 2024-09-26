@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	boundlessv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
 
 // AwaitTimeout waits timeout duration and then checks the status of manifest denoted by provided manifestName

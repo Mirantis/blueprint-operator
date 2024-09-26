@@ -1,9 +1,16 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"net/url"
+	"slices"
+	"strings"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+var addonKinds = []string{"chart", "manifest"}
 
 // AddonSpec defines the desired state of Addon
 type AddonSpec struct {
@@ -20,6 +27,51 @@ type AddonSpec struct {
 	Manifest  *ManifestInfo `json:"manifest,omitempty"`
 }
 
+// Validate checks the Addon structure and its children
+func (a *AddonSpec) Validate() error {
+
+	// Name checks
+	if a.Name == "" {
+		return fmt.Errorf("addons.name field cannot be left blank")
+	}
+
+	// Kind checks
+	if a.Kind == "" {
+		return fmt.Errorf("addons.kind field cannot be left blank")
+	}
+	if !slices.Contains(addonKinds, strings.ToLower(a.Kind)) {
+		return fmt.Errorf("%s addons.kind field is an invalid kind: %s", a.Name, a.Kind)
+	}
+	if a.Chart != nil && a.Manifest != nil {
+		return fmt.Errorf("%s: addon cannot contain both a chart and a manifest", a.Name)
+	}
+	if a.Chart == nil && a.Manifest == nil {
+		return fmt.Errorf("%s: addon must contain a chart or manifest", a.Name)
+	}
+
+	// Chart checks
+	if strings.ToLower(a.Kind) == "chart" && a.Chart == nil {
+		return fmt.Errorf("%s: addon.kind specified as a chart but no chart information provided", a.Name)
+	}
+	if a.Chart != nil {
+		if err := a.Chart.Validate(); err != nil {
+			return err
+		}
+	}
+
+	// Manifest checks
+	if strings.ToLower(a.Kind) == "manifest" && a.Manifest == nil {
+		return fmt.Errorf("%s: addon.kind specified as a manifest but no manifest information provided", a.Name)
+	}
+	if a.Manifest != nil {
+		if err := a.Manifest.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 type ChartInfo struct {
 	// +kubebuilder:validation:Required
 	Name string `json:"name"`
@@ -33,6 +85,26 @@ type ChartInfo struct {
 	DependsOn []string                      `json:"dependsOn,omitempty"`
 	Set       map[string]intstr.IntOrString `json:"set,omitempty"`
 	Values    string                        `json:"values,omitempty"`
+}
+
+// Validate checks the ChartInfo structure and its children
+func (ci *ChartInfo) Validate() error {
+	// Name checks
+	if ci.Name == "" {
+		return fmt.Errorf("chart.name field cannot be left blank")
+	}
+
+	// Repo checks
+	if ci.Repo == "" {
+		return fmt.Errorf("chart.repo field cannot be left blank")
+	}
+
+	// Version checks
+	if ci.Version == "" {
+		return fmt.Errorf("chart.version field cannot be left blank")
+	}
+
+	return nil
 }
 
 type ManifestInfo struct {
@@ -52,6 +124,19 @@ type ManifestInfo struct {
 	// If manifest is not Available after timeout duration, it will be handled by specified FailurePolicy
 	// +optional
 	Timeout string `json:"timeout,omitempty"`
+}
+
+// Validate checks the ManifestInfo structure and its children
+func (mi *ManifestInfo) Validate() error {
+	// URL checks
+	if mi.URL == "" {
+		return fmt.Errorf("manifest.url field cannot be left blank")
+	}
+	if _, err := url.ParseRequestURI(mi.URL); err != nil {
+		return fmt.Errorf("manifest.url field must be a valid url: %v", mi.URL)
+	}
+
+	return nil
 }
 
 type Values struct {

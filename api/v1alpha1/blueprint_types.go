@@ -6,27 +6,70 @@ import (
 
 // BlueprintSpec defines the desired state of Blueprint
 type BlueprintSpec struct {
+	Version    string      `yaml:"version" json:"version"`
+	Kubernetes *Kubernetes `yaml:"kubernetes,omitempty" json:"kubernetes,omitempty"`
 	// Components contains all the components that should be installed
-	Components Component `json:"components,omitempty"`
+	Components Components `yaml:"components" json:"components"`
 	// Resources contains all object resources that should be installed
-	Resources Resources `json:"resources,omitempty"`
+	Resources *Resources `yaml:"resources,omitempty" json:"resources,omitempty"`
+}
+
+// Validate checks the BlueprintSpec structure and its children
+func (bs *BlueprintSpec) Validate() error {
+
+	// Kubernetes checks
+	if bs.Kubernetes != nil {
+		if err := bs.Kubernetes.Validate(); err != nil {
+			return err
+		}
+	}
+
+	// Components checks
+	if err := bs.Components.Validate(); err != nil {
+		return err
+	}
+
+	// Resources checks
+	if bs.Resources != nil {
+		if err := bs.Resources.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Component defines the addons components that should be installed
-type Component struct {
-	Addons []AddonSpec `json:"addons,omitempty"`
+type Components struct {
+	Addons []Addon `yaml:"addons,omitempty" json:"addons,omitempty"`
+}
+
+// Validate checks the Components structure and its children
+func (c *Components) Validate() error {
+	// TODO Core components aren't checked because they will likely be removed/moved to MKE4
+
+	// Addon checks
+	for _, addon := range c.Addons {
+		if err := addon.Validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Resources defines the desired state of kubernetes resources that should be managed by BOP
 type Resources struct {
-	CertManagement CertManagement `json:"certManagement,omitempty"`
+	CertManagement CertManagement `yaml:"certManagement,omitempty" json:"certManagement,omitempty"`
 }
 
-// CertManagement defines the desired state of cert-manager resources
-type CertManagement struct {
-	Issuers        []Issuer        `json:"issuers,omitempty"`
-	ClusterIssuers []ClusterIssuer `json:"clusterIssuers,omitempty"`
-	Certificates   []Certificate   `json:"certificates,omitempty"`
+// Validate checks the Resources structure and its children
+func (r *Resources) Validate() error {
+	if err := r.CertManagement.Validate(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // BlueprintStatus defines the observed state of Blueprint

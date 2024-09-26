@@ -10,8 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	operator "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 
 // These tests should run in the serial (not parallel) and in order specified
@@ -73,7 +73,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 		})
 		It("Should install webhook", func() {
 			dep := &appsv1.Deployment{}
-			lookupKey := types.NamespacedName{Name: "boundless-operator-webhook", Namespace: consts.NamespaceBoundlessSystem}
+			lookupKey := types.NamespacedName{Name: "blueprint-operator-webhook", Namespace: consts.NamespaceBoundlessSystem}
 			Eventually(getObject(context.TODO(), lookupKey, dep), time.Minute*5, defaultInterval).Should(BeTrue())
 		})
 	})

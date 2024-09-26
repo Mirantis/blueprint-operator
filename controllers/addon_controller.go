@@ -20,12 +20,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/helm"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
-	"github.com/mirantiscontainers/boundless-operator/pkg/event"
-	k8s "github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	boundlessv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/controllers/helm"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/controllers/manifest"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/event"
+	k8s "github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
 )
 
 const (
