@@ -15,19 +15,6 @@ rules:
   - apps
   resources:
   - daemonsets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - apps
-  resources:
-  - daemonsets/status
-  verbs:
-  - get
-- apiGroups:
-  - apps
-  resources:
   - deployments
   verbs:
   - get
@@ -36,6 +23,7 @@ rules:
 - apiGroups:
   - apps
   resources:
+  - daemonsets/status
   - deployments/status
   verbs:
   - get
@@ -57,83 +45,8 @@ rules:
   - blueprint.mirantis.com
   resources:
   - addons
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
-  - addons/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
-  - addons/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
   - blueprints
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
-  - blueprints/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
-  - blueprints/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
   - installations
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
-  - installations/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
-  - installations/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - blueprint.mirantis.com
-  resources:
   - manifests
   verbs:
   - create
@@ -146,12 +59,18 @@ rules:
 - apiGroups:
   - blueprint.mirantis.com
   resources:
+  - addons/finalizers
+  - blueprints/finalizers
+  - installations/finalizers
   - manifests/finalizers
   verbs:
   - update
 - apiGroups:
   - blueprint.mirantis.com
   resources:
+  - addons/status
+  - blueprints/status
+  - installations/status
   - manifests/status
   verbs:
   - get
