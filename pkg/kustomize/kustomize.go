@@ -12,12 +12,12 @@ import (
 
 	kustypes "sigs.k8s.io/kustomize/api/types"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
 
 // Render uses the manifest url and values from the blueprint and generates kustomization.yaml.
 // It also generates kustomize build output and returns it.
-func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([]byte, error) {
+func Render(logger logr.Logger, url string, values *blueprintv1alpha1.Values) ([]byte, error) {
 	fs := filesys.MakeFsInMemory()
 
 	kus := kustypes.Kustomization{
@@ -89,7 +89,7 @@ func Render(logger logr.Logger, url string, values *boundlessv1alpha1.Values) ([
 
 }
 
-func convertSelector(target *boundlessv1alpha1.Selector) *kustypes.Selector {
+func convertSelector(target *blueprintv1alpha1.Selector) *kustypes.Selector {
 	if target == nil {
 		return nil
 	}
@@ -109,7 +109,7 @@ func convertSelector(target *boundlessv1alpha1.Selector) *kustypes.Selector {
 	}
 }
 
-func convertImage(image boundlessv1alpha1.Image) kustypes.Image {
+func convertImage(image blueprintv1alpha1.Image) kustypes.Image {
 	return kustypes.Image{
 		Name:      image.Name,
 		NewName:   image.NewName,

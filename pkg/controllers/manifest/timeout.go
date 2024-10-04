@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
 
 // AwaitTimeout waits timeout duration and then checks the status of manifest denoted by provided manifestName
@@ -24,14 +24,14 @@ func (mc *Controller) AwaitTimeout(logger logr.Logger, manifestName types.Namesp
 
 func (mc *Controller) checkManifestAvailableFunc(logger logr.Logger, manifestName types.NamespacedName) wait.ConditionWithContextFunc {
 	return func(ctx context.Context) (bool, error) {
-		var manifest boundlessv1alpha1.Manifest
+		var manifest blueprintv1alpha1.Manifest
 		err := mc.client.Get(ctx, manifestName, &manifest)
 		if err != nil {
 			logger.Error(err, "failed to check on manifest")
 			return false, fmt.Errorf("failed to get manifest : %w", err)
 		}
 
-		if manifest.Status.Type == boundlessv1alpha1.TypeComponentAvailable {
+		if manifest.Status.Type == blueprintv1alpha1.TypeComponentAvailable {
 			logger.Info("manifest available before timeout", "manifestName", manifestName)
 			return true, nil
 		}
@@ -44,12 +44,12 @@ func (mc *Controller) checkManifestAvailableFunc(logger logr.Logger, manifestNam
 // Return false if the failurePolicy is not set to Retry or if the manifest is not considered unhealthy ( so Available or Progressing)
 // Then check the CRD metadata for the last update made to this object (discount status updates)
 // If the time elapsed since the last update is longer than the specified timeout, return true
-func ShouldRetryManifest(logger logr.Logger, manifest *boundlessv1alpha1.Manifest) bool {
+func ShouldRetryManifest(logger logr.Logger, manifest *blueprintv1alpha1.Manifest) bool {
 	if manifest.Spec.FailurePolicy != FailurePolicyRetry {
 		return false
 	}
 
-	if manifest.Status.Type != boundlessv1alpha1.TypeComponentUnhealthy {
+	if manifest.Status.Type != blueprintv1alpha1.TypeComponentUnhealthy {
 		return false
 	}
 

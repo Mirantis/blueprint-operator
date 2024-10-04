@@ -1,6 +1,6 @@
 # Overview
 
-This portion of the boundless-operator tree contains all the tests. 
+This portion of the blueprint-operator tree contains all the tests. 
 These are written as Go test files.
 
 ## Unit Tests
@@ -67,7 +67,7 @@ More details here: https://book.kubebuilder.io/reference/envtest.html#testing-co
 
 ## E2E Tests
 
-The E2E tests allow us to run a real deployment of Boundless Operator
+The E2E tests allow us to run a real deployment of Blueprint Operator
 and test the entire system. It ensures the system performs all its 
 intended functions and meets the user's requirements.
 

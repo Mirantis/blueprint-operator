@@ -9,9 +9,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
 // TestUninstallAddons tests the uninstallation of helm and manifest addons:
@@ -21,9 +21,9 @@ import (
 func TestUninstallAddons(t *testing.T) {
 	dir := filepath.Join(curDir, "manifests", "addons")
 
-	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: consts.NamespaceBoundlessSystem}
-	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBoundlessSystem}
-	a3 := metav1.ObjectMeta{Name: "test-addon-3", Namespace: consts.NamespaceBoundlessSystem}
+	a1 := metav1.ObjectMeta{Name: "test-addon-1", Namespace: consts.NamespaceBlueprintSystem}
+	a2 := metav1.ObjectMeta{Name: "test-addon-2", Namespace: consts.NamespaceBlueprintSystem}
+	a3 := metav1.ObjectMeta{Name: "test-addon-3", Namespace: consts.NamespaceBlueprintSystem}
 
 	a1dep := metav1.ObjectMeta{Name: "test-addon-1-nginx", Namespace: "test-ns-1"}
 	a2dep := metav1.ObjectMeta{Name: "controller", Namespace: "metallb-system"}

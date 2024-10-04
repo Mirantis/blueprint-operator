@@ -10,10 +10,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/components"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
 )
 
 const (
@@ -49,7 +49,7 @@ func (c *certManager) Install(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	if err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.CreateNamespaceIfNotExist(c.client, ctx, c.logger, consts.NamespaceBlueprintSystem); err != nil {
 		return err
 	}
 
@@ -77,17 +77,17 @@ func (c *certManager) Install(ctx context.Context) error {
 
 	// Wait for all the deployments to be ready
 	c.logger.Info("waiting for ca injector deployment to be ready")
-	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCAInjector, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCAInjector, consts.NamespaceBlueprintSystem); err != nil {
 		return err
 	}
 
 	c.logger.Info("waiting for cert manager deployment to be ready")
-	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCertManager, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentCertManager, consts.NamespaceBlueprintSystem); err != nil {
 		return err
 	}
 
 	c.logger.Info("waiting for webhook deployment to be ready")
-	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentWebhook, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.WaitForDeploymentReady(ctx, c.logger, c.client, deploymentWebhook, consts.NamespaceBlueprintSystem); err != nil {
 		return err
 	}
 
@@ -130,7 +130,7 @@ func (c *certManager) CheckExists(ctx context.Context) (bool, error) {
 		c.logger.Info("No external cert-manager installation detected.")
 
 		key := client.ObjectKey{
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 			Name:      deploymentCertManager,
 		}
 		if err := c.client.Get(ctx, key, &v1.Deployment{}); err != nil {

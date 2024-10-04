@@ -20,13 +20,13 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 
-// AddBoundlessTypeToScheme adds the boundless operator's custom resources to the environment's scheme
+// AddBlueprintTypeToScheme adds the blueprint operator's custom resources to the environment's scheme
 // so that the environment's client can work with these types.
-func AddBoundlessTypeToScheme() env.Func {
+func AddBlueprintTypeToScheme() env.Func {
 	return func(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 		_ = v1alpha1.AddToScheme(cfg.Client().Resources().GetScheme())
 		_ = certmanager.AddToScheme(cfg.Client().Resources().GetScheme())
@@ -34,8 +34,8 @@ func AddBoundlessTypeToScheme() env.Func {
 	}
 }
 
-// InstallBoundlessOperator installs the boundless operator
-func InstallBoundlessOperator(img string) env.Func {
+// InstallBlueprintOperator installs the blueprint operator
+func InstallBlueprintOperator(img string) env.Func {
 	return func(ctx context.Context, c *envconf.Config) (context.Context, error) {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -51,7 +51,7 @@ func InstallBoundlessOperator(img string) env.Func {
 					return fmt.Errorf("unexpected type %T not Deployment", o)
 				}
 				for i, container := range deployment.Spec.Template.Spec.Containers {
-					if container.Name == consts.BoundlessContainerName {
+					if container.Name == consts.BlueprintContainerName {
 						deployment.Spec.Template.Spec.Containers[i].Image = img
 					}
 				}
@@ -60,17 +60,17 @@ func InstallBoundlessOperator(img string) env.Func {
 		})
 
 		if err = decoder.ApplyWithManifestDir(ctx, c.Client().Resources(), dir, "blueprint-operator.yaml", []resources.CreateOption{}, updateImageFunc); err != nil {
-			return ctx, fmt.Errorf("failed to install boundless operator: %v", err)
+			return ctx, fmt.Errorf("failed to install blueprint operator: %v", err)
 		}
 
-		// Wait for the boundless operator to be ready
-		if err = waitForDeploymentReady(c, consts.NamespaceBoundlessSystem, consts.BoundlessOperatorName, 5*time.Minute); err != nil {
-			return ctx, fmt.Errorf("failed to wait for boundless operator to be ready: %v", err)
+		// Wait for the blueprint operator to be ready
+		if err = waitForDeploymentReady(c, consts.NamespaceBlueprintSystem, consts.BlueprintOperatorName, 5*time.Minute); err != nil {
+			return ctx, fmt.Errorf("failed to wait for blueprint operator to be ready: %v", err)
 		}
 
-		// Wait for the boundless operator webhook to be ready
-		if err = waitForDeploymentReady(c, consts.NamespaceBoundlessSystem, consts.BoundlessOperatorWebhookName, 5*time.Minute); err != nil {
-			return ctx, fmt.Errorf("failed to wait for boundless operator webhook to be ready: %v", err)
+		// Wait for the blueprint operator webhook to be ready
+		if err = waitForDeploymentReady(c, consts.NamespaceBlueprintSystem, consts.BlueprintOperatorWebhookName, 5*time.Minute); err != nil {
+			return ctx, fmt.Errorf("failed to wait for blueprint operator webhook to be ready: %v", err)
 		}
 		return ctx, nil
 	}

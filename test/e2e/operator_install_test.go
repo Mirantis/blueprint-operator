@@ -5,15 +5,15 @@ import (
 
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
 func TestOperatorInstall(t *testing.T) {
 	testenv.Test(t,
-		features.New("Boundless Operator Installation").
-			Assess("BoundlessOperatorDeploymentIsSuccessfullyInstalled", funcs.AllOf(
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, consts.BoundlessOperatorName),
+		features.New("Blueprint Operator Installation").
+			Assess("BlueprintOperatorDeploymentIsSuccessfullyInstalled", funcs.AllOf(
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBlueprintSystem, consts.BlueprintOperatorName),
 			)).
 			Assess("HelmControllerIsSuccessfullyInstalled", funcs.AllOf(
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceFluxSystem, "helm-controller"),
@@ -21,12 +21,12 @@ func TestOperatorInstall(t *testing.T) {
 				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceFluxSystem, "kustomize-controller"),
 			)).
 			Assess("CertManagerIsSuccessfullyInstalled", funcs.AllOf(
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager"),
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager-webhook"),
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager-cainjector"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBlueprintSystem, "cert-manager"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBlueprintSystem, "cert-manager-webhook"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBlueprintSystem, "cert-manager-cainjector"),
 			)).
 			Assess("WebhookIsSuccessfullyInstalled", funcs.AllOf(
-				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "blueprint-operator-webhook"),
+				funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBlueprintSystem, "blueprint-operator-webhook"),
 			)).
 			Feature(),
 	)

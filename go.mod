@@ -1,4 +1,4 @@
-module github.com/mirantiscontainers/boundless-operator
+module github.com/mirantiscontainers/blueprint-operator
 
 go 1.22.0
 

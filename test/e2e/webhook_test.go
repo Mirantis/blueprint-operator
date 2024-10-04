@@ -9,26 +9,26 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 
 func TestValidationWebhook(t *testing.T) {
 	f := features.New("Validation Webhook").
 		Assess("RejectsInValidBlueprint", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-			invalids := []boundlessv1alpha1.Blueprint{
+			invalids := []blueprintv1alpha1.Blueprint{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "invalid-blueprint-1",
-						Namespace: consts.NamespaceBoundlessSystem,
+						Namespace: consts.NamespaceBlueprintSystem,
 					},
-					Spec: boundlessv1alpha1.BlueprintSpec{
-						Components: boundlessv1alpha1.Component{
-							Addons: []boundlessv1alpha1.AddonSpec{
+					Spec: blueprintv1alpha1.BlueprintSpec{
+						Components: blueprintv1alpha1.Component{
+							Addons: []blueprintv1alpha1.AddonSpec{
 								{
 									Name: "addon1",
 									Kind: "manifest",
-									Chart: &boundlessv1alpha1.ChartInfo{
+									Chart: &blueprintv1alpha1.ChartInfo{
 										Name: "some-chart",
 										Repo: "some-repo",
 									},
@@ -40,15 +40,15 @@ func TestValidationWebhook(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "invalid-blueprint-2",
-						Namespace: consts.NamespaceBoundlessSystem,
+						Namespace: consts.NamespaceBlueprintSystem,
 					},
-					Spec: boundlessv1alpha1.BlueprintSpec{
-						Components: boundlessv1alpha1.Component{
-							Addons: []boundlessv1alpha1.AddonSpec{
+					Spec: blueprintv1alpha1.BlueprintSpec{
+						Components: blueprintv1alpha1.Component{
+							Addons: []blueprintv1alpha1.AddonSpec{
 								{
 									Name: "addon1",
 									Kind: "chart",
-									Manifest: &boundlessv1alpha1.ManifestInfo{
+									Manifest: &blueprintv1alpha1.ManifestInfo{
 										URL: "https://some-url",
 									},
 								},
