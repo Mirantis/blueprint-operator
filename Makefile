@@ -161,11 +161,11 @@ ENVTEST = $(LOCALBIN)/setup-envtest
 GINKGO = $(LOCALBIN)/ginkgo
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v3.8.7
-CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GINKGO_VERSION ?= v2.13.2
+KUSTOMIZE_VERSION ?= 5.4.3
+CONTROLLER_TOOLS_VERSION ?= v0.16.3
+GINKGO_VERSION ?= v2.19.0
 
-KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/release-kustomize-v$(KUSTOMIZE_VERSION)/hack/install_kustomize.sh"
 .PHONY: kustomize
 kustomize: $(LOCALBIN) ## Download kustomize locally if necessary(i.e. if not present or has the wrong version).
 	@if test -x $(LOCALBIN)/kustomize && ! $(LOCALBIN)/kustomize version | grep -q $(KUSTOMIZE_VERSION); then \
