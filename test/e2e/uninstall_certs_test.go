@@ -1,17 +1,18 @@
 package e2e
 
 import (
-	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"path/filepath"
 	"testing"
 	"time"
+
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 
 	certmanagermeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
 // TestUninstallCerts tests the uninstallation of issuers, cluster issuers, and certificates:
@@ -59,7 +60,7 @@ func TestUninstallCerts(t *testing.T) {
 		WithSetup("CreatePrerequisiteIssuers", funcs.AllOf(
 			funcs.ApplyResources(FieldManager, dir, "happypath/update.yaml"),
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/update.yaml"),
-			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager"),
+			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBlueprintSystem, "cert-manager"),
 
 			// ensure all components are installed and available before we start deleting them
 			funcs.IssuerHaveStatusWithin(2*time.Minute, newIssuer(i1), certmanagermeta.ConditionTrue),

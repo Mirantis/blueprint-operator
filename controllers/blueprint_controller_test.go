@@ -6,15 +6,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 
 const (
 	blueprintName = "test-blueprint"
 )
 
-var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBoundlessSystem}
+var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBlueprintSystem}
 
 func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 	blueprint := &v1alpha1.Blueprint{
@@ -24,7 +24,7 @@ func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      blueprintName,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 		},
 	}
 	for _, addon := range addons {
@@ -54,7 +54,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			blueprint := newBlueprint()
 			Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
-			key := types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBoundlessSystem}
+			key := types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBlueprintSystem}
 			Eventually(getObject(ctx, key, blueprint), defaultTimeout, defaultInterval).Should(BeTrue())
 		})
 	})
@@ -80,7 +80,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 				},
 			}
 
-			addonKey = types.NamespacedName{Name: addonName, Namespace: consts.NamespaceBoundlessSystem}
+			addonKey = types.NamespacedName{Name: addonName, Namespace: consts.NamespaceBlueprintSystem}
 
 		})
 		Context("Helm chart addon is added to the blueprint", func() {

@@ -23,8 +23,8 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -64,7 +64,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = boundlessv1alpha1.AddToScheme(scheme.Scheme)
+	err = blueprintv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = helmv2.AddToScheme(scheme.Scheme)
@@ -87,14 +87,14 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred(), "failed to create manager")
 
-	// Create the namespace for boundless system here as this is needed for
+	// Create the namespace for blueprint system here as this is needed for
 	// testing all the controllers
 	// Also, according to https://book.kubebuilder.io/reference/envtest.html?highlight=testing#testing-considerations
 	// the envtest does not delete namespace from the test environment.
 	// So, we can't delete and create namespace for individual tests
 	// The tests needs to be written considering this limitation
 	By("creating blueprint-system namespace")
-	createBoundlessNamespace(ctx)
+	createBlueprintNamespace(ctx)
 
 	err = (&BlueprintReconciler{
 		Client: k8sManager.GetClient(),
@@ -149,11 +149,11 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func createBoundlessNamespace(ctx context.Context) {
+func createBlueprintNamespace(ctx context.Context) {
 	GinkgoHelper()
 
 	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: consts.NamespaceBoundlessSystem},
+		ObjectMeta: metav1.ObjectMeta{Name: consts.NamespaceBlueprintSystem},
 	}
 	Expect(k8sClient.Create(ctx, ns)).Should(Succeed(), "failed to create namespace")
 }

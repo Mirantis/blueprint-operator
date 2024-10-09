@@ -12,10 +12,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/components"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
 )
 
 const (
@@ -67,7 +67,7 @@ func (c *webhook) Install(ctx context.Context) error {
 	}
 
 	// Wait for the secret to be created before creating the webhook resources
-	if err := utils.WaitForSecret(ctx, c.client, webhookServerSecretName, consts.NamespaceBoundlessSystem); err != nil {
+	if err := utils.WaitForSecret(ctx, c.client, webhookServerSecretName, consts.NamespaceBlueprintSystem); err != nil {
 		return err
 	}
 
@@ -125,7 +125,7 @@ func (c *webhook) Uninstall(ctx context.Context) error {
 // CheckExists checks if the webhook service exists in the cluster
 func (c *webhook) CheckExists(ctx context.Context) (bool, error) {
 	key := client.ObjectKey{
-		Namespace: consts.NamespaceBoundlessSystem,
+		Namespace: consts.NamespaceBlueprintSystem,
 		Name:      serviceWebhook,
 	}
 

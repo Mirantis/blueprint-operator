@@ -14,11 +14,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	operator "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/components"
-	"github.com/mirantiscontainers/boundless-operator/pkg/components/certmanager"
-	"github.com/mirantiscontainers/boundless-operator/pkg/components/fluxcd"
-	"github.com/mirantiscontainers/boundless-operator/pkg/components/webhook"
+	operator "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/components/certmanager"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/components/fluxcd"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/components/webhook"
 )
 
 var (
@@ -138,7 +138,7 @@ func TryCreateInstallationResource(log logr.Logger, client client.Client) {
 			log.Info("Installation resource already exists")
 			return
 		}
-		log.Error(err, "Installation resource has failed to create, boundless operator may not function properly. "+
+		log.Error(err, "Installation resource has failed to create, blueprint operator may not function properly. "+
 			"Please create the Installation resource manually.")
 		return
 	}

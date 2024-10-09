@@ -16,9 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 
-	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	k8s "github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	k8s "github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
 )
 
 const (
@@ -72,7 +72,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      repoName,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 		},
 		Spec: sourcev1.HelmRepositorySpec{
 			URL:  chartSpec.Repo,
@@ -93,7 +93,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 	for _, addonName := range chartSpec.DependsOn {
 		dependsOn = append(dependsOn, meta.NamespacedObjectReference{
 			Name:      addonName,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 		})
 	}
 
@@ -101,7 +101,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      releaseName,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 		},
 		Spec: helmv2.HelmReleaseSpec{
 			TargetNamespace: targetNamespace,
@@ -161,7 +161,7 @@ func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		TypeMeta: helmReleaseTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      addon.Spec.Chart.Name,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 		},
 	}
 
@@ -169,7 +169,7 @@ func (hc *Controller) DeleteHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		TypeMeta: helmRepositoryTypeMeta,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getRepoName(addon),
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 		},
 	}
 

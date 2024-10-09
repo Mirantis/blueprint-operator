@@ -12,10 +12,10 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 
-	"github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 
 func newAddon(a metav1.ObjectMeta) *v1alpha1.Addon {
@@ -82,7 +82,7 @@ func ApplyCleanupBlueprint() features.Func {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "blueprint-cluster",
-				Namespace: consts.NamespaceBoundlessSystem,
+				Namespace: consts.NamespaceBlueprintSystem,
 			},
 			Spec: v1alpha1.BlueprintSpec{
 				Resources: v1alpha1.Resources{},

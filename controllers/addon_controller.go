@@ -20,12 +20,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/helm"
-	"github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
-	"github.com/mirantiscontainers/boundless-operator/pkg/event"
-	k8s "github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/controllers/helm"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/controllers/manifest"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/event"
+	k8s "github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
 )
 
 const (
@@ -78,7 +78,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	r.helmController = helm.NewHelmChartController(r.Client, k8sClient, logger)
 	r.manifestController = manifest.NewManifestController(r.Client, logger)
 
-	instance := &boundlessv1alpha1.Addon{}
+	instance := &blueprintv1alpha1.Addon{}
 	if err = r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Addon instance not found. Ignoring since object must be deleted.", "Name", req.Name)
@@ -155,7 +155,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 
 		releaseName := instance.Spec.Name
-		releaseKey := types.NamespacedName{Namespace: consts.NamespaceBoundlessSystem, Name: releaseName}
+		releaseKey := types.NamespacedName{Namespace: consts.NamespaceBlueprintSystem, Name: releaseName}
 
 		release := &helmv2.HelmRelease{}
 		if err = r.Get(ctx, releaseKey, release); err != nil {
@@ -172,17 +172,17 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		}
 
 	case kindManifest:
-		if err = r.manifestController.CreateManifest(ctx, consts.NamespaceBoundlessSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
+		if err = r.manifestController.CreateManifest(ctx, consts.NamespaceBlueprintSystem, instance.Spec.Name, instance.Spec.Manifest); err != nil {
 			logger.Error(err, "failed to install addon via manifest", "URL", instance.Spec.Manifest.URL)
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "Failed to Create Manifest Addon %s/%s : %s", instance.Spec.Namespace, instance.Name, err)
 			return ctrl.Result{}, err
 		}
 
-		m := &boundlessv1alpha1.Manifest{}
-		if err = r.Get(ctx, types.NamespacedName{Namespace: consts.NamespaceBoundlessSystem, Name: instance.Spec.Name}, m); err != nil {
+		m := &blueprintv1alpha1.Manifest{}
+		if err = r.Get(ctx, types.NamespacedName{Namespace: consts.NamespaceBlueprintSystem, Name: instance.Spec.Name}, m); err != nil {
 			if apierrors.IsNotFound(err) {
 				// might need some time for CR to  be created
-				r.updateStatus(ctx, logger, req.NamespacedName, boundlessv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
+				r.updateStatus(ctx, logger, req.NamespacedName, blueprintv1alpha1.TypeComponentProgressing, "Awaiting Manifest Resource Creation")
 				logger.Info("Manifest resources not yet found", "Name", instance.Spec.Name, "Requeue", true)
 				return ctrl.Result{RequeueAfter: DefaultRequeueDuration}, nil
 			}
@@ -204,7 +204,7 @@ func (r *AddonReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	return ctrl.Result{}, nil
 }
 
-func (r *AddonReconciler) deleteAddon(ctx context.Context, addon *boundlessv1alpha1.Addon) error {
+func (r *AddonReconciler) deleteAddon(ctx context.Context, addon *blueprintv1alpha1.Addon) error {
 	switch addon.Spec.Kind {
 	case kindChart:
 		if err := r.helmController.DeleteHelmRelease(ctx, addon); err != nil {
@@ -213,7 +213,7 @@ func (r *AddonReconciler) deleteAddon(ctx context.Context, addon *boundlessv1alp
 		}
 	case kindManifest:
 		// our finalizer is present, so lets delete the helm chart
-		if err := r.manifestController.DeleteManifest(ctx, consts.NamespaceBoundlessSystem, addon.Spec.Name, addon.Spec.Manifest.URL); err != nil {
+		if err := r.manifestController.DeleteManifest(ctx, consts.NamespaceBlueprintSystem, addon.Spec.Name, addon.Spec.Manifest.URL); err != nil {
 			r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedDelete, "Failed to Delete Manifest Addon %s/%s : %s", addon.Spec.Namespace, addon.Name, err)
 			return err
 		}
@@ -224,9 +224,9 @@ func (r *AddonReconciler) deleteAddon(ctx context.Context, addon *boundlessv1alp
 }
 
 // updateManifestAddonStatus checks if the manifest associated with the addon has a status to bubble up to addon and updates addon if so
-func (r *AddonReconciler) updateManifestAddonStatus(ctx context.Context, logger logr.Logger, addon *boundlessv1alpha1.Addon, manifest *boundlessv1alpha1.Manifest) error {
+func (r *AddonReconciler) updateManifestAddonStatus(ctx context.Context, logger logr.Logger, addon *blueprintv1alpha1.Addon, manifest *blueprintv1alpha1.Manifest) error {
 	if manifest.Status.Type == "" || manifest.Status.Reason == "" {
-		err := r.updateStatus(ctx, logger, types.NamespacedName{Namespace: addon.Namespace, Name: addon.Name}, boundlessv1alpha1.TypeComponentProgressing, "Awaiting status from manifest object")
+		err := r.updateStatus(ctx, logger, types.NamespacedName{Namespace: addon.Namespace, Name: addon.Name}, blueprintv1alpha1.TypeComponentProgressing, "Awaiting status from manifest object")
 		if err != nil {
 			return err
 		}
@@ -234,7 +234,7 @@ func (r *AddonReconciler) updateManifestAddonStatus(ctx context.Context, logger 
 		return nil
 	}
 
-	if manifest.Status.Type == boundlessv1alpha1.TypeComponentAvailable && addon.Status.Type != boundlessv1alpha1.TypeComponentAvailable {
+	if manifest.Status.Type == blueprintv1alpha1.TypeComponentAvailable && addon.Status.Type != blueprintv1alpha1.TypeComponentAvailable {
 		// we are about to update the addon status from not available to available so let's emit an event
 		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Manifest Addon %s/%s", addon.Spec.Namespace, addon.Name)
 	}
@@ -248,7 +248,7 @@ func (r *AddonReconciler) updateManifestAddonStatus(ctx context.Context, logger 
 
 // setOwnerReferenceOnManifest sets the owner reference on the manifest object to point to the addon object
 // This effectively causes the owner addon to be reconciled when the manifest is updated.
-func (r *AddonReconciler) setOwnerReferenceOnManifest(ctx context.Context, logger logr.Logger, addon *boundlessv1alpha1.Addon, manifest *boundlessv1alpha1.Manifest) error {
+func (r *AddonReconciler) setOwnerReferenceOnManifest(ctx context.Context, logger logr.Logger, addon *blueprintv1alpha1.Addon, manifest *blueprintv1alpha1.Manifest) error {
 	logger.Info("Set owner ref field on manifest")
 	if err := controllerutil.SetControllerReference(addon, manifest, r.Scheme); err != nil {
 		logger.Error(err, "Failed to set owner reference on manifest", "ManifestName", manifest.Name)
@@ -264,30 +264,30 @@ func (r *AddonReconciler) setOwnerReferenceOnManifest(ctx context.Context, logge
 // SetupWithManager sets up the controller with the Manager.
 func (r *AddonReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&boundlessv1alpha1.Addon{}).
-		Owns(&boundlessv1alpha1.Manifest{}).
+		For(&blueprintv1alpha1.Addon{}).
+		Owns(&blueprintv1alpha1.Manifest{}).
 		Owns(&helmv2.HelmRelease{}, builder.WithPredicates(predicate.ResourceVersionChangedPredicate{})).
 		Complete(r)
 }
 
 // updateHelmChartAddonStatus checks the status of the associated helm release and updates the status of the Addon CR accordingly
-func (r *AddonReconciler) updateHelmChartAddonStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, release *helmv2.HelmRelease, addon *boundlessv1alpha1.Addon) error {
+func (r *AddonReconciler) updateHelmChartAddonStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, release *helmv2.HelmRelease, addon *blueprintv1alpha1.Addon) error {
 	logger.Info("Updating Helm Chart Addon Status")
 	releaseStatus := helm.DetermineReleaseStatus(release)
 	if releaseStatus == helm.ReleaseStatusSuccess {
 		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeNormal, event.ReasonSuccessfulCreate, "Created Chart Addon %s/%s", addon.Spec.Namespace, addon.Name)
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentAvailable, fmt.Sprintf("Helm Chart %s successfully installed", release.Name))
+		err := r.updateStatus(ctx, logger, namespacedName, blueprintv1alpha1.TypeComponentAvailable, fmt.Sprintf("Helm Chart %s successfully installed", release.Name))
 		if err != nil {
 			return err
 		}
 	} else if releaseStatus == helm.ReleaseStatusFailed {
 		r.Recorder.AnnotatedEventf(addon, map[string]string{event.AddonAnnotationKey: addon.Name}, event.TypeWarning, event.ReasonFailedCreate, "Helm Chart Addon %s/%s has failed to install", addon.Spec.Namespace, addon.Name)
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Helm Chart %s install has failed", release.Name))
+		err := r.updateStatus(ctx, logger, namespacedName, blueprintv1alpha1.TypeComponentUnhealthy, fmt.Sprintf("Helm Chart %s install has failed", release.Name))
 		if err != nil {
 			return err
 		}
 	} else {
-		err := r.updateStatus(ctx, logger, namespacedName, boundlessv1alpha1.TypeComponentProgressing, fmt.Sprintf("Helm Chart %s install still progressing", release.Name))
+		err := r.updateStatus(ctx, logger, namespacedName, blueprintv1alpha1.TypeComponentProgressing, fmt.Sprintf("Helm Chart %s install still progressing", release.Name))
 		if err != nil {
 			return err
 		}
@@ -298,17 +298,17 @@ func (r *AddonReconciler) updateHelmChartAddonStatus(ctx context.Context, logger
 // updateStatus queries for a fresh Addon with the provided namespacedName.
 // This avoids some errors where we fail to update status because we have an older (stale) version of the object
 // It then updates the Addon's status fields with the provided type, reason, and optionally message.
-func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
+func (r *AddonReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply blueprintv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
 	logger.Info("Update status with type and reason", "TypeToApply", typeToApply, "ReasonToApply", reasonToApply)
 
-	addon := &boundlessv1alpha1.Addon{}
+	addon := &blueprintv1alpha1.Addon{}
 	err := r.Get(ctx, namespacedName, addon)
 	if err != nil {
 		logger.Error(err, "Failed to get addon to update status")
 		return err
 	}
 
-	nilStatus := boundlessv1alpha1.AddonStatus{}
+	nilStatus := blueprintv1alpha1.AddonStatus{}
 	if addon.Status != nilStatus && addon.Status.Type == typeToApply && addon.Status.Reason == reasonToApply {
 		// avoid infinite reconciliation loops
 		logger.Info("No updates to status needed")

@@ -10,8 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
 // TestInstallCerts tests the installation of two issuers and one cluster issuer
@@ -74,7 +74,7 @@ func TestInstallCerts(t *testing.T) {
 		WithSetup("CreateBlueprint", funcs.AllOf(
 			funcs.ApplyResources(FieldManager, dir, "happypath/create.yaml"),
 			funcs.ResourcesCreatedWithin(DefaultWaitTimeout, dir, "happypath/create.yaml"),
-			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBoundlessSystem, "cert-manager"),
+			funcs.DeploymentBecomesAvailableWithin(DefaultWaitTimeout, consts.NamespaceBlueprintSystem, "cert-manager"),
 		)).
 		Assess("TwoIssuersAreCreated", funcs.AllOf(
 			funcs.ComponentResourcesCreatedWithin(DefaultWaitTimeout, i1),
