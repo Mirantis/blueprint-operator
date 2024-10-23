@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -32,7 +33,7 @@ type ChartInfo struct {
 
 	DependsOn []string                      `json:"dependsOn,omitempty"`
 	Set       map[string]intstr.IntOrString `json:"set,omitempty"`
-	Values    string                        `json:"values,omitempty"`
+	Values    *apiextensionsv1.JSON         `json:"values,omitempty"`
 }
 
 type ManifestInfo struct {
