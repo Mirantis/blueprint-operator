@@ -80,12 +80,6 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		},
 	}
 
-	//var values *apiextensionsv1.JSON
-	//if chartSpec.Values != "" {
-	//	v, _ := yaml.YAMLToJSON([]byte(chartSpec.Values))
-	//	values = &apiextensionsv1.JSON{Raw: v}
-	//}
-
 	var dependsOn []meta.NamespacedObjectReference
 	for _, addonName := range chartSpec.DependsOn {
 		dependsOn = append(dependsOn, meta.NamespacedObjectReference{
