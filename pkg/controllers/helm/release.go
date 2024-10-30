@@ -10,15 +10,12 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/go-logr/logr"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/yaml"
-
 	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	k8s "github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -83,12 +80,6 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 		},
 	}
 
-	var values *apiextensionsv1.JSON
-	if chartSpec.Values != "" {
-		v, _ := yaml.YAMLToJSON([]byte(chartSpec.Values))
-		values = &apiextensionsv1.JSON{Raw: v}
-	}
-
 	var dependsOn []meta.NamespacedObjectReference
 	for _, addonName := range chartSpec.DependsOn {
 		dependsOn = append(dependsOn, meta.NamespacedObjectReference{
@@ -135,7 +126,7 @@ func (hc *Controller) CreateHelmRelease(ctx context.Context, addon *v1alpha1.Add
 			DriftDetection: &helmv2.DriftDetection{
 				Mode: helmv2.DriftDetectionEnabled,
 			},
-			Values: values,
+			Values: chartSpec.Values,
 			Interval: metav1.Duration{
 				Duration: driftDetectionInterval,
 			},
