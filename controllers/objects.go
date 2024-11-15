@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,7 +49,8 @@ func deleteObjects(ctx context.Context, logger logr.Logger, apiClient client.Cli
 		// Only delete the resources(cert/issuer) that are managed by BOP.
 		// This check can be removed once we add the label in all
 		// the objects created by BOP (https://mirantis.jira.com/browse/BOP-919).
-		if o.GetObjectKind().GroupVersionKind().Kind == "Certificate" || o.GetObjectKind().GroupVersionKind().Kind == "Issuer" {
+		kind := o.GetObjectKind().GroupVersionKind().Kind
+		if slices.Contains([]string{"Certificate", "Issuer", "ClusterIssuer"}, kind) {
 			if o.GetLabels()["app.kubernetes.io/managed-by"] != "blueprint-operator" {
 				logger.Info("Skipping deletion of ", "Kind", o.GetObjectKind().GroupVersionKind().Kind)
 				continue

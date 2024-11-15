@@ -9,15 +9,18 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
-
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
+
+// managedByBOPSelector only selects objects with the label indicating that the object is managed by blueprint operator
+var managedByBOPSelector = utils.MustLabelSelector("app.kubernetes.io/managed-by", selection.Equals, []string{"blueprint-operator"})
 
 // BlueprintReconciler reconciles a Blueprint object
 type BlueprintReconciler struct {
@@ -284,7 +287,7 @@ func certificateObject(certificate blueprintv1alpha1.Certificate) client.Object 
 
 func listIssuers(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
 	issuerList := &certmanager.IssuerList{}
-	if err := apiClient.List(ctx, issuerList); err != nil {
+	if err := apiClient.List(ctx, issuerList, managedByBOPSelector); err != nil {
 		return nil, err
 	}
 
@@ -293,7 +296,7 @@ func listIssuers(ctx context.Context, apiClient client.Client) ([]client.Object,
 
 func listClusterIssuers(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
 	clusterIssuerList := &certmanager.ClusterIssuerList{}
-	if err := apiClient.List(ctx, clusterIssuerList); err != nil {
+	if err := apiClient.List(ctx, clusterIssuerList, managedByBOPSelector); err != nil {
 		return nil, err
 	}
 
@@ -302,7 +305,7 @@ func listClusterIssuers(ctx context.Context, apiClient client.Client) ([]client.
 
 func listCertificates(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
 	certificateList := &certmanager.CertificateList{}
-	if err := apiClient.List(ctx, certificateList); err != nil {
+	if err := apiClient.List(ctx, certificateList, managedByBOPSelector); err != nil {
 		return nil, err
 	}
 
