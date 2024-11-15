@@ -1,10 +1,14 @@
 package controllers
 
 import (
+	"context"
+
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
@@ -122,6 +126,88 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 				createdAddon := &v1alpha1.Addon{}
 				Eventually(getObject(ctx, addonKey, createdAddon), defaultTimeout, defaultInterval).Should(BeFalse())
 			})
+		})
+	})
+})
+
+var _ = Describe("Object operations", func() {
+	Context("issuers", func() {
+		It("only lists BOP managed issuers", func(ctx context.Context) {
+			fakeClient := fake.NewClientBuilder().WithObjects(
+				&v1.Issuer{ObjectMeta: metav1.ObjectMeta{
+					Name:      "issuer1",
+					Namespace: "ns1",
+					Labels:    map[string]string{consts.ManagedByLabel: consts.ManagedByValue},
+				}},
+				&v1.Issuer{ObjectMeta: metav1.ObjectMeta{
+					Name:      "issuer2",
+					Namespace: "ns2",
+					Labels:    nil,
+				}},
+			).Build()
+
+			objs, err := listIssuers(ctx, fakeClient)
+			Expect(err).To(BeNil())
+
+			Expect(objs).To(HaveLen(1))
+			Expect(objs[0].GetName()).To(Equal("issuer1"))
+		})
+
+		It("creates issuer with BOP managed label", func(ctx context.Context) {
+			issuer := issuerObject(v1alpha1.Issuer{Name: "issuer1", Namespace: "ns1"})
+			Expect(issuer.GetLabels()[consts.ManagedByLabel]).To(Equal(consts.ManagedByValue))
+		})
+	})
+
+	Context("cluster issuers", func() {
+		It("only lists BOP managed cluster issuers", func(ctx context.Context) {
+			fakeClient := fake.NewClientBuilder().WithObjects(
+				&v1.ClusterIssuer{ObjectMeta: metav1.ObjectMeta{
+					Name:   "clusterissuer1",
+					Labels: map[string]string{consts.ManagedByLabel: consts.ManagedByValue},
+				}},
+				&v1.ClusterIssuer{ObjectMeta: metav1.ObjectMeta{
+					Name:   "clusterissuer2",
+					Labels: nil,
+				}},
+			).Build()
+
+			objs, err := listClusterIssuers(ctx, fakeClient)
+			Expect(err).To(BeNil())
+
+			Expect(objs).To(HaveLen(1))
+			Expect(objs[0].GetName()).To(Equal("clusterissuer1"))
+		})
+
+		It("creates cluster issuer with BOP managed label", func(ctx context.Context) {
+			issuer := clusterIssuerObject(v1alpha1.ClusterIssuer{Name: "clusterissuer1"})
+			Expect(issuer.GetLabels()[consts.ManagedByLabel]).To(Equal(consts.ManagedByValue))
+		})
+	})
+
+	Context("certificates", func() {
+		It("only lists BOP managed certificates", func(ctx context.Context) {
+			fakeClient := fake.NewClientBuilder().WithObjects(
+				&v1.Certificate{ObjectMeta: metav1.ObjectMeta{
+					Name:   "certificate1",
+					Labels: map[string]string{consts.ManagedByLabel: consts.ManagedByValue},
+				}},
+				&v1.Certificate{ObjectMeta: metav1.ObjectMeta{
+					Name:   "certificate2",
+					Labels: nil,
+				}},
+			).Build()
+
+			objs, err := listCertificates(ctx, fakeClient)
+			Expect(err).To(BeNil())
+
+			Expect(objs).To(HaveLen(1))
+			Expect(objs[0].GetName()).To(Equal("certificate1"))
+		})
+
+		It("creates certificate with BOP managed label", func(ctx context.Context) {
+			issuer := certificateObject(v1alpha1.Certificate{Name: "certificate1"})
+			Expect(issuer.GetLabels()[consts.ManagedByLabel]).To(Equal(consts.ManagedByValue))
 		})
 	})
 })
