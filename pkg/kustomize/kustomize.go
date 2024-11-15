@@ -2,6 +2,7 @@ package kustomize
 
 import (
 	"fmt"
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/kustomize/api/konfig"
@@ -11,8 +12,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	kustypes "sigs.k8s.io/kustomize/api/types"
-
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
 
 // Render uses the manifest url and values from the blueprint and generates kustomization.yaml.

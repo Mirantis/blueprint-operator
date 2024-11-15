@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"path/filepath"
 	"testing"
 	"time"
@@ -9,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )

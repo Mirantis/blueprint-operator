@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	operator "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -14,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	operator "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components/certmanager"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components/fluxcd"

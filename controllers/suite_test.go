@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"path/filepath"
 	"testing"
 	"time"
@@ -23,7 +24,6 @@ import (
 	helmv2 "github.com/fluxcd/helm-controller/api/v2"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	//+kubebuilder:scaffold:imports
 )
@@ -51,7 +51,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "client", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 
 		// Set to true to see controller logs

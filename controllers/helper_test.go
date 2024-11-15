@@ -2,14 +2,13 @@ package controllers
 
 import (
 	"context"
+	v1alpha12 "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	runtimeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
-
-	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
 
 const (
@@ -32,11 +31,11 @@ func getObject(ctx context.Context, key runtimeclient.ObjectKey, obj runtimeclie
 	}
 }
 
-func createOrUpdateBlueprint(ctx context.Context, new *v1alpha1.Blueprint) error {
+func createOrUpdateBlueprint(ctx context.Context, new *v1alpha12.Blueprint) error {
 	GinkgoHelper()
 
 	cp := new.DeepCopy()
-	existing := &v1alpha1.Blueprint{}
+	existing := &v1alpha12.Blueprint{}
 	_ = k8sClient.Get(ctx, blueprintLookupKey, existing)
 	if existing.Name != "" {
 		// Copy addons from new object to existing
@@ -49,7 +48,7 @@ func createOrUpdateBlueprint(ctx context.Context, new *v1alpha1.Blueprint) error
 	return k8sClient.Create(ctx, cp)
 }
 
-func assertAddon(expected, actual v1alpha1.AddonSpec) {
+func assertAddon(expected, actual v1alpha12.AddonSpec) {
 	GinkgoHelper()
 
 	Expect(actual.Name).Should(Equal(expected.Name))
@@ -71,7 +70,7 @@ func assertAddon(expected, actual v1alpha1.AddonSpec) {
 	}
 }
 
-func containsAddon(list []v1alpha1.AddonSpec, ns, name string) bool {
+func containsAddon(list []v1alpha12.AddonSpec, ns, name string) bool {
 	for _, a := range list {
 		if a.Namespace == ns && a.Name == name {
 			return true
