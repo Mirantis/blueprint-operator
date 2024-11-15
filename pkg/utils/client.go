@@ -11,7 +11,7 @@ import (
 func MustLabelSelector(key string, operator selection.Operator, values []string) client.MatchingLabelsSelector {
 	req, err := labels.NewRequirement(key, operator, values)
 	if err != nil {
-		panic("bad requirement: " + err.Error())
+		panic("panic creating label selector requirement: " + err.Error())
 	}
 
 	selector := labels.NewSelector().Add(*req)

@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
 )
 
@@ -51,7 +52,7 @@ func deleteObjects(ctx context.Context, logger logr.Logger, apiClient client.Cli
 		// the objects created by BOP (https://mirantis.jira.com/browse/BOP-919).
 		kind := o.GetObjectKind().GroupVersionKind().Kind
 		if slices.Contains([]string{"Certificate", "Issuer", "ClusterIssuer"}, kind) {
-			if o.GetLabels()["app.kubernetes.io/managed-by"] != "blueprint-operator" {
+			if o.GetLabels()[consts.ManagedByLabel] != consts.ManagedByValue {
 				logger.Info("Skipping deletion of ", "Kind", o.GetObjectKind().GroupVersionKind().Kind)
 				continue
 			}

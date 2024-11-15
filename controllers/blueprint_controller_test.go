@@ -137,7 +137,7 @@ var _ = Describe("Object operations", func() {
 				&v1.Issuer{ObjectMeta: metav1.ObjectMeta{
 					Name:      "issuer1",
 					Namespace: "ns1",
-					Labels:    map[string]string{"app.kubernetes.io/managed-by": "blueprint-operator"},
+					Labels:    map[string]string{consts.ManagedByLabel: consts.ManagedByValue},
 				}},
 				&v1.Issuer{ObjectMeta: metav1.ObjectMeta{
 					Name:      "issuer2",
@@ -155,7 +155,7 @@ var _ = Describe("Object operations", func() {
 
 		It("creates issuer with BOP managed label", func(ctx context.Context) {
 			issuer := issuerObject(v1alpha1.Issuer{Name: "issuer1", Namespace: "ns1"})
-			Expect(issuer.GetLabels()["app.kubernetes.io/managed-by"]).To(Equal("blueprint-operator"))
+			Expect(issuer.GetLabels()[consts.ManagedByLabel]).To(Equal(consts.ManagedByValue))
 		})
 	})
 
@@ -164,7 +164,7 @@ var _ = Describe("Object operations", func() {
 			fakeClient := fake.NewClientBuilder().WithObjects(
 				&v1.ClusterIssuer{ObjectMeta: metav1.ObjectMeta{
 					Name:   "clusterissuer1",
-					Labels: map[string]string{"app.kubernetes.io/managed-by": "blueprint-operator"},
+					Labels: map[string]string{consts.ManagedByLabel: consts.ManagedByValue},
 				}},
 				&v1.ClusterIssuer{ObjectMeta: metav1.ObjectMeta{
 					Name:   "clusterissuer2",
@@ -181,7 +181,7 @@ var _ = Describe("Object operations", func() {
 
 		It("creates cluster issuer with BOP managed label", func(ctx context.Context) {
 			issuer := clusterIssuerObject(v1alpha1.ClusterIssuer{Name: "clusterissuer1"})
-			Expect(issuer.GetLabels()["app.kubernetes.io/managed-by"]).To(Equal("blueprint-operator"))
+			Expect(issuer.GetLabels()[consts.ManagedByLabel]).To(Equal(consts.ManagedByValue))
 		})
 	})
 
@@ -190,7 +190,7 @@ var _ = Describe("Object operations", func() {
 			fakeClient := fake.NewClientBuilder().WithObjects(
 				&v1.Certificate{ObjectMeta: metav1.ObjectMeta{
 					Name:   "certificate1",
-					Labels: map[string]string{"app.kubernetes.io/managed-by": "blueprint-operator"},
+					Labels: map[string]string{consts.ManagedByLabel: consts.ManagedByValue},
 				}},
 				&v1.Certificate{ObjectMeta: metav1.ObjectMeta{
 					Name:   "certificate2",
@@ -207,7 +207,7 @@ var _ = Describe("Object operations", func() {
 
 		It("creates certificate with BOP managed label", func(ctx context.Context) {
 			issuer := certificateObject(v1alpha1.Certificate{Name: "certificate1"})
-			Expect(issuer.GetLabels()["app.kubernetes.io/managed-by"]).To(Equal("blueprint-operator"))
+			Expect(issuer.GetLabels()[consts.ManagedByLabel]).To(Equal(consts.ManagedByValue))
 		})
 	})
 })

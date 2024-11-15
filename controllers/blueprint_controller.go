@@ -20,7 +20,7 @@ import (
 )
 
 // managedByBOPSelector only selects objects with the label indicating that the object is managed by blueprint operator
-var managedByBOPSelector = utils.MustLabelSelector("app.kubernetes.io/managed-by", selection.Equals, []string{"blueprint-operator"})
+var managedByBOPSelector = utils.MustLabelSelector(consts.ManagedByLabel, selection.Equals, []string{consts.ManagedByValue})
 
 // BlueprintReconciler reconciles a Blueprint object
 type BlueprintReconciler struct {
@@ -245,7 +245,7 @@ func issuerObject(issuer blueprintv1alpha1.Issuer) client.Object {
 			Name:      issuer.Name,
 			Namespace: issuer.Namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
+				consts.ManagedByLabel: consts.ManagedByValue,
 			},
 		},
 		Spec: issuer.Spec,
@@ -261,7 +261,7 @@ func clusterIssuerObject(issuer blueprintv1alpha1.ClusterIssuer) client.Object {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: issuer.Name,
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
+				consts.ManagedByLabel: consts.ManagedByValue,
 			},
 		},
 		Spec: issuer.Spec,
@@ -278,7 +278,7 @@ func certificateObject(certificate blueprintv1alpha1.Certificate) client.Object 
 			Name:      certificate.Name,
 			Namespace: certificate.Namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
+				consts.ManagedByLabel: consts.ManagedByValue,
 			},
 		},
 		Spec: certificate.Spec,

@@ -24,14 +24,14 @@ func TestInstallCerts(t *testing.T) {
 		Name:      "test-issuer-1",
 		Namespace: "test-issuer-ns-1",
 		Labels: map[string]string{
-			"app.kubernetes.io/managed-by": "blueprint-operator",
+			consts.ManagedByLabel: consts.ManagedByValue,
 		},
 	})
 	i2 := newIssuer(metav1.ObjectMeta{
 		Name:      "test-issuer-2",
 		Namespace: "test-issuer-ns-1",
 		Labels: map[string]string{
-			"app.kubernetes.io/managed-by": "blueprint-operator",
+			consts.ManagedByLabel: consts.ManagedByValue,
 		},
 	})
 
@@ -41,7 +41,7 @@ func TestInstallCerts(t *testing.T) {
 		Name:      "test-cert-1",
 		Namespace: "test-issuer-ns-1",
 		Labels: map[string]string{
-			"app.kubernetes.io/managed-by": "blueprint-operator",
+			consts.ManagedByLabel: consts.ManagedByValue,
 		},
 	})
 	cert1Specs := certmanager.CertificateSpec{
@@ -57,7 +57,7 @@ func TestInstallCerts(t *testing.T) {
 		Name:      "test-cert-2",
 		Namespace: "test-cert-ns-1",
 		Labels: map[string]string{
-			"app.kubernetes.io/managed-by": "blueprint-operator",
+			consts.ManagedByLabel: consts.ManagedByValue,
 		},
 	})
 	cert2Specs := certmanager.CertificateSpec{
