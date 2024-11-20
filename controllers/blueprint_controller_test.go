@@ -4,7 +4,7 @@ import (
 	"context"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	v1alpha12 "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,8 +20,8 @@ const (
 
 var blueprintLookupKey = types.NamespacedName{Name: blueprintName, Namespace: consts.NamespaceBlueprintSystem}
 
-func newBlueprint(addons ...v1alpha12.AddonSpec) *v1alpha12.Blueprint {
-	blueprint := &v1alpha12.Blueprint{
+func newBlueprint(addons ...v1alpha1.AddonSpec) *v1alpha1.Blueprint {
+	blueprint := &v1alpha1.Blueprint{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "blueprint.mirantis.com/v1alpha1",
 			Kind:       "Blueprint",
@@ -65,19 +65,19 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 
 	Context("A blueprint is updated", func() {
 		var addonName, addonNamespace string
-		var helmAddon v1alpha12.AddonSpec
+		var helmAddon v1alpha1.AddonSpec
 		var addonKey types.NamespacedName
 
 		BeforeEach(func() {
 			addonName = randomName("addon")
 			addonNamespace = randomName("ns")
 
-			helmAddon = v1alpha12.AddonSpec{
+			helmAddon = v1alpha1.AddonSpec{
 				Name:      addonName,
 				Namespace: addonNamespace,
 				Enabled:   true,
 				Kind:      "chart",
-				Chart: &v1alpha12.ChartInfo{
+				Chart: &v1alpha1.ChartInfo{
 					Name:    "nginx",
 					Repo:    "https://charts.bitnami.com/bitnami",
 					Version: "16.0.0",
@@ -95,13 +95,13 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			})
 
 			It("Should create blueprint with addon successfully", func() {
-				b := &v1alpha12.Blueprint{}
+				b := &v1alpha1.Blueprint{}
 				Eventually(getObject(ctx, blueprintLookupKey, b)).Should(BeTrue())
 				Expect(containsAddon(b.Spec.Components.Addons, addonNamespace, addonName)).Should(BeTrue(), "addon %s/%s does not existing in the list", addonNamespace, addonName)
 			})
 
 			It("Should create the correct addon resource", func() {
-				actual := &v1alpha12.Addon{}
+				actual := &v1alpha1.Addon{}
 				Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 			})
@@ -114,7 +114,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 				Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
 
 				By("Waiting for addon to be created")
-				actual := &v1alpha12.Addon{}
+				actual := &v1alpha1.Addon{}
 				Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
 				assertAddon(helmAddon, actual.Spec)
 
@@ -123,7 +123,7 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 				Expect(createOrUpdateBlueprint(ctx, empty)).Should(Succeed())
 
 				By("Checking if addon is removed")
-				createdAddon := &v1alpha12.Addon{}
+				createdAddon := &v1alpha1.Addon{}
 				Eventually(getObject(ctx, addonKey, createdAddon), defaultTimeout, defaultInterval).Should(BeFalse())
 			})
 		})
