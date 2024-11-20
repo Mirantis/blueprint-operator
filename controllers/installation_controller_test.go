@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	operator "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -11,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 
@@ -31,7 +31,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 
 	Context("Reconcile tests", func() {
 		It("Finalizer should be added", func() {
-			obj := &operator.Installation{}
+			obj := &v1alpha1.Installation{}
 			lookupKey := types.NamespacedName{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}
 
 			// getFinalizers returns the finalizers of the object
@@ -47,7 +47,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 		})
 		It("Should create Installation resource", func() {
 			lookupKey := types.NamespacedName{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}
-			Eventually(getObject(context.TODO(), lookupKey, &operator.Installation{}), defaultTimeout, defaultInterval).Should(BeTrue())
+			Eventually(getObject(context.TODO(), lookupKey, &v1alpha1.Installation{}), defaultTimeout, defaultInterval).Should(BeTrue())
 		})
 		It("Should install helm controller", func() {
 			dep := &appsv1.Deployment{}
@@ -81,7 +81,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 	Context("When Installation resource is deleted", func() {
 		BeforeAll(func() {
 			// Delete the Installation
-			install := &operator.Installation{}
+			install := &v1alpha1.Installation{}
 			lookupKey := types.NamespacedName{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}
 			Expect(k8sClient.Get(context.TODO(), lookupKey, install)).Should(Succeed())
 			Expect(k8sClient.Delete(context.TODO(), install)).Should(Succeed())
@@ -98,7 +98,7 @@ var _ = Describe("Testing installation controller", Ordered, Serial, func() {
 		})
 		AfterAll(func() {
 			// Create the Installation again to avoid the error in the next tests
-			install := &operator.Installation{
+			install := &v1alpha1.Installation{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      DefaultInstanceKey.Name,
 					Namespace: DefaultInstanceKey.Namespace,

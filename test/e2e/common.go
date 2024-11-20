@@ -2,7 +2,7 @@ package e2e
 
 import (
 	"context"
-	v1alpha12 "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
+
 	"testing"
 	"time"
 
@@ -13,13 +13,13 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
-
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
-func newAddon(a metav1.ObjectMeta) *v1alpha12.Addon {
-	return &v1alpha12.Addon{
+func newAddon(a metav1.ObjectMeta) *v1alpha1.Addon {
+	return &v1alpha1.Addon{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Addon",
 			APIVersion: "blueprint.mirantis.com/v1alpha1",
@@ -75,7 +75,7 @@ func newCertificate(cert metav1.ObjectMeta) *certmanager.Certificate {
 // This is used to clean up the cluster after the tests
 func ApplyCleanupBlueprint() features.Func {
 	return func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-		dep := &v1alpha12.Blueprint{
+		dep := &v1alpha1.Blueprint{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Blueprint",
 				APIVersion: "blueprint.mirantis.com/v1alpha1",
@@ -84,10 +84,10 @@ func ApplyCleanupBlueprint() features.Func {
 				Name:      "blueprint-cluster",
 				Namespace: consts.NamespaceBlueprintSystem,
 			},
-			Spec: v1alpha12.BlueprintSpec{
-				Resources: v1alpha12.Resources{},
-				Components: v1alpha12.Component{
-					Addons: []v1alpha12.AddonSpec{},
+			Spec: v1alpha1.BlueprintSpec{
+				Resources: v1alpha1.Resources{},
+				Components: v1alpha1.Component{
+					Addons: []v1alpha1.AddonSpec{},
 				},
 			},
 		}

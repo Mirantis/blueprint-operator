@@ -2,21 +2,21 @@ package kustomize
 
 import (
 	"fmt"
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/kustomize/api/konfig"
 	"sigs.k8s.io/kustomize/api/krusty"
+	kustypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
 	"sigs.k8s.io/kustomize/kyaml/resid"
 	"sigs.k8s.io/yaml"
 
-	kustypes "sigs.k8s.io/kustomize/api/types"
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 )
 
 // Render uses the manifest url and values from the blueprint and generates kustomization.yaml.
 // It also generates kustomize build output and returns it.
-func Render(logger logr.Logger, url string, values *blueprintv1alpha1.Values) ([]byte, error) {
+func Render(logger logr.Logger, url string, values *v1alpha1.Values) ([]byte, error) {
 	fs := filesys.MakeFsInMemory()
 
 	kus := kustypes.Kustomization{
@@ -88,7 +88,7 @@ func Render(logger logr.Logger, url string, values *blueprintv1alpha1.Values) ([
 
 }
 
-func convertSelector(target *blueprintv1alpha1.Selector) *kustypes.Selector {
+func convertSelector(target *v1alpha1.Selector) *kustypes.Selector {
 	if target == nil {
 		return nil
 	}
@@ -108,7 +108,7 @@ func convertSelector(target *blueprintv1alpha1.Selector) *kustypes.Selector {
 	}
 }
 
-func convertImage(image blueprintv1alpha1.Image) kustypes.Image {
+func convertImage(image v1alpha1.Image) kustypes.Image {
 	return kustypes.Image{
 		Name:      image.Name,
 		NewName:   image.NewName,

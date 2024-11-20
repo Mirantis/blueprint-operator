@@ -3,7 +3,6 @@ package manifest
 import (
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
@@ -14,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/test/mocks"
 )
 

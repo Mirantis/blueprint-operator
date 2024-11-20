@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"slices"
 	"time"
 
@@ -21,6 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/controllers/helm"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/controllers/manifest"

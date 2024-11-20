@@ -3,7 +3,6 @@ package funcs
 import (
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"os"
 	"strings"
 	"testing"
@@ -21,6 +20,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 

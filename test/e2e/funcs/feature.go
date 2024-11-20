@@ -3,7 +3,6 @@ package funcs
 import (
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -27,6 +26,8 @@ import (
 	"sigs.k8s.io/e2e-framework/klient/wait/conditions"
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
+
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 )
 
 // DefaultPollInterval is the suggested poll interval for wait.For.

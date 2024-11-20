@@ -3,13 +3,14 @@ package manifest
 import (
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"time"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 )
 
 // AwaitTimeout waits timeout duration and then checks the status of manifest denoted by provided manifestName

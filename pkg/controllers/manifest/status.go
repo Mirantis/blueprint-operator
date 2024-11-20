@@ -3,12 +3,13 @@ package manifest
 import (
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 
 	"github.com/go-logr/logr"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 )
 
 type Status struct {

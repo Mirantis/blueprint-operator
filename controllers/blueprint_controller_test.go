@@ -4,13 +4,13 @@ import (
 	"context"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 

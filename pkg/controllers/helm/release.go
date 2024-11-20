@@ -3,7 +3,6 @@ package helm
 import (
 	"context"
 	"fmt"
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"strings"
 	"time"
 
@@ -11,11 +10,13 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1"
 	"github.com/go-logr/logr"
-	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
-	k8s "github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	k8s "github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
 )
 
 const (

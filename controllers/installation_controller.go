@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	operator "github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -15,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components/certmanager"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components/fluxcd"
@@ -46,7 +46,7 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	start := time.Now()
 	// Get the installation object if it exists so that we can save the original
 	// status before we merge/fill that object with other values.
-	instance := &operator.Installation{}
+	instance := &v1alpha1.Installation{}
 	if err := r.Client.Get(ctx, DefaultInstanceKey, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Installation instance not found")
@@ -119,7 +119,7 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *InstallationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := ctrl.NewControllerManagedBy(mgr).For(&operator.Installation{}).Complete(r); err != nil {
+	if err := ctrl.NewControllerManagedBy(mgr).For(&v1alpha1.Installation{}).Complete(r); err != nil {
 		return err
 	}
 
@@ -132,7 +132,7 @@ func (r *InstallationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // If the resource already exists, or if an error occurs, it logs the error and returns
 // without taking any action.
 func TryCreateInstallationResource(log logr.Logger, client client.Client) {
-	obj := &operator.Installation{ObjectMeta: metav1.ObjectMeta{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}}
+	obj := &v1alpha1.Installation{ObjectMeta: metav1.ObjectMeta{Name: DefaultInstanceKey.Name, Namespace: DefaultInstanceKey.Namespace}}
 	if err := client.Create(context.Background(), obj); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			log.Info("Installation resource already exists")
