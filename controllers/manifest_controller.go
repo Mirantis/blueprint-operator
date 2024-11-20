@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/mirantiscontainers/blueprint-operator/client/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	pkgmanifest "github.com/mirantiscontainers/blueprint-operator/pkg/controllers/manifest"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/event"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
