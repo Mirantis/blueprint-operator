@@ -25,6 +25,7 @@ import (
 
 	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/controllers"
+	blueprintwebhook "github.com/mirantiscontainers/blueprint-operator/pkg/webhook"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -110,7 +111,7 @@ func main() {
 		//   to save time on the initial implementation as we currently don't have CI for creating/managing other images.
 		//   The final implementation should be a separate image for the webhook server.
 		setupLog.Info("Running as webhook controller")
-		if err = (&v1alpha1.Blueprint{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = blueprintwebhook.SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Blueprint")
 			os.Exit(1)
 		}

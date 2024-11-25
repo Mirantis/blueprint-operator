@@ -1,6 +1,7 @@
-package v1alpha1
+package webhook
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -8,8 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 )
 
 const (
@@ -20,46 +22,65 @@ const (
 // log is for logging in this package.
 var blueprintlog = logf.Log.WithName("blueprint-resource")
 
-func (r *Blueprint) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(&v1alpha1.Blueprint{}).
+		WithDefaulter(&blueprintDefaulter{}).
+		WithValidator(&blueprintValidator{}).
 		Complete()
 }
 
 //+kubebuilder:webhook:path=/mutate-blueprint-mirantis-com-v1alpha1-blueprint,mutating=true,failurePolicy=fail,sideEffects=None,groups=blueprint.mirantis.com,resources=blueprints,verbs=create;update,versions=v1alpha1,name=mblueprint.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Defaulter = &Blueprint{}
+type blueprintDefaulter struct{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
-func (r *Blueprint) Default() {
-	blueprintlog.Info("default", "name", r.Name)
+func (r *blueprintDefaulter) Default(ctx context.Context, obj runtime.Object) error {
+	blueprint, ok := obj.(*v1alpha1.Blueprint)
+	if !ok {
+		return fmt.Errorf("obj %v is not a blueprint kind", obj.GetObjectKind())
+	}
+	blueprintlog.Info("default", "name", blueprint.Name)
+	return nil
 }
 
 // change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-blueprint-mirantis-com-v1alpha1-blueprint,mutating=false,failurePolicy=fail,sideEffects=None,groups=blueprint.mirantis.com,resources=blueprints,verbs=create;update,versions=v1alpha1,name=vblueprint.kb.io,admissionReviewVersions=v1
 
-var _ webhook.Validator = &Blueprint{}
+type blueprintValidator struct{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Blueprint) ValidateCreate() (admission.Warnings, error) {
-	blueprintlog.Info("validate create", "name", r.Name)
-	return validate(r.Spec)
+func (r *blueprintValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	blueprint, ok := obj.(*v1alpha1.Blueprint)
+	if !ok {
+		return nil, fmt.Errorf("obj %v is not a blueprint kind", obj.GetObjectKind())
+	}
+	blueprintlog.Info("validate create", "name", blueprint.Name)
+	return validate(blueprint.Spec)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Blueprint) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	blueprintlog.Info("validate update", "name", r.Name)
-	return validate(r.Spec)
+func (r *blueprintValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	blueprint, ok := newObj.(*v1alpha1.Blueprint)
+	if !ok {
+		return nil, fmt.Errorf("obj %v is not a blueprint kind", newObj.GetObjectKind())
+	}
+	blueprintlog.Info("validate update", "name", blueprint.Name)
+	return validate(blueprint.Spec)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Blueprint) ValidateDelete() (admission.Warnings, error) {
-	blueprintlog.Info("validate delete", "name", r.Name)
+func (r *blueprintValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	blueprint, ok := obj.(*v1alpha1.Blueprint)
+	if !ok {
+		return nil, fmt.Errorf("obj %v is not a blueprint kind", obj.GetObjectKind())
+	}
+	blueprintlog.Info("validate delete", "name", blueprint.Name)
 
 	return nil, nil
 }
 
-func validate(spec BlueprintSpec) (admission.Warnings, error) {
+func validate(spec v1alpha1.BlueprintSpec) (admission.Warnings, error) {
 	if len(spec.Components.Addons) == 0 {
 		return nil, nil
 	}
