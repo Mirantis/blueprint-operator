@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/test/mocks"
 )
 
@@ -35,13 +35,13 @@ var _ = Describe("Status", func() {
 			It("Should return unhealthy status", func() {
 				stat, err := mc.CheckManifestStatus(context.TODO(), logger, nil)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(stat).Should(Equal(Status{blueprintv1alpha1.TypeComponentUnhealthy, "No objects detected for manifest", ""}))
+				Expect(stat).Should(Equal(Status{v1alpha1.TypeComponentUnhealthy, "No objects detected for manifest", ""}))
 			})
 		})
 
 		Context("Error when retrieving deployment belonging to manifest", func() {
 			It("Should return unhealthy status", func() {
-				manifestObjects := []blueprintv1alpha1.ManifestObject{
+				manifestObjects := []v1alpha1.ManifestObject{
 					{
 						Kind:      "Deployment",
 						Name:      "TestDeployment",
@@ -58,7 +58,7 @@ var _ = Describe("Status", func() {
 
 				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).To(HaveOccurred())
-				Expect(stat).Should(Equal(Status{blueprintv1alpha1.TypeComponentUnhealthy, "Unable to get deployment from manifest", ""}))
+				Expect(stat).Should(Equal(Status{v1alpha1.TypeComponentUnhealthy, "Unable to get deployment from manifest", ""}))
 			})
 
 		})
@@ -67,7 +67,7 @@ var _ = Describe("Status", func() {
 	Context("Manifest still Progressing", func() {
 		Context("Single deployment manifest still progressing", func() {
 			It("Should return manifest status as still progressing", func() {
-				manifestObjects := []blueprintv1alpha1.ManifestObject{
+				manifestObjects := []v1alpha1.ManifestObject{
 					{
 						Kind:      "Deployment",
 						Name:      "TestDeployment",
@@ -88,13 +88,13 @@ var _ = Describe("Status", func() {
 
 				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(stat).Should(Equal(Status{blueprintv1alpha1.TypeComponentProgressing, "1 or more manifest deployments are still progressing", ""}))
+				Expect(stat).Should(Equal(Status{v1alpha1.TypeComponentProgressing, "1 or more manifest deployments are still progressing", ""}))
 			})
 		})
 
 		Context("Deployment is available but Daemonset still progressing", func() {
 			It("Should return manifest status as still progressing", func() {
-				manifestObjects := []blueprintv1alpha1.ManifestObject{
+				manifestObjects := []v1alpha1.ManifestObject{
 					{
 						Kind:      "Deployment",
 						Name:      "TestDeployment",
@@ -135,13 +135,13 @@ var _ = Describe("Status", func() {
 
 				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(stat).Should(Equal(Status{blueprintv1alpha1.TypeComponentProgressing, "1 or more manifest daemonsets are still progressing", ""}))
+				Expect(stat).Should(Equal(Status{v1alpha1.TypeComponentProgressing, "1 or more manifest daemonsets are still progressing", ""}))
 			})
 		})
 
 		Context("Daemonset is available but Deployment is still progressing", func() {
 			It("Should return manifest status as still progressing", func() {
-				manifestObjects := []blueprintv1alpha1.ManifestObject{
+				manifestObjects := []v1alpha1.ManifestObject{
 					{
 						Kind:      "Deployment",
 						Name:      "TestDeployment",
@@ -182,7 +182,7 @@ var _ = Describe("Status", func() {
 
 				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(stat).Should(Equal(Status{blueprintv1alpha1.TypeComponentProgressing, "1 or more manifest deployments are still progressing", ""}))
+				Expect(stat).Should(Equal(Status{v1alpha1.TypeComponentProgressing, "1 or more manifest deployments are still progressing", ""}))
 			})
 		})
 	})
@@ -190,7 +190,7 @@ var _ = Describe("Status", func() {
 	Context("Manifest is Available", func() {
 		Context("Deployment & Daemonset are both available", func() {
 			It("Should return manifest status as available", func() {
-				manifestObjects := []blueprintv1alpha1.ManifestObject{
+				manifestObjects := []v1alpha1.ManifestObject{
 					{
 						Kind:      "Deployment",
 						Name:      "TestDeployment",
@@ -231,7 +231,7 @@ var _ = Describe("Status", func() {
 				stat, err := mc.CheckManifestStatus(context.TODO(), logger, manifestObjects)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(stat).Should(Equal(Status{
-					blueprintv1alpha1.TypeComponentAvailable,
+					v1alpha1.TypeComponentAvailable,
 					"Manifest Components Available",
 					"Deployments : Manifest Deployments Available, Daemonsets : Manifest Daemonsets Available",
 				}))

@@ -9,26 +9,26 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 )
 
 func TestValidationWebhook(t *testing.T) {
 	f := features.New("Validation Webhook").
 		Assess("RejectsInValidBlueprint", func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
-			invalids := []blueprintv1alpha1.Blueprint{
+			invalids := []v1alpha1.Blueprint{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "invalid-blueprint-1",
 						Namespace: consts.NamespaceBlueprintSystem,
 					},
-					Spec: blueprintv1alpha1.BlueprintSpec{
-						Components: blueprintv1alpha1.Component{
-							Addons: []blueprintv1alpha1.AddonSpec{
+					Spec: v1alpha1.BlueprintSpec{
+						Components: v1alpha1.Component{
+							Addons: []v1alpha1.AddonSpec{
 								{
 									Name: "addon1",
 									Kind: "manifest",
-									Chart: &blueprintv1alpha1.ChartInfo{
+									Chart: &v1alpha1.ChartInfo{
 										Name: "some-chart",
 										Repo: "some-repo",
 									},
@@ -42,13 +42,13 @@ func TestValidationWebhook(t *testing.T) {
 						Name:      "invalid-blueprint-2",
 						Namespace: consts.NamespaceBlueprintSystem,
 					},
-					Spec: blueprintv1alpha1.BlueprintSpec{
-						Components: blueprintv1alpha1.Component{
-							Addons: []blueprintv1alpha1.AddonSpec{
+					Spec: v1alpha1.BlueprintSpec{
+						Components: v1alpha1.Component{
+							Addons: []v1alpha1.AddonSpec{
 								{
 									Name: "addon1",
 									Kind: "chart",
-									Manifest: &blueprintv1alpha1.ManifestInfo{
+									Manifest: &v1alpha1.ManifestInfo{
 										URL: "https://some-url",
 									},
 								},

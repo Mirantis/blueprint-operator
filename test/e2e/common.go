@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+
 	"testing"
 	"time"
 
@@ -12,10 +13,9 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
-
 	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
 func newAddon(a metav1.ObjectMeta) *v1alpha1.Addon {

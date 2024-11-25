@@ -23,8 +23,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/controllers"
+	blueprintwebhook "github.com/mirantiscontainers/blueprint-operator/pkg/webhook"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -42,7 +43,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(apiextenv1.AddToScheme(scheme))
 
-	utilruntime.Must(blueprintv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	utilruntime.Must(certmanager.AddToScheme(scheme))
 
 	utilruntime.Must(helmv2.AddToScheme(scheme))
@@ -110,7 +111,7 @@ func main() {
 		//   to save time on the initial implementation as we currently don't have CI for creating/managing other images.
 		//   The final implementation should be a separate image for the webhook server.
 		setupLog.Info("Running as webhook controller")
-		if err = (&blueprintv1alpha1.Blueprint{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = blueprintwebhook.SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "Blueprint")
 			os.Exit(1)
 		}

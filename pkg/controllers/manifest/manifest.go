@@ -9,14 +9,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	blueprintv1alpha1 "github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/kustomize"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -36,7 +34,7 @@ func NewManifestController(client client.Client, logger logr.Logger) *Controller
 	}
 }
 
-func (mc *Controller) CreateManifest(ctx context.Context, namespace, name string, manifestSpec *blueprintv1alpha1.ManifestInfo) error {
+func (mc *Controller) CreateManifest(ctx context.Context, namespace, name string, manifestSpec *v1alpha1.ManifestInfo) error {
 
 	dataBytes, err := kustomize.Render(mc.logger, manifestSpec.URL, manifestSpec.Values)
 	if err != nil {
@@ -50,12 +48,12 @@ func (mc *Controller) CreateManifest(ctx context.Context, namespace, name string
 		return err
 	}
 
-	m := blueprintv1alpha1.Manifest{
+	m := v1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: blueprintv1alpha1.ManifestSpec{
+		Spec: v1alpha1.ManifestSpec{
 			Url:      manifestSpec.URL,
 			Timeout:  manifestSpec.Timeout,
 			Checksum: sum,
@@ -77,7 +75,7 @@ func (mc *Controller) CreateManifest(ctx context.Context, namespace, name string
 
 }
 
-func (mc *Controller) createOrUpdateManifest(ctx context.Context, m blueprintv1alpha1.Manifest) error {
+func (mc *Controller) createOrUpdateManifest(ctx context.Context, m v1alpha1.Manifest) error {
 
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
@@ -96,13 +94,13 @@ func (mc *Controller) createOrUpdateManifest(ctx context.Context, m blueprintv1a
 			// Store the newChecksum to the new computed value and store checksum to the old value.
 			// This value will be reset by manifest controller after the update workflow is completed.
 
-			newManifest := blueprintv1alpha1.Manifest{
+			newManifest := v1alpha1.Manifest{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            m.Name,
 					Namespace:       m.Namespace,
 					ResourceVersion: existing.ResourceVersion,
 				},
-				Spec: blueprintv1alpha1.ManifestSpec{
+				Spec: v1alpha1.ManifestSpec{
 					Url:           m.Spec.Url,
 					Checksum:      existing.Spec.Checksum,
 					NewChecksum:   m.Spec.Checksum,
@@ -140,11 +138,11 @@ func (mc *Controller) createOrUpdateManifest(ctx context.Context, m blueprintv1a
 	return nil
 }
 
-func (mc *Controller) checkIfManifestNeedsUpdate(m blueprintv1alpha1.Manifest, existing *blueprintv1alpha1.Manifest) bool {
+func (mc *Controller) checkIfManifestNeedsUpdate(m v1alpha1.Manifest, existing *v1alpha1.Manifest) bool {
 	return existing.Spec.Checksum != m.Spec.Checksum || existing.Spec.FailurePolicy != m.Spec.FailurePolicy || existing.Spec.Timeout != m.Spec.Timeout
 }
 
-func (mc *Controller) getExistingManifest(ctx context.Context, namespace, name string) (*blueprintv1alpha1.Manifest, error) {
+func (mc *Controller) getExistingManifest(ctx context.Context, namespace, name string) (*v1alpha1.Manifest, error) {
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
@@ -153,7 +151,7 @@ func (mc *Controller) getExistingManifest(ctx context.Context, namespace, name s
 		Name:      name,
 	}
 
-	existing := &blueprintv1alpha1.Manifest{}
+	existing := &v1alpha1.Manifest{}
 	err := mc.client.Get(ctx, key, existing)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {

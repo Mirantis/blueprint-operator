@@ -97,6 +97,10 @@ run: manifests generate fmt vet ## Run a controller from your host.
 docker-build: unit ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
+.PHONY: docker-build-amd64
+docker-build-amd64: ## Build docker image with the manager.
+	docker build --platform linux/amd64 -t ${IMG} .
+
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
