@@ -1,4 +1,4 @@
-module github.com/MirantisContainers/blueprint-operator/api
+module github.com/mirantiscontainers/blueprint-operator/api
 
 go 1.22.3
 
