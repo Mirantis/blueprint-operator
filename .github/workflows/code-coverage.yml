@@ -20,7 +20,7 @@ jobs:
         uses: fgrosse/go-coverage-report@v1.2.0
         id: report-step
         with:
-          github-baseline-workflow-ref: unit.yml
+          github-baseline-workflow-ref: test.yml
           root-package: github.com/mirantiscontainers/blueprint-operator/
           skip-comment: true # Skip comment from this action since it fails due to permissions and use different action for comment instead
       - name: Find Comment
