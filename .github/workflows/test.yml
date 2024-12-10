@@ -5,7 +5,7 @@ on:
     outputs:
       coverage_artifact_url:
         description: 'url of coverage artifact'
-        value: ${{ jobs.unit-tests.outputs.artifact-url }}
+        value: ${{ jobs.tests.outputs.artifact-url }}
   push:
     branches:
       - 'main'
