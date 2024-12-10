@@ -1,0 +1,43 @@
+name: Code Coverage
+
+on:
+  workflow_call:
+    inputs:
+      artifact_url:
+        description: 'url of coverage artifact'
+        required: true
+        type: string
+      pr_number:
+        description: 'Pull Request Number'
+        required: true
+        type: number
+
+jobs:
+  code-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code coverage Report
+        uses: fgrosse/go-coverage-report@v1.2.0
+        id: report-step
+        with:
+          github-baseline-workflow-ref: unit.yml
+          root-package: github.com/mirantiscontainers/blueprint-operator/
+          skip-comment: true # Skip comment from this action since it fails due to permissions and use different action for comment instead
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: fc
+        with:
+          issue-number: ${{ inputs.pr_number }}
+          comment-author: 'mirantiscontainers-bot'
+          body-includes: Coverage Report
+      - name: Comment on the PR
+        uses: peter-evans/create-or-update-comment@v3
+        if: ${{ steps.report-step.outputs.coverage_report != '' }}
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          token: ${{ secrets.PAT_CI_BOUNDLESS }}
+          issue-number: ${{ inputs.pr_number }}
+          edit-mode: replace
+          body: |
+            [Coverage Report](${{ inputs.artifact_url }})
+            ${{ steps.report-step.outputs.coverage_report }}

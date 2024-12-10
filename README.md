@@ -1,8 +1,48 @@
-# blueprint-operator
-// TODO(user): Add simple overview of use/purpose
+# Blueprint Operator 
+## Overview
+The Blueprint Operator is a comprehensive system designed to manage the lifecycle of Kubernetes clusters and their associated components through the use of a Blueprint. Originally known as Boundless, the Blueprint Operator has been rebranded to better align with its purpose and capabilities. It provides an efficient way to describe, configure, and manage the entire stack of a Kubernetes environment, from the infrastructure level to individual add-ons.
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+## Blueprint Specification
+A Blueprint is a YAML-based specification that serves as a blueprint for defining a Kubernetes cluster and its add-on components. This specification is flexible, allowing users to define both the Kubernetes cluster and the add-ons that together constitute a fully functional product or environment.
+
+- Kubernetes Cluster Definition: Users can define the specifics of their Kubernetes cluster, including the provider, version, and infrastructure configuration.
+- Add-On Components: These are additional components such as Helm Charts or Operators that enhance the functionality of the Kubernetes cluster. Each add-on is described in detail within the Blueprint, including its configuration and deployment specifics.
+## Goals
+The primary goals of the Blueprint Operator are:
+
+- Simplify Add-On Management: Provide a straightforward way to describe and configure Kubernetes add-ons.
+- Lifecycle Management: Ensure the smooth management of the lifecycle of Kubernetes distributions and their components.
+- Cluster Definition: Allow users to define and manage the entire Kubernetes cluster if desired.
+## Add-Ons
+Add-Ons are individual Kubernetes components that can be installed or updated as part of the Blueprint. They may include:
+
+- Helm Charts: Pre-configured Kubernetes resources packaged together.
+- Operators: Kubernetes applications that extend the API to manage complex software life cycles.
+- Kubernetes Distro and Components Management: Ensuring the appropriate distribution and components are deployed and managed correctly.
+
+## Blueprint Operator Features
+The Blueprint Operator offers several key features to ensure reliable and efficient management of Kubernetes environments:
+
+- Lifecycle Management: The operator ensures the lifecycle management of add-ons described in a Blueprint, whether they are Helm Charts or operator manifests.
+
+- Secure Secret Management: Allows for the secure passing of secrets within Blueprints using environment variable substitution.
+
+- Selective Installation: Supports installing only the add-ons if the Kubernetes infrastructure is already present, bypassing unnecessary steps.
+
+- Idempotent Operations: Ensures idempotent operations for install, update, and delete actions, avoiding unintended side effects from repeated actions.
+
+- Pre-Install Upgrade Checks: Performs checks before installation to ensure that components can be installed without issues, such as insufficient CPU, memory, or storage, or misconfigured Kubernetes settings. This includes a dry-run feature for generating a pre-install report.
+
+- Comprehensive Logging: Generates detailed logs for every action taken, aiding in debugging and root cause analysis should any issues arise.
+
+- Rollback Support: Supports automatic rollback after a configurable number of retries, providing resilience against failed deployments.
+
+- Tooling Support: Includes a CLI for managing Blueprints and clusters, bundling all required dependencies (e.g., k0s CLI, Helm). The end user only needs to install the [Blueprint CLI](https://github.com/MirantisContainers/blueprint-cli), simplifying the setup process.  This is still in progress.
+
+Here is an example [Blueprint YAML](https://mirantiscontainers.github.io/blueprint/docs/blueprint-reference/) .
+
+
+The Blueprint Operator is a powerful tool for managing Kubernetes clusters and their components, providing users with the flexibility, control, and reliability needed to manage complex environments effectively.
 
 ## Getting Started
 You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
@@ -44,7 +84,7 @@ make undeploy
 ```
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
+We welcome your help in building Blueprint! If you are interested, we invite you to check out the [Contributing Guide](./CONTRIBUTING.md) and the [Code of Conduct](./CODE-OF-CONDUCT.md).
 
 ### How it works
 This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/).

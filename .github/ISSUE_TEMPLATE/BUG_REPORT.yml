@@ -1,0 +1,56 @@
+name: 🐞 Bug Report
+description: Create a report to assist us in making improvements.
+labels:
+  - bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Thanks :heart: for taking the time to fill out this bug report!**
+        Before you start, do you know if someone else has reported the same bug?
+
+  - type: textarea
+    attributes:
+      label: Current Behavior
+      description: |
+        Can you explain what you are experiencing in a couple of sentences?
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: |
+        What were you expecting to happen?
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Steps To Reproduce
+      description: List the steps you take to reproduce what you experienced.
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        List your environment, to help others reproduce.
+
+      value: |
+        OS:
+
+        Product Version:
+
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: |
+        Let us know any other information which might be helpful in solving this bug.
+    validations:
+      required: false

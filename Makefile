@@ -66,7 +66,8 @@ test: unit integration ## Run unit and integration tests
 
 .PHONY: unit
 unit: manifests generate fmt vet ## Run unit tests.
-	go test $(UNIT_DIR) -coverprofile cover.out
+	go test $(UNIT_DIR) -coverprofile coverage.txt
+	go tool cover -html=coverage.txt -o coverage.html
 
 .PHONY: integration
 integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
@@ -96,6 +97,10 @@ run: manifests generate fmt vet ## Run a controller from your host.
 .PHONY: docker-build
 docker-build: unit ## Build docker image with the manager.
 	docker build -t ${IMG} .
+
+.PHONY: docker-build-amd64
+docker-build-amd64: ## Build docker image with the manager.
+	docker build --platform linux/amd64 -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -143,10 +148,9 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 .PHONY: build-operator-manifest
 build-operator-manifest: kustomize manifests ## builds mke operator manifest file
-	cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
-	@$(KUSTOMIZE) build config/default > ./deploy/static/blueprint-operator.yaml
-	# TODO: remove this once all references to boundless-operator.yaml are eliminated
-	cd deploy/static && ln -sf blueprint-operator.yaml boundless-operator.yaml
+	@cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
+	@mkdir -p deploy/static
+	@$(KUSTOMIZE) build config/default > deploy/static/blueprint-operator.yaml
 
 ##@ Build Dependencies
 
@@ -162,11 +166,11 @@ ENVTEST = $(LOCALBIN)/setup-envtest
 GINKGO = $(LOCALBIN)/ginkgo
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v3.8.7
-CONTROLLER_TOOLS_VERSION ?= v0.15.0
-GINKGO_VERSION ?= v2.13.2
+KUSTOMIZE_VERSION ?= 5.4.3
+CONTROLLER_TOOLS_VERSION ?= v0.16.3
+GINKGO_VERSION ?= v2.19.0
 
-KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/release-kustomize-v$(KUSTOMIZE_VERSION)/hack/install_kustomize.sh"
 .PHONY: kustomize
 kustomize: $(LOCALBIN) ## Download kustomize locally if necessary(i.e. if not present or has the wrong version).
 	@if test -x $(LOCALBIN)/kustomize && ! $(LOCALBIN)/kustomize version | grep -q $(KUSTOMIZE_VERSION); then \

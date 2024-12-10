@@ -29,7 +29,7 @@ jobs:
         run: docker save ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest -o /tmp/${{ env.IMAGE }}.tar
 
       - name: Upload image artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.IMAGE }}
           retention-days: 1

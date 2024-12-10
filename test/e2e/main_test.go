@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envfuncs"
 	"sigs.k8s.io/e2e-framework/support/kind"
 
-	"github.com/mirantiscontainers/boundless-operator/test/e2e/funcs"
+	"github.com/mirantiscontainers/blueprint-operator/test/e2e/funcs"
 )
 
 var (
@@ -39,11 +39,11 @@ func TestMain(m *testing.M) {
 		// load image into kind cluster
 		envfuncs.LoadDockerImageToCluster(kindClusterName, operatorImage),
 
-		// add boundless types to scheme
-		funcs.AddBoundlessTypeToScheme(),
+		// add blueprint types to scheme
+		funcs.AddBlueprintTypeToScheme(),
 
-		// install boundless operator
-		funcs.InstallBoundlessOperator(operatorImage),
+		// install blueprint operator
+		funcs.InstallBlueprintOperator(operatorImage),
 	)
 
 	testenv.Finish(

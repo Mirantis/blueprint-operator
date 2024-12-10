@@ -27,11 +27,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
-	pkgmanifest "github.com/mirantiscontainers/boundless-operator/pkg/controllers/manifest"
-	"github.com/mirantiscontainers/boundless-operator/pkg/event"
-	"github.com/mirantiscontainers/boundless-operator/pkg/kubernetes"
-	"github.com/mirantiscontainers/boundless-operator/pkg/kustomize"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	pkgmanifest "github.com/mirantiscontainers/blueprint-operator/pkg/controllers/manifest"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/event"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/kustomize"
 )
 
 const (
@@ -78,7 +78,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		Name:      req.Name,
 	}
 
-	instance := &boundlessv1alpha1.Manifest{}
+	instance := &v1alpha1.Manifest{}
 	if err = r.Client.Get(ctx, key, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Manifest instance not found. Ignoring since object must be deleted.", "Name", req.Name)
@@ -98,7 +98,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if err := r.Update(ctx, instance); err != nil {
 				logger.Info("failed to update manifest object with finalizer", "Name", req.Name, "Finalizer", finalizerName)
 				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest object with finalizer %s/%s", instance.Namespace, instance.Name)
-				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest object with finalizer", fmt.Sprintf("failed to update manifest object with finalizer : %s", err))
+				r.updateStatus(ctx, logger, key, v1alpha1.TypeComponentUnhealthy, "failed to update manifest object with finalizer", fmt.Sprintf("failed to update manifest object with finalizer : %s", err))
 				return ctrl.Result{}, err
 			}
 			logger.Info("finalizer added successfully", "Name", req.Name, "Finalizer", finalizerName)
@@ -111,7 +111,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if err = r.DeleteManifestObjects(ctx, instance.Spec.Objects); err != nil {
 				logger.Error(err, "failed to delete manifest objects")
 				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedDelete, "failed to delete manifest objects %s/%s", instance.Namespace, instance.Name)
-				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to delete manifest objects", fmt.Sprintf("failed to delete manifest objects : %s", err))
+				r.updateStatus(ctx, logger, key, v1alpha1.TypeComponentUnhealthy, "failed to delete manifest objects", fmt.Sprintf("failed to delete manifest objects : %s", err))
 				return ctrl.Result{}, err
 			}
 
@@ -120,7 +120,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if err = r.Update(ctx, instance); err != nil {
 				logger.Error(err, "failed to remove finalizer")
 				r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonSuccessfulCreate, "failed to remove finalizer %s/%s", instance.Namespace, instance.Name)
-				r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to remove finalizer", fmt.Sprintf("failed to remove finalizer : %s", err))
+				r.updateStatus(ctx, logger, key, v1alpha1.TypeComponentUnhealthy, "failed to remove finalizer", fmt.Sprintf("failed to remove finalizer : %s", err))
 				return ctrl.Result{}, err
 			}
 		}
@@ -147,7 +147,7 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err = r.updateManifestStatus(ctx, logger, req.NamespacedName, instance.Spec.Objects); err != nil {
 			logger.Error(err, "failed to update manifest status")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest status %s/%s : %s", instance.Namespace, instance.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest status", fmt.Sprintf("failed to update manifest status : %s", err))
+			r.updateStatus(ctx, logger, key, v1alpha1.TypeComponentUnhealthy, "failed to update manifest status", fmt.Sprintf("failed to update manifest status : %s", err))
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -159,13 +159,13 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// First, update the checksum to avoid any reconciliation
 		// Update the CRD
 		// @todo (Ranyodh): The CRD should also add finalizer (or do a Patch() update), otherwise, the finalizer will be removed
-		updatedCRD := boundlessv1alpha1.Manifest{
+		updatedCRD := v1alpha1.Manifest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            instance.Name,
 				Namespace:       instance.Namespace,
 				ResourceVersion: instance.ResourceVersion,
 			},
-			Spec: boundlessv1alpha1.ManifestSpec{
+			Spec: v1alpha1.ManifestSpec{
 				Url:           instance.Spec.Url,
 				Checksum:      instance.Spec.NewChecksum,
 				NewChecksum:   instance.Spec.NewChecksum,
@@ -182,15 +182,15 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err = r.Update(ctx, &updatedCRD); err != nil {
 			logger.Error(err, "failed to update manifest crd while update operation")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest resource while update operation %s/%s : %s", instance.Namespace, instance.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation ", fmt.Sprintf("failed to update manifest crd while update operation  : %s", err))
+			r.updateStatus(ctx, logger, key, v1alpha1.TypeComponentUnhealthy, "failed to update manifest crd while update operation ", fmt.Sprintf("failed to update manifest crd while update operation  : %s", err))
 			return ctrl.Result{}, err
 		}
 
-		// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#pullrequestreview-1754136032
+		// TODO: https://github.com/mirantiscontainers/blueprint-operator/pull/17#pullrequestreview-1754136032
 		if err = r.UpdateManifestObjects(req, ctx, instance); err != nil {
 			logger.Error(err, "failed to update manifest")
 			r.Recorder.AnnotatedEventf(instance, map[string]string{event.AddonAnnotationKey: instance.Name}, event.TypeWarning, event.ReasonFailedCreate, "failed to update manifest %s/%s : %s", instance.Namespace, instance.Name, err.Error())
-			r.updateStatus(ctx, logger, key, boundlessv1alpha1.TypeComponentUnhealthy, "failed to update manifest ", fmt.Sprintf("failed to update manifest  : %s", err))
+			r.updateStatus(ctx, logger, key, v1alpha1.TypeComponentUnhealthy, "failed to update manifest ", fmt.Sprintf("failed to update manifest  : %s", err))
 			return ctrl.Result{}, err
 		}
 
@@ -211,13 +211,13 @@ func (r *ManifestReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// First, update the checksum in CRD to avoid any reconciliations.
 		// Update the CRD
 		// @todo (Ranyodh): The CRD should also add finalizer (or do a Patch() update), otherwise, the finalizer will be removed
-		updatedCRD := boundlessv1alpha1.Manifest{
+		updatedCRD := v1alpha1.Manifest{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            instance.Name,
 				Namespace:       instance.Namespace,
 				ResourceVersion: instance.ResourceVersion,
 			},
-			Spec: boundlessv1alpha1.ManifestSpec{
+			Spec: v1alpha1.ManifestSpec{
 				Url:           instance.Spec.Url,
 				Checksum:      instance.Spec.Checksum,
 				NewChecksum:   instance.Spec.Checksum,
@@ -274,7 +274,7 @@ func (r *ManifestReconciler) retryUpgradeInstallAfterTimeout(ctx context.Context
 	timeoutErr := mc.AwaitTimeout(logger, manifestName, timeout)
 	if timeoutErr != nil {
 		// manifest is not available before timeout
-		var manifest boundlessv1alpha1.Manifest
+		var manifest v1alpha1.Manifest
 		err := r.Get(ctx, manifestName, &manifest)
 		if err != nil {
 			logger.Error(err, "Failed to get manifest")
@@ -310,8 +310,8 @@ func (r *ManifestReconciler) retryUpgradeInstallAfterTimeout(ctx context.Context
 func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	// attaches an index onto the Manifest
 	// This is done, so we can later easily find the addon associated with a particular deployment or daemonset
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &boundlessv1alpha1.Manifest{}, manifestUpdateIndex, func(rawObj client.Object) []string {
-		manifest := rawObj.(*boundlessv1alpha1.Manifest)
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.Manifest{}, manifestUpdateIndex, func(rawObj client.Object) []string {
+		manifest := rawObj.(*v1alpha1.Manifest)
 		if manifest.Spec.Objects == nil || len(manifest.Spec.Objects) == 0 {
 			return nil
 		}
@@ -329,7 +329,7 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&boundlessv1alpha1.Manifest{}).
+		For(&v1alpha1.Manifest{}).
 		Watches(
 			&appsv1.DaemonSet{},
 			handler.EnqueueRequestsFromMapFunc(r.findAssociatedManifest),
@@ -346,7 +346,7 @@ func (r *ManifestReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // findAssociatedManifest finds the manifest tied to a particular object if one exists
 // This is done by looking for the manifest that was previously indexed in the form objectNamespace-objectName
 func (r *ManifestReconciler) findAssociatedManifest(ctx context.Context, obj client.Object) []reconcile.Request {
-	attachedManifestList := &boundlessv1alpha1.ManifestList{}
+	attachedManifestList := &v1alpha1.ManifestList{}
 	//TODO: this index will clash if we have multiple deployments / daemonsets with the same name and namespace
 	err := r.List(context.TODO(), attachedManifestList, client.MatchingFields{manifestUpdateIndex: fmt.Sprintf("%s-%s", obj.GetNamespace(), obj.GetName())})
 	if err != nil {
@@ -379,9 +379,9 @@ func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, manifest
 	if err != nil {
 		return err
 	}
-	var manifestObjs []boundlessv1alpha1.ManifestObject
+	var manifestObjs []v1alpha1.ManifestObject
 	for _, o := range objs {
-		manifestObjs = append(manifestObjs, boundlessv1alpha1.ManifestObject{
+		manifestObjs = append(manifestObjs, v1alpha1.ManifestObject{
 			Group:     o.GroupVersionKind().Group,
 			Version:   o.GroupVersionKind().Version,
 			Kind:      o.GetKind(),
@@ -390,22 +390,22 @@ func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, manifest
 		})
 	}
 
-	// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#discussion_r1408570381
+	// TODO: https://github.com/mirantiscontainers/blueprint-operator/pull/17#discussion_r1408570381
 	// Update the CRD
 
-	crd := &boundlessv1alpha1.Manifest{}
+	crd := &v1alpha1.Manifest{}
 	if err = r.Client.Get(ctx, manifestNamespacedName, crd); err != nil {
 		logger.Error(err, "failed to get manifest resource %s/%s", manifestNamespacedName.Namespace, manifestNamespacedName.Namespace)
 		return fmt.Errorf("failed to get manifest resource %s/%s: %w", manifestNamespacedName.Namespace, manifestNamespacedName.Namespace, err)
 	}
 	// Update the CRD
-	updatedCRD := boundlessv1alpha1.Manifest{
+	updatedCRD := v1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            crd.Name,
 			Namespace:       crd.Namespace,
 			ResourceVersion: crd.ResourceVersion,
 		},
-		Spec: boundlessv1alpha1.ManifestSpec{
+		Spec: v1alpha1.ManifestSpec{
 			Url:           crd.Spec.Url,
 			Checksum:      crd.Spec.Checksum,
 			NewChecksum:   crd.Spec.NewChecksum,
@@ -423,7 +423,7 @@ func (r *ManifestReconciler) CreateManifestObjects(ctx context.Context, manifest
 	return nil
 }
 
-func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectList []boundlessv1alpha1.ManifestObject) error {
+func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectList []v1alpha1.ManifestObject) error {
 	logger := log.FromContext(ctx)
 
 	var objs []*unstructured.Unstructured
@@ -447,7 +447,7 @@ func (r *ManifestReconciler) DeleteManifestObjects(ctx context.Context, objectLi
 }
 
 // UpdateManifestObjects reads the manifest from a url and then create or update the new/existing objects in the cluster
-func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context.Context, existing *boundlessv1alpha1.Manifest) error {
+func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context.Context, existing *v1alpha1.Manifest) error {
 	logger := log.FromContext(ctx)
 
 	// Create kustomize file, generate kustomize build output and update the objects.
@@ -470,9 +470,9 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	if err != nil {
 		return err
 	}
-	var newManifestObjs []boundlessv1alpha1.ManifestObject
+	var newManifestObjs []v1alpha1.ManifestObject
 	for _, o := range objs {
-		newManifestObjs = append(newManifestObjs, boundlessv1alpha1.ManifestObject{
+		newManifestObjs = append(newManifestObjs, v1alpha1.ManifestObject{
 			Group:     o.GroupVersionKind().Group,
 			Version:   o.GroupVersionKind().Version,
 			Kind:      o.GetKind(),
@@ -487,7 +487,7 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 		Name:      req.Name,
 	}
 
-	crd := &boundlessv1alpha1.Manifest{}
+	crd := &v1alpha1.Manifest{}
 	err = r.Client.Get(ctx, key, crd)
 	if err != nil {
 		logger.Error(err, "failed to get manifest object")
@@ -495,13 +495,13 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	}
 
 	// @todo (Ranyodh): The CRD should also add finalizer (or do a Patch() update), otherwise, the finalizer will be removed
-	updatedCRD := boundlessv1alpha1.Manifest{
+	updatedCRD := v1alpha1.Manifest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            crd.Name,
 			Namespace:       crd.Namespace,
 			ResourceVersion: crd.ResourceVersion,
 		},
-		Spec: boundlessv1alpha1.ManifestSpec{
+		Spec: v1alpha1.ManifestSpec{
 			Url:           crd.Spec.Url,
 			Checksum:      crd.Spec.NewChecksum,
 			NewChecksum:   crd.Spec.NewChecksum,
@@ -523,11 +523,11 @@ func (r *ManifestReconciler) UpdateManifestObjects(req ctrl.Request, ctx context
 	return nil
 }
 
-// TODO: https://github.com/mirantiscontainers/boundless-operator/pull/17#discussion_r1408571732
-func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx context.Context, oldObjects []boundlessv1alpha1.ManifestObject, newObjects []boundlessv1alpha1.ManifestObject) {
+// TODO: https://github.com/mirantiscontainers/blueprint-operator/pull/17#discussion_r1408571732
+func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx context.Context, oldObjects []v1alpha1.ManifestObject, newObjects []v1alpha1.ManifestObject) {
 	logger := log.FromContext(ctx)
 
-	var obsolete []boundlessv1alpha1.ManifestObject
+	var obsolete []v1alpha1.ManifestObject
 
 	if len(oldObjects) > 0 && len(newObjects) > 0 {
 		for _, old := range oldObjects {
@@ -552,7 +552,7 @@ func (r *ManifestReconciler) findAndDeleteObsoleteObjects(req ctrl.Request, ctx 
 	}
 }
 
-func (r *ManifestReconciler) updateManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []boundlessv1alpha1.ManifestObject) error {
+func (r *ManifestReconciler) updateManifestStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, objects []v1alpha1.ManifestObject) error {
 	mc := pkgmanifest.NewManifestController(r.Client, logger)
 	manifestStatus, err := mc.CheckManifestStatus(ctx, logger, objects)
 	if err != nil {
@@ -568,17 +568,17 @@ func (r *ManifestReconciler) updateManifestStatus(ctx context.Context, logger lo
 
 // updateStatus queries for a fresh Manifest with the provided namespacedName.
 // It then updates the Manifest's status fields with the provided type, reason, and optionally message.
-func (r *ManifestReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply boundlessv1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
+func (r *ManifestReconciler) updateStatus(ctx context.Context, logger logr.Logger, namespacedName types.NamespacedName, typeToApply v1alpha1.StatusType, reasonToApply string, messageToApply ...string) error {
 	logger.Info("Update status with type and reason", "TypeToApply", typeToApply, "ReasonToApply", reasonToApply)
 
-	manifest := &boundlessv1alpha1.Manifest{}
+	manifest := &v1alpha1.Manifest{}
 	err := r.Get(ctx, namespacedName, manifest)
 	if err != nil {
 		logger.Error(err, "Failed to get manifest to update status")
 		return err
 	}
 
-	nilStatus := boundlessv1alpha1.ManifestStatus{}
+	nilStatus := v1alpha1.ManifestStatus{}
 	if manifest.Status != nilStatus && manifest.Status.Type == typeToApply && manifest.Status.Reason == reasonToApply {
 		// avoid infinite reconciliation loops
 		logger.Info("No updates to status needed")

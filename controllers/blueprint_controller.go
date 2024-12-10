@@ -9,15 +9,18 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/mirantiscontainers/boundless-operator/pkg/consts"
-	"github.com/mirantiscontainers/boundless-operator/pkg/utils"
-
-	boundlessv1alpha1 "github.com/mirantiscontainers/boundless-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
 )
+
+// managedByBOPSelector only selects objects with the label indicating that the object is managed by blueprint operator
+var managedByBOPSelector = utils.MustLabelSelector(consts.ManagedByLabel, selection.Equals, []string{consts.ManagedByValue})
 
 // BlueprintReconciler reconciles a Blueprint object
 type BlueprintReconciler struct {
@@ -41,7 +44,7 @@ type BlueprintReconciler struct {
 func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Reconcile request on Blueprint instance", "Name", req.Name)
-	instance := &boundlessv1alpha1.Blueprint{}
+	instance := &v1alpha1.Blueprint{}
 	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.Info("Blueprint instance not found. Ignoring since object must be deleted.", "Name", req.Name)
@@ -77,7 +80,7 @@ func (r *BlueprintReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.Logger, instance *boundlessv1alpha1.Blueprint) error {
+func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.Logger, instance *v1alpha1.Blueprint) error {
 	addonsToUninstall, err := r.getInstalledAddons(ctx, logger)
 	if err != nil {
 		return err
@@ -86,6 +89,11 @@ func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.L
 	for _, addonSpec := range instance.Spec.Components.Addons {
 		if addonSpec.Namespace == "" {
 			addonSpec.Namespace = instance.Namespace
+		}
+
+		if !addonSpec.Enabled {
+			// No create/update the addon if it is not enabled
+			continue
 		}
 
 		logger.Info("Reconciling addonSpec", "Name", addonSpec.Name, "Spec.Namespace", addonSpec.Namespace)
@@ -111,14 +119,14 @@ func (r *BlueprintReconciler) reconcileAddons(ctx context.Context, logger logr.L
 }
 
 // getInstalledAddons returns a map of addons that are presently installed in the cluster
-func (r *BlueprintReconciler) getInstalledAddons(ctx context.Context, logger logr.Logger) (map[string]boundlessv1alpha1.Addon, error) {
-	allAddonsInCluster := &boundlessv1alpha1.AddonList{}
+func (r *BlueprintReconciler) getInstalledAddons(ctx context.Context, logger logr.Logger) (map[string]v1alpha1.Addon, error) {
+	allAddonsInCluster := &v1alpha1.AddonList{}
 	if err := r.List(ctx, allAddonsInCluster); err != nil {
 		return nil, err
 	}
 
 	logger.Info("existing addons are", "addonNames", allAddonsInCluster.Items)
-	addonsToUninstall := make(map[string]boundlessv1alpha1.Addon)
+	addonsToUninstall := make(map[string]v1alpha1.Addon)
 	for _, addon := range allAddonsInCluster.Items {
 		addonsToUninstall[addon.GetName()] = addon
 	}
@@ -127,7 +135,7 @@ func (r *BlueprintReconciler) getInstalledAddons(ctx context.Context, logger log
 }
 
 // deleteAddons deletes provided addonsToUninstall from the cluster
-func (r *BlueprintReconciler) deleteAddons(ctx context.Context, logger logr.Logger, addonsToUninstall map[string]boundlessv1alpha1.Addon) error {
+func (r *BlueprintReconciler) deleteAddons(ctx context.Context, logger logr.Logger, addonsToUninstall map[string]v1alpha1.Addon) error {
 	for _, addon := range addonsToUninstall {
 		logger.Info("Removing addon", "Name", addon.Name, "Namespace", addon.Spec.Namespace)
 		if err := r.Delete(ctx, &addon, client.PropagationPolicy(metav1.DeletePropagationBackground)); client.IgnoreNotFound(err) != nil {
@@ -139,8 +147,8 @@ func (r *BlueprintReconciler) deleteAddons(ctx context.Context, logger logr.Logg
 	return nil
 }
 
-func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger logr.Logger, addon *boundlessv1alpha1.Addon) error {
-	existing := &boundlessv1alpha1.Addon{}
+func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger logr.Logger, addon *v1alpha1.Addon) error {
+	existing := &v1alpha1.Addon{}
 	if err := r.Get(ctx, client.ObjectKey{Name: addon.GetName(), Namespace: addon.GetNamespace()}, existing); err != nil {
 		if client.IgnoreNotFound(err) != nil {
 			return err
@@ -178,13 +186,13 @@ func (r *BlueprintReconciler) createOrUpdateAddon(ctx context.Context, logger lo
 	return nil
 }
 
-func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
-	addon := &boundlessv1alpha1.Addon{
+func addonResource(spec *v1alpha1.AddonSpec) *v1alpha1.Addon {
+	addon := &v1alpha1.Addon{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      spec.Name,
-			Namespace: consts.NamespaceBoundlessSystem,
+			Namespace: consts.NamespaceBlueprintSystem,
 		},
-		Spec: boundlessv1alpha1.AddonSpec{
+		Spec: v1alpha1.AddonSpec{
 			Name:      spec.Name,
 			Namespace: spec.Namespace,
 			Kind:      spec.Kind,
@@ -193,29 +201,30 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	}
 
 	if spec.Chart != nil {
-		addon.Spec.Chart = &boundlessv1alpha1.ChartInfo{
-			Name:    spec.Chart.Name,
-			Repo:    spec.Chart.Repo,
-			Version: spec.Chart.Version,
-			Set:     spec.Chart.Set,
-			Values:  spec.Chart.Values,
+		addon.Spec.Chart = &v1alpha1.ChartInfo{
+			Name:      spec.Chart.Name,
+			Repo:      spec.Chart.Repo,
+			Version:   spec.Chart.Version,
+			Set:       spec.Chart.Set,
+			Values:    spec.Chart.Values,
+			DependsOn: spec.Chart.DependsOn,
 		}
 	}
 
 	if spec.Manifest != nil {
 
 		if spec.Manifest.Values == nil {
-			addon.Spec.Manifest = &boundlessv1alpha1.ManifestInfo{
+			addon.Spec.Manifest = &v1alpha1.ManifestInfo{
 				URL:           spec.Manifest.URL,
 				FailurePolicy: spec.Manifest.FailurePolicy,
 				Timeout:       spec.Manifest.Timeout,
 			}
 		} else {
-			addon.Spec.Manifest = &boundlessv1alpha1.ManifestInfo{
+			addon.Spec.Manifest = &v1alpha1.ManifestInfo{
 				URL:           spec.Manifest.URL,
 				FailurePolicy: spec.Manifest.FailurePolicy,
 				Timeout:       spec.Manifest.Timeout,
-				Values: &boundlessv1alpha1.Values{
+				Values: &v1alpha1.Values{
 					Patches: spec.Manifest.Values.Patches,
 					Images:  spec.Manifest.Values.Images,
 				},
@@ -226,7 +235,7 @@ func addonResource(spec *boundlessv1alpha1.AddonSpec) *boundlessv1alpha1.Addon {
 	return addon
 }
 
-func issuerObject(issuer boundlessv1alpha1.Issuer) client.Object {
+func issuerObject(issuer v1alpha1.Issuer) client.Object {
 	return &certmanager.Issuer{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "cert-manager.io/v1",
@@ -236,14 +245,14 @@ func issuerObject(issuer boundlessv1alpha1.Issuer) client.Object {
 			Name:      issuer.Name,
 			Namespace: issuer.Namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
+				consts.ManagedByLabel: consts.ManagedByValue,
 			},
 		},
 		Spec: issuer.Spec,
 	}
 }
 
-func clusterIssuerObject(issuer boundlessv1alpha1.ClusterIssuer) client.Object {
+func clusterIssuerObject(issuer v1alpha1.ClusterIssuer) client.Object {
 	return &certmanager.ClusterIssuer{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "cert-manager.io/v1",
@@ -252,14 +261,14 @@ func clusterIssuerObject(issuer boundlessv1alpha1.ClusterIssuer) client.Object {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: issuer.Name,
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
+				consts.ManagedByLabel: consts.ManagedByValue,
 			},
 		},
 		Spec: issuer.Spec,
 	}
 }
 
-func certificateObject(certificate boundlessv1alpha1.Certificate) client.Object {
+func certificateObject(certificate v1alpha1.Certificate) client.Object {
 	return &certmanager.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "cert-manager.io/v1",
@@ -269,7 +278,7 @@ func certificateObject(certificate boundlessv1alpha1.Certificate) client.Object 
 			Name:      certificate.Name,
 			Namespace: certificate.Namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": "blueprint-operator",
+				consts.ManagedByLabel: consts.ManagedByValue,
 			},
 		},
 		Spec: certificate.Spec,
@@ -278,7 +287,7 @@ func certificateObject(certificate boundlessv1alpha1.Certificate) client.Object 
 
 func listIssuers(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
 	issuerList := &certmanager.IssuerList{}
-	if err := apiClient.List(ctx, issuerList); err != nil {
+	if err := apiClient.List(ctx, issuerList, managedByBOPSelector); err != nil {
 		return nil, err
 	}
 
@@ -287,7 +296,7 @@ func listIssuers(ctx context.Context, apiClient client.Client) ([]client.Object,
 
 func listClusterIssuers(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
 	clusterIssuerList := &certmanager.ClusterIssuerList{}
-	if err := apiClient.List(ctx, clusterIssuerList); err != nil {
+	if err := apiClient.List(ctx, clusterIssuerList, managedByBOPSelector); err != nil {
 		return nil, err
 	}
 
@@ -296,7 +305,7 @@ func listClusterIssuers(ctx context.Context, apiClient client.Client) ([]client.
 
 func listCertificates(ctx context.Context, apiClient client.Client) ([]client.Object, error) {
 	certificateList := &certmanager.CertificateList{}
-	if err := apiClient.List(ctx, certificateList); err != nil {
+	if err := apiClient.List(ctx, certificateList, managedByBOPSelector); err != nil {
 		return nil, err
 	}
 
@@ -318,6 +327,6 @@ func convertToObjects[T any](items []T, converter func(T) client.Object) []clien
 // SetupWithManager sets up the controller with the Manager.
 func (r *BlueprintReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&boundlessv1alpha1.Blueprint{}).
+		For(&v1alpha1.Blueprint{}).
 		Complete(r)
 }

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.3
   name: manifests.blueprint.mirantis.com
 spec:
   group: blueprint.mirantis.com
@@ -118,6 +118,8 @@ spec:
                             TagSuffix is the value used to suffix the original tag
                             If Digest and NewTag is present an error is thrown
                           type: string
+                      required:
+                      - name
                       type: object
                     type: array
                   patches:
