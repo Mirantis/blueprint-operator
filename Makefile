@@ -66,7 +66,8 @@ test: unit integration ## Run unit and integration tests
 
 .PHONY: unit
 unit: manifests generate fmt vet ## Run unit tests.
-	go test $(UNIT_DIR) -coverprofile cover.out
+	go test $(UNIT_DIR) -coverprofile coverage.txt
+	go tool cover -html=coverage.txt -o coverage.html
 
 .PHONY: integration
 integration: manifests generate fmt vet envtest ginkgo ## Run integration tests.
