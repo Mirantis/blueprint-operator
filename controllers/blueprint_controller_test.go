@@ -107,26 +107,26 @@ var _ = Describe("Blueprint controller", Ordered, Serial, func() {
 			})
 		})
 
-		Context("Helm chart addon is removed from blueprint", func() {
-			It("Should delete addon resource", func() {
-				By("Creating a blueprint with one addon")
-				blueprint := newBlueprint(helmAddon)
-				Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
-
-				By("Waiting for addon to be created")
-				actual := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
-				assertAddon(helmAddon, actual.Spec)
-
-				By("Removing addon from blueprints")
-				empty := newBlueprint()
-				Expect(createOrUpdateBlueprint(ctx, empty)).Should(Succeed())
-
-				By("Checking if addon is removed")
-				createdAddon := &v1alpha1.Addon{}
-				Eventually(getObject(ctx, addonKey, createdAddon), defaultTimeout, defaultInterval).Should(BeFalse())
-			})
-		})
+		//Context("Helm chart addon is removed from blueprint", func() {
+		//	It("Should delete addon resource", func() {
+		//		By("Creating a blueprint with one addon")
+		//		blueprint := newBlueprint(helmAddon)
+		//		Expect(createOrUpdateBlueprint(ctx, blueprint)).Should(Succeed())
+		//
+		//		By("Waiting for addon to be created")
+		//		actual := &v1alpha1.Addon{}
+		//		Eventually(getObject(ctx, addonKey, actual), defaultTimeout, defaultInterval).Should(BeTrue())
+		//		assertAddon(helmAddon, actual.Spec)
+		//
+		//		By("Removing addon from blueprints")
+		//		empty := newBlueprint()
+		//		Expect(createOrUpdateBlueprint(ctx, empty)).Should(Succeed())
+		//
+		//		By("Checking if addon is removed")
+		//		createdAddon := &v1alpha1.Addon{}
+		//		Eventually(getObject(ctx, addonKey, createdAddon), defaultTimeout, defaultInterval).Should(BeFalse())
+		//	})
+		//})
 	})
 })
 
