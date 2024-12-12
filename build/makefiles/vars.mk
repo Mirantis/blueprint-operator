@@ -5,7 +5,7 @@
 COMMIT=$(shell git rev-parse --short HEAD)
 DATE=$(shell date -u '+%Y-%m-%d')
 IMAGE_REPO?=ghcr.io/mirantiscontainers
-IMAGE_NAME?=mke-operator
+IMAGE_NAME?=blueprint-operator
 
 # A basic dev tag is by default so that the same image is rebuilt during development
 VERSION?=dev
