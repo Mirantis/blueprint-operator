@@ -37,7 +37,7 @@ jobs:
         run: |
           COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
           echo ${{ env.IMAGE }}:$COMMIT_SHA
-          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.IMAGE }}:$COMMIT_SHA
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:dev ${{ env.IMAGE }}:$COMMIT_SHA
 
       - name: Generate the operator manifest
         run: |
