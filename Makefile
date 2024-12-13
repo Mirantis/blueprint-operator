@@ -1,17 +1,12 @@
+PROJECT_DIR := $(shell pwd)
 PACKAGES := $(shell go list ./... | grep -v /test)
 
-VERSION ?= latest
-
-# IMAGE_TAG_BASE defines registry and org name of the blueprint operator image.
-IMAGE_REPO ?= ghcr.io/mirantiscontainers
-IMAGE_TAG_BASE ?= $(IMAGE_REPO)/blueprint-operator
+# This is determined outside of the Makefile so it can be shared elseware
+include build/makefiles/vars.mk
 
 # Set the Operator SDK version to use. By default, what is installed on the system is used.
 # This is useful for CI or a project to utilize a specific version of the operator-sdk toolkit.
 OPERATOR_SDK_VERSION ?= v1.31.0
-
-# Image URL to use all building/pushing image targets
-IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.28.0
@@ -95,12 +90,12 @@ run: manifests generate fmt vet ## Run a controller from your host.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: docker-build
-docker-build: unit ## Build docker image with the manager.
-	docker build -t ${IMG} .
+docker-build: ## Build docker image with the manager.
+	docker build --build-arg VERSION=${VERSION} --build-arg COMMIT=${COMMIT} --build-arg DATE=${DATE} -t ${IMG} .
 
 .PHONY: docker-build-amd64
 docker-build-amd64: ## Build docker image with the manager.
-	docker build --platform linux/amd64 -t ${IMG} .
+	docker build --build-arg VERSION=${VERSION} --build-arg COMMIT=${COMMIT} --build-arg DATE=${DATE} --platform linux/amd64 -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
@@ -148,6 +143,7 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 
 .PHONY: build-operator-manifest
 build-operator-manifest: kustomize manifests ## builds mke operator manifest file
+	@mkdir -p deploy/static
 	@cd config/manager && $(KUSTOMIZE) edit set image ghcr.io/mirantiscontainers/blueprint-operator=${IMG}
 	@mkdir -p deploy/static
 	@$(KUSTOMIZE) build config/default > deploy/static/blueprint-operator.yaml
