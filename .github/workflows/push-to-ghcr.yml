@@ -35,7 +35,9 @@ jobs:
 
       - name: Push latest image to ${{ env.REGISTRY }}
         working-directory: .
-        run: docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest
+        run: |
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:dev ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest
 
   push-semver:
     if: ${{ github.event_name == 'release' }}
@@ -71,7 +73,7 @@ jobs:
         run: |
           SEMVER=${GITHUB_REF#refs/*/}
           echo ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
-          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:dev ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
           docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$SEMVER
 
   push-sha:
@@ -108,7 +110,7 @@ jobs:
         run: |
           COMMIT_SHA=$(git rev-parse --short "$GITHUB_SHA")
           echo ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
-          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
+          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:dev ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
           docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:$COMMIT_SHA
 
   push-dev:
@@ -143,5 +145,4 @@ jobs:
       - name: Push Dev image to ${{ env.REGISTRY }}
         working-directory: .
         run: |
-          docker tag ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:latest ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:dev
           docker push ${{ env.REGISTRY }}/${{ env.ORG }}/${{ env.IMAGE }}:dev
