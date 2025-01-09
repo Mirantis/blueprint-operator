@@ -1,4 +1,4 @@
-# Blueprint Operator 
+# Blueprint Operator [![cov](https://github.com/Mirantis/blueprint-operator/wiki/coverage.svg)](https://github.com/Mirantis/blueprint-operator/wiki/coverage.svg)
 ## Overview
 The Blueprint Operator is a comprehensive system designed to manage the lifecycle of Kubernetes clusters and their associated components through the use of a Blueprint. Originally known as Boundless, the Blueprint Operator has been rebranded to better align with its purpose and capabilities. It provides an efficient way to describe, configure, and manage the entire stack of a Kubernetes environment, from the infrastructure level to individual add-ons.
 
