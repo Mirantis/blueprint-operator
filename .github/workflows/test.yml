@@ -40,6 +40,16 @@ jobs:
           name: code-coverage
           path: coverage.*
 
+      - name: Update coverage badge
+        uses: ncruces/go-coverage-report@v0
+        if: github.ref == 'refs/heads/main'
+        with:
+          report: false
+          chart: false
+          amend: true
+          badge-style: flat
+          coverage-file: coverage.txt
+
       - name: Run Integration Tests
         working-directory: .
         run: make integration
