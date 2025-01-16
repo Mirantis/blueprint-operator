@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -21,10 +22,12 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/mirantiscontainers/blueprint-operator/api/v1alpha1"
 	"github.com/mirantiscontainers/blueprint-operator/controllers"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	blueprintwebhook "github.com/mirantiscontainers/blueprint-operator/pkg/webhook"
 	//+kubebuilder:scaffold:imports
 )
@@ -61,17 +64,26 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var imageRegistry string
+	var printImagesFlag bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&webhook, "webhook", false, "Run as webhook controller")
+	flag.StringVar(&imageRegistry, "image-registry", consts.MirantisImageRegistry, "The registry for pulling system images")
+	flag.BoolVar(&printImagesFlag, "print-images", false, "Print the images used by the operator and exit")
 	opts := zap.Options{
 		Development: false,
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+
+	if printImagesFlag {
+		printImages(imageRegistry)
+		return
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
@@ -144,9 +156,10 @@ func main() {
 			os.Exit(1)
 		}
 		if err = (&controllers.InstallationReconciler{
-			Client:      mgr.GetClient(),
-			Scheme:      mgr.GetScheme(),
-			SetupLogger: setupLog,
+			Client:        mgr.GetClient(),
+			Scheme:        mgr.GetScheme(),
+			SetupLogger:   setupLog,
+			ImageRegistry: imageRegistry,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "Installation")
 			os.Exit(1)
@@ -169,4 +182,19 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func printImages(imageRegistry string) {
+	for _, c := range controllers.AllComponents(nil, log.Log, imageRegistry) {
+		for _, image := range c.Images() {
+			fmt.Println(image)
+		}
+	}
+
+	if version == "" {
+		version = "dev"
+	}
+
+	fmt.Printf("%s/blueprint-operator:%s\n", imageRegistry, version)
+	return
 }

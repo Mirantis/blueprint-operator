@@ -1,10 +1,8 @@
 package webhook
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -41,6 +39,11 @@ func NewWebhookComponent(client client.Client, logger logr.Logger) components.Co
 	}
 }
 
+func (c *webhook) Images() []string {
+	// webhook uses the same image as the controller manager, so no need to repeat it here
+	return []string{}
+}
+
 // Name returns the name of the component
 func (c *webhook) Name() string {
 	return "webhook"
@@ -75,13 +78,13 @@ func (c *webhook) Install(ctx context.Context) error {
 		Image: operatorImage,
 	}
 
-	rendered, err := renderTemplate(webhookTemplate, cfg)
+	rendered, err := utils.ParseTemplate(webhookTemplate, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to render webhook template: %w", err)
 	}
 
 	c.logger.V(2).Info("applying webhook resources with image: %s", operatorImage)
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader(rendered)); err != nil {
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader(rendered.Bytes())); err != nil {
 		return err
 	}
 
@@ -137,19 +140,4 @@ func (c *webhook) CheckExists(ctx context.Context) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func renderTemplate(source string, cfg webhookConfig) ([]byte, error) {
-	tmpl, err := template.New("dummy").Parse(source)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse webhook template: %w", err)
-	}
-
-	buf := &bytes.Buffer{}
-	err = tmpl.Execute(buf, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to execute webhook template: %w", err)
-	}
-
-	return buf.Bytes(), nil
 }

@@ -76,7 +76,7 @@ spec:
                 resourceFieldRef:
                   containerName: manager
                   resource: limits.memory
-          image: fluxcd/source-controller:v1.3.0
+          image: {{ .SourceControllerImage }}
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:

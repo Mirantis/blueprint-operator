@@ -5172,7 +5172,7 @@ spec:
         effect: NoSchedule
       containers:
         - name: cert-manager
-          image: "quay.io/jetstack/cert-manager-cainjector:v1.9.1"
+          image: {{ .CAInjectorImage }}
           imagePullPolicy: IfNotPresent
           args:
           - --v=2
@@ -5227,7 +5227,7 @@ spec:
         effect: NoSchedule
       containers:
         - name: cert-manager
-          image: "quay.io/jetstack/cert-manager-controller:v1.9.1"
+          image: {{ .ControllerImage }}
           imagePullPolicy: IfNotPresent
           args:
           - --v=2
@@ -5283,7 +5283,7 @@ spec:
         effect: NoSchedule
       containers:
         - name: cert-manager
-          image: "quay.io/jetstack/cert-manager-webhook:v1.9.1"
+          image: {{ .WebhookImage }}
           imagePullPolicy: IfNotPresent
           args:
           - --v=2

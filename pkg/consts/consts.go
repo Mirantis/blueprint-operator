@@ -21,4 +21,7 @@ const (
 
 	// ManagedByValue is the label value used to identify resources managed by the blueprint operator
 	ManagedByValue = "blueprint-operator"
+
+	// MirantisImageRegistry is the default image registry for Mirantis images
+	MirantisImageRegistry = "ghcr.io/mirantiscontainers"
 )
