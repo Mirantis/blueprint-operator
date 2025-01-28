@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
+	"github.com/mirantiscontainers/blueprint-operator/internal/template"
 )
 
 func Test_renderTemplate(t *testing.T) {
@@ -32,7 +32,7 @@ func Test_renderTemplate(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := utils.ParseTemplate(test.source, test.cfg)
+			got, err := template.ParseTemplate(test.source, test.cfg)
 			assert.NoError(t, err)
 			assert.True(t, strings.Contains(got.String(), test.cfg.Image), "Expected replacement not found in rendered template: %s", got.String())
 		})

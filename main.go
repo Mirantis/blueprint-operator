@@ -187,12 +187,9 @@ func main() {
 func printImages(imageRegistry string) {
 	for _, c := range controllers.AllComponents(nil, log.Log, imageRegistry) {
 		for _, image := range c.Images() {
+			// the println is used instead of logging for easier parsing
 			fmt.Println(image)
 		}
-	}
-
-	if version == "" {
-		version = "dev"
 	}
 
 	fmt.Printf("%s/blueprint-operator:%s\n", imageRegistry, version)

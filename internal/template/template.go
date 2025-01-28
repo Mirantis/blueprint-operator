@@ -1,4 +1,5 @@
-package utils
+// Package template provides utilities for parsing and Go templates.
+package template
 
 import (
 	"bytes"

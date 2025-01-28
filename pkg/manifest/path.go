@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
+	"github.com/mirantiscontainers/blueprint-operator/internal/template"
 )
 
 type reader func(fs.FS, string, interface{}) ([]*unstructured.Unstructured, error)
@@ -50,7 +50,7 @@ func ReadTemplate(rfs fs.FS, pathname string, cfg interface{}) ([]*unstructured.
 // parseTemplateFile parses a single file as a template using the provided config struct
 // and returns unstructured manifest objects.
 func parseTemplateFile(rfs fs.FS, pathname string, cfg interface{}) ([]*unstructured.Unstructured, error) {
-	buf, err := utils.ParseFSTemplate(rfs, pathname, cfg)
+	buf, err := template.ParseFSTemplate(rfs, pathname, cfg)
 	if err != nil {
 		return nil, err
 	}

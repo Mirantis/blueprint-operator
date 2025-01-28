@@ -10,6 +10,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/mirantiscontainers/blueprint-operator/internal/template"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
@@ -39,8 +40,9 @@ func NewWebhookComponent(client client.Client, logger logr.Logger) components.Co
 	}
 }
 
+// Images implements the components.Component interface, but returns an empty list
+// as the webhook uses the same image as the controller manager.
 func (c *webhook) Images() []string {
-	// webhook uses the same image as the controller manager, so no need to repeat it here
 	return []string{}
 }
 
@@ -78,7 +80,7 @@ func (c *webhook) Install(ctx context.Context) error {
 		Image: operatorImage,
 	}
 
-	rendered, err := utils.ParseTemplate(webhookTemplate, cfg)
+	rendered, err := template.ParseTemplate(webhookTemplate, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to render webhook template: %w", err)
 	}
