@@ -87,7 +87,7 @@ spec:
                 resourceFieldRef:
                   containerName: manager
                   resource: limits.memory
-          image: fluxcd/notification-controller:v1.3.0
+          image: {{ .NotificationControllerImage }}
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:

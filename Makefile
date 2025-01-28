@@ -80,7 +80,12 @@ e2e: ## Run e2e tests.
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+	go build -ldflags \
+    	"\
+    	-X main.commit=${COMMIT} \
+    	-X main.version=${VERSION} \
+    	-X main.date=${DATE} \
+        " -o manager main.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.

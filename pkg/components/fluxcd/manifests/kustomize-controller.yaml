@@ -52,7 +52,7 @@ spec:
                 resourceFieldRef:
                   containerName: manager
                   resource: limits.memory
-          image: fluxcd/kustomize-controller:v1.3.0
+          image: {{ .KustomizeControllerImage }}
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:

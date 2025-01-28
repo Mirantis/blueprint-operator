@@ -1,10 +1,8 @@
 package webhook
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -12,6 +10,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/mirantiscontainers/blueprint-operator/internal/template"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
@@ -39,6 +38,12 @@ func NewWebhookComponent(client client.Client, logger logr.Logger) components.Co
 		client: client,
 		logger: logger,
 	}
+}
+
+// Images implements the components.Component interface, but returns an empty list
+// as the webhook uses the same image as the controller manager.
+func (c *webhook) Images() []string {
+	return []string{}
 }
 
 // Name returns the name of the component
@@ -75,13 +80,13 @@ func (c *webhook) Install(ctx context.Context) error {
 		Image: operatorImage,
 	}
 
-	rendered, err := renderTemplate(webhookTemplate, cfg)
+	rendered, err := template.ParseTemplate(webhookTemplate, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to render webhook template: %w", err)
 	}
 
 	c.logger.V(2).Info("applying webhook resources with image: %s", operatorImage)
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader(rendered)); err != nil {
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader(rendered.Bytes())); err != nil {
 		return err
 	}
 
@@ -137,19 +142,4 @@ func (c *webhook) CheckExists(ctx context.Context) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func renderTemplate(source string, cfg webhookConfig) ([]byte, error) {
-	tmpl, err := template.New("dummy").Parse(source)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse webhook template: %w", err)
-	}
-
-	buf := &bytes.Buffer{}
-	err = tmpl.Execute(buf, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("unable to execute webhook template: %w", err)
-	}
-
-	return buf.Bytes(), nil
 }

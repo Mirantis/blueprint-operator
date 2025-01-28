@@ -7,6 +7,9 @@ type Component interface {
 	// Name returns the name of the component
 	Name() string
 
+	// Images returns the images used by the component
+	Images() []string
+
 	// Install installs the component
 	Install(ctx context.Context) error
 

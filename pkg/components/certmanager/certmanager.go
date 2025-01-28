@@ -10,6 +10,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/mirantiscontainers/blueprint-operator/internal/template"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
@@ -21,25 +22,74 @@ const (
 	deploymentCAInjector  = "cert-manager-cainjector"
 	deploymentCertManager = "cert-manager"
 	deploymentWebhook     = "cert-manager-webhook"
+
+	// images
+
+	caInjectorImage = "jetstack/cert-manager-cainjector"
+	controllerImage = "jetstack/cert-manager-controller"
+	webhookImage    = "jetstack/cert-manager-webhook"
 )
 
 // certManager is a component that manages cert manager in the cluster.
 type certManager struct {
-	client client.Client
-	logger logr.Logger
+	client        client.Client
+	logger        logr.Logger
+	imageRegistry string
+}
+
+// imageConfig holds the images for the cert manager components
+type imageConfig struct {
+	CAInjectorImage string
+	ControllerImage string
+	WebhookImage    string
+}
+
+func newImageConfig(registry string) imageConfig {
+	if registry == "" {
+		registry = consts.MirantisImageRegistry
+	}
+
+	return imageConfig{
+		CAInjectorImage: fmt.Sprintf("%s/%s:%s", registry, caInjectorImage, consts.CertManagerCAInjectorImageTag),
+		ControllerImage: fmt.Sprintf("%s/%s:%s", registry, controllerImage, consts.CertManagerControllerImageTag),
+		WebhookImage:    fmt.Sprintf("%s/%s:%s", registry, webhookImage, consts.CertManagerWebhookImageTag),
+	}
 }
 
 // NewCertManagerComponent creates a new instance of the cert manager component.
-func NewCertManagerComponent(client client.Client, logger logr.Logger) components.Component {
+func NewCertManagerComponent(client client.Client, logger logr.Logger, imageRegistry string) components.Component {
 	return &certManager{
-		client: client,
-		logger: logger,
+		client:        client,
+		logger:        logger,
+		imageRegistry: imageRegistry,
 	}
 }
 
 // Name returns the name of the component.
 func (c *certManager) Name() string {
 	return "cert-manager"
+}
+
+// Images returns the images used by cert manager.
+func (c *certManager) Images() []string {
+	images := newImageConfig(c.imageRegistry)
+
+	return []string{
+		images.CAInjectorImage,
+		images.ControllerImage,
+		images.WebhookImage,
+	}
+}
+
+func (c *certManager) renderManifest() ([]byte, error) {
+	images := newImageConfig(c.imageRegistry)
+
+	manifest, err := template.ParseTemplate(certManagerTemplate, images)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse cert-manager manifest template: %w", err)
+	}
+
+	return manifest.Bytes(), nil
 }
 
 // Install installs cert manager in the cluster.
@@ -54,11 +104,16 @@ func (c *certManager) Install(ctx context.Context) error {
 	}
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
-	if err := applier.Apply(ctx, kubernetes.NewManifestReader([]byte(certManagerTemplate))); err != nil {
+
+	certManagerManifest, err := c.renderManifest()
+	if err != nil {
+		return fmt.Errorf("unable to render cert-manager manifest: %w", err)
+	}
+	if err := applier.Apply(ctx, kubernetes.NewManifestReader(certManagerManifest)); err != nil {
 		return err
 	}
 
-	resources, err := kubernetes.NewManifestReader([]byte(certManagerTemplate)).ReadManifest()
+	resources, err := kubernetes.NewManifestReader(certManagerManifest).ReadManifest()
 	if err != nil {
 		return err
 	}
@@ -104,7 +159,13 @@ func (c *certManager) Uninstall(ctx context.Context) error {
 	defer cancel()
 
 	applier := kubernetes.NewApplier(c.logger, c.client)
-	reader := kubernetes.NewManifestReader([]byte(certManagerTemplate))
+
+	certManagerManifest, err := c.renderManifest()
+	if err != nil {
+		return fmt.Errorf("unable to render cert-manager manifest: %w", err)
+	}
+
+	reader := kubernetes.NewManifestReader(certManagerManifest)
 	objs, err := reader.ReadManifest()
 	if err != nil {
 		return err

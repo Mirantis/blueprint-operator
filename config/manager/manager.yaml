@@ -68,6 +68,7 @@ spec:
         - /manager
         args:
         - --leader-elect
+        - --image-registry=ghcr.io/mirantiscontainers
         image: ghcr.io/mirantiscontainers/blueprint-operator:latest
         name: manager
         securityContext:

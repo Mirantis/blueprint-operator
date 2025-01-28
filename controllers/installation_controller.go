@@ -28,8 +28,9 @@ var (
 // InstallationReconciler reconciles a Installation object
 type InstallationReconciler struct {
 	client.Client
-	Scheme      *runtime.Scheme
-	SetupLogger logr.Logger
+	Scheme        *runtime.Scheme
+	SetupLogger   logr.Logger
+	ImageRegistry string
 }
 
 var installationFinalizer = "blueprint.mirantis.com/installation-finalizer"
@@ -37,6 +38,15 @@ var installationFinalizer = "blueprint.mirantis.com/installation-finalizer"
 //+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=installations,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=installations/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=blueprint.mirantis.com,resources=installations/finalizers,verbs=update
+
+// AllComponents returns a list of components installed by the blueprint operator
+func AllComponents(c client.Client, logger logr.Logger, imageRegistry string) []components.Component {
+	return []components.Component{
+		fluxcd.NewFluxCDComponent(c, logger, imageRegistry),
+		certmanager.NewCertManagerComponent(c, logger, imageRegistry),
+		webhook.NewWebhookComponent(c, logger),
+	}
+}
 
 // Reconcile reconciles the Installation resource and installs the necessary components
 // such as helm controller and cert manager.
@@ -57,11 +67,7 @@ func (r *InstallationReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// list of components to install
-	componentList := []components.Component{
-		fluxcd.NewFluxCDComponent(r.Client, logger),
-		certmanager.NewCertManagerComponent(r.Client, logger),
-		webhook.NewWebhookComponent(r.Client, logger),
-	}
+	componentList := AllComponents(r.Client, logger, r.ImageRegistry)
 
 	if instance.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(instance, installationFinalizer) {

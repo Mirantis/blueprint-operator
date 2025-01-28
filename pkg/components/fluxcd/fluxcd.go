@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/mirantiscontainers/blueprint-operator/pkg/components"
+	"github.com/mirantiscontainers/blueprint-operator/pkg/consts"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/kubernetes"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/manifest"
 	"github.com/mirantiscontainers/blueprint-operator/pkg/utils"
@@ -28,26 +29,67 @@ var (
 const (
 	fluxCDNamespace    = "flux-system"
 	helmControllerName = "helm-controller"
+
+	// images
+
+	helmControllerImage         = "fluxcd/helm-controller"
+	kustomizeControllerImage    = "fluxcd/kustomize-controller"
+	notificationControllerImage = "fluxcd/notification-controller"
+	sourceControllerImage       = "fluxcd/source-controller"
 )
 
 type fluxcdComponent struct {
-	applier *kubernetes.Applier
-	client  client.Client
-	logger  logr.Logger
+	applier       *kubernetes.Applier
+	client        client.Client
+	logger        logr.Logger
+	imageRegistry string
+}
+
+type imageConfig struct {
+	HelmControllerImage         string
+	KustomizeControllerImage    string
+	NotificationControllerImage string
+	SourceControllerImage       string
+}
+
+func newImageConfig(registry string) imageConfig {
+	if registry == "" {
+		registry = consts.MirantisImageRegistry
+	}
+
+	return imageConfig{
+		HelmControllerImage:         fmt.Sprintf("%s/%s:%s", registry, helmControllerImage, consts.FluxCDHelmControllerImageTag),
+		KustomizeControllerImage:    fmt.Sprintf("%s/%s:%s", registry, kustomizeControllerImage, consts.FluxCDKustomizeControllerImageTag),
+		NotificationControllerImage: fmt.Sprintf("%s/%s:%s", registry, notificationControllerImage, consts.FluxCDNotificationControllerImageTag),
+		SourceControllerImage:       fmt.Sprintf("%s/%s:%s", registry, sourceControllerImage, consts.FluxCDSourceControllerImageTag),
+	}
 }
 
 // NewFluxCDComponent creates a new instance of the fluxcd component.
-func NewFluxCDComponent(client client.Client, logger logr.Logger) components.Component {
+func NewFluxCDComponent(client client.Client, logger logr.Logger, imageRegistry string) components.Component {
 	return &fluxcdComponent{
-		applier: kubernetes.NewApplier(logger, client),
-		client:  client,
-		logger:  logger,
+		applier:       kubernetes.NewApplier(logger, client),
+		client:        client,
+		logger:        logger,
+		imageRegistry: imageRegistry,
 	}
 }
 
 // Name returns the name of the component
 func (c *fluxcdComponent) Name() string {
 	return "fluxcd"
+}
+
+// Images returns the images used by fluxcd
+func (c *fluxcdComponent) Images() []string {
+	images := newImageConfig(c.imageRegistry)
+
+	return []string{
+		images.HelmControllerImage,
+		images.KustomizeControllerImage,
+		images.NotificationControllerImage,
+		images.SourceControllerImage,
+	}
 }
 
 // Install installs the fluxcd component
@@ -143,7 +185,9 @@ func (c *fluxcdComponent) installCRDs(ctx context.Context) error {
 }
 
 func (c *fluxcdComponent) installFluxCD(ctx context.Context) error {
-	resources, err := manifest.Read(manifestsFiles, "manifests")
+	images := newImageConfig(c.imageRegistry)
+
+	resources, err := manifest.ReadTemplate(manifestsFiles, "manifests", images)
 	if err != nil {
 		return fmt.Errorf("failed to read FluxCD manifests: %w", err)
 	}
