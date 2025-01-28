@@ -25,15 +25,6 @@ const (
 
 	// images
 
-	// CAInjectorImageTag is the tag of the cert-manager cainjector image
-	CAInjectorImageTag = "v1.9.1"
-
-	// ControllerImageTag is the tag of the cert-manager controller image
-	ControllerImageTag = "v1.9.1"
-
-	// WebhookImageTag is the tag of the cert-manager webhook image
-	WebhookImageTag = "v1.9.1"
-
 	caInjectorImage = "jetstack/cert-manager-cainjector:v1.9.1"
 	controllerImage = "jetstack/cert-manager-controller:v1.9.1"
 	webhookImage    = "jetstack/cert-manager-webhook:v1.9.1"
@@ -59,9 +50,9 @@ func newImageConfig(registry string) imageConfig {
 	}
 
 	return imageConfig{
-		CAInjectorImage: fmt.Sprintf("%s/%s:%s", registry, caInjectorImage, CAInjectorImageTag),
-		ControllerImage: fmt.Sprintf("%s/%s:%s", registry, controllerImage, ControllerImageTag),
-		WebhookImage:    fmt.Sprintf("%s/%s:%s", registry, webhookImage, WebhookImageTag),
+		CAInjectorImage: fmt.Sprintf("%s/%s:%s", registry, caInjectorImage, consts.CertManagerCAInjectorImageTag),
+		ControllerImage: fmt.Sprintf("%s/%s:%s", registry, controllerImage, consts.CertManagerControllerImageTag),
+		WebhookImage:    fmt.Sprintf("%s/%s:%s", registry, webhookImage, consts.CertManagerWebhookImageTag),
 	}
 }
 

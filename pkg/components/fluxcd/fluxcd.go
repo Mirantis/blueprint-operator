@@ -32,18 +32,6 @@ const (
 
 	// images
 
-	// HelmControllerImageTag is the tag of the helm controller image
-	HelmControllerImageTag = "v1.0.1"
-
-	// KustomizeControllerImageTag is the tag of the kustomize controller image
-	KustomizeControllerImageTag = "v1.3.0"
-
-	// NotificationControllerImageTag is the tag of the notification controller image
-	NotificationControllerImageTag = "v1.3.0"
-
-	// SourceControllerImageTag is the tag of the source controller image
-	SourceControllerImageTag = "v1.3.0"
-
 	helmControllerImage         = "fluxcd/helm-controller:v1.0.1"
 	kustomizeControllerImage    = "fluxcd/kustomize-controller:v1.3.0"
 	notificationControllerImage = "fluxcd/notification-controller:v1.3.0"
@@ -70,10 +58,10 @@ func newImageConfig(registry string) imageConfig {
 	}
 
 	return imageConfig{
-		HelmControllerImage:         fmt.Sprintf("%s/%s:%s", registry, helmControllerImage, HelmControllerImageTag),
-		KustomizeControllerImage:    fmt.Sprintf("%s/%s:%s", registry, kustomizeControllerImage, KustomizeControllerImageTag),
-		NotificationControllerImage: fmt.Sprintf("%s/%s:%s", registry, notificationControllerImage, NotificationControllerImageTag),
-		SourceControllerImage:       fmt.Sprintf("%s/%s:%s", registry, sourceControllerImage, SourceControllerImageTag),
+		HelmControllerImage:         fmt.Sprintf("%s/%s:%s", registry, helmControllerImage, consts.FluxCDHelmControllerImageTag),
+		KustomizeControllerImage:    fmt.Sprintf("%s/%s:%s", registry, kustomizeControllerImage, consts.FluxCDKustomizeControllerImageTag),
+		NotificationControllerImage: fmt.Sprintf("%s/%s:%s", registry, notificationControllerImage, consts.FluxCDNotificationControllerImageTag),
+		SourceControllerImage:       fmt.Sprintf("%s/%s:%s", registry, sourceControllerImage, consts.FluxCDSourceControllerImageTag),
 	}
 }
 
