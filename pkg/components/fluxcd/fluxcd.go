@@ -32,10 +32,10 @@ const (
 
 	// images
 
-	helmControllerImage         = "fluxcd/helm-controller:v1.0.1"
-	kustomizeControllerImage    = "fluxcd/kustomize-controller:v1.3.0"
-	notificationControllerImage = "fluxcd/notification-controller:v1.3.0"
-	sourceControllerImage       = "fluxcd/source-controller:v1.3.0"
+	helmControllerImage         = "fluxcd/helm-controller"
+	kustomizeControllerImage    = "fluxcd/kustomize-controller"
+	notificationControllerImage = "fluxcd/notification-controller"
+	sourceControllerImage       = "fluxcd/source-controller"
 )
 
 type fluxcdComponent struct {

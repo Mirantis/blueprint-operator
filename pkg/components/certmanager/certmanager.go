@@ -25,9 +25,9 @@ const (
 
 	// images
 
-	caInjectorImage = "jetstack/cert-manager-cainjector:v1.9.1"
-	controllerImage = "jetstack/cert-manager-controller:v1.9.1"
-	webhookImage    = "jetstack/cert-manager-webhook:v1.9.1"
+	caInjectorImage = "jetstack/cert-manager-cainjector"
+	controllerImage = "jetstack/cert-manager-controller"
+	webhookImage    = "jetstack/cert-manager-webhook"
 )
 
 // certManager is a component that manages cert manager in the cluster.
